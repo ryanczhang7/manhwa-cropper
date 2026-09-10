@@ -89,7 +89,32 @@ case "$TOOL" in
       {
         printf '%s\n' "$MASKED" | grep -oE '>(>|\|)?[[:space:]]*[^|&;><()[:space:]]+'  | sed -E 's/^>(>|\|)?[[:space:]]*//'
         printf '%s\n' "$MASKED" | grep -oE '\btee\b([[:space:]]+-a)?[[:space:]]+[^|&;><()[:space:]]+' | awk '{print $NF}'
-        printf '%s\n' "$MASKED" | grep -oE '\bsed\b[^|&;()]*-i[^|&;()]*'              | awk '{print $NF}'
+        # An in-place `sed` writes EVERY operand, not just the last. `$NF`
+        # took one of
+        # them, so `sed -i s/a/b/ src/a.ts docs/notes.md` was judged on
+        # docs/notes.md and the frozen file went unexamined. Walking the
+        # tokens needs three rules and no more: a flag is skipped; -e/-f (and
+        # their bundled and long forms) additionally swallow the next token,
+        # which is a script or a script FILE and never a write target; and
+        # with neither of those present the first bare operand is the script.
+        # Everything after that is a file sed rewrites in place.
+        printf '%s\n' "$MASKED" | grep -oE '\bsed\b[^|&;()]*-i[^|&;()]*' | awk '
+          {
+            script = 0
+            for (i = 2; i <= NF; i++) {
+              t = $i
+              if (substr(t, 1, 1) == "-") {
+                if (t ~ /^-[A-Za-z]*[ef]$/ || t == "--expression" || t == "--file") {
+                  i++; script = 1                      # -e SCRIPT, -f FILE, -ne SCRIPT
+                } else if (t ~ /^--(expression|file)=/) {
+                  script = 1                           # the attached long form
+                }
+                continue
+              }
+              if (!script) { script = 1; continue }    # the bare script operand
+              print t
+            }
+          }'
         printf '%s\n' "$MASKED" | grep -oE '\b(cp|mv)\b[[:space:]]+[^|&;()]+'         | awk '{print $NF}'
         printf '%s\n' "$MASKED" | grep -oE '\b(rm|touch)\b[[:space:]]+[^|&;<>()]+'    | tr ' ' '\n' | grep -vE '^(rm|touch|-.*)$'
       } 2>/dev/null | tr -d '"'"'" | grep -vE '^\s*$|^-|\$|\*|^/dev/' | sort -u

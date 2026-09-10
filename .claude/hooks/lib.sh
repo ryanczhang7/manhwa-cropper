@@ -77,9 +77,29 @@ json_is_true() {
 #
 #   |  -> \001   &  -> \002   ;  -> \003   >  -> \004
 #   <  -> \005   SP -> \006   TAB-> \007   LF -> \010
+#   (  -> \016   )  -> \017
+#
+# \016 and \017 rather than the obvious \013 and \014: VT and FF are POSIX
+# whitespace, so `[[:space:]]` in the redirect and tee extractors would eat
+# them and the target would truncate exactly where it did before. That is the
+# same reason space and tab are masked to \006 and \007 up there and not to
+# something mnemonic. A mask character must be inert to every character class
+# the extractors use, not merely unusual.
 #
 # Control characters are used because no real command line contains them, so
 # the round trip cannot corrupt a path that had one of them already.
+#
+# Parens are masked for the same reason as the rest, and were missed at first
+# because they read as punctuation rather than as operators. Every extractor
+# treats them as terminators - a subshell's paren really does end a target -
+# so a paren in quoted DATA truncated the match and the fragment left behind
+# was classified on its own. `sed -i -e 's/if (x)/if (y)/' tests/t.ts` was
+# refused on `path: 111s/if `, a write the phase allowed; `cp 'src/a (1).ts'
+# docs/notes.md` was refused on `src/a ` while its real destination was never
+# looked at. Note the interaction with path_is_implausible, which declines any
+# token still holding a literal paren: that stays exactly right, because after
+# this a literal paren means the parse leaked syntax rather than that the
+# author quoted one.
 
 mask_shell_quotes() {
   awk '
@@ -91,6 +111,8 @@ mask_shell_quotes() {
       if (c == "<")  return "\005"
       if (c == " ")  return "\006"
       if (c == "\t") return "\007"
+      if (c == "(")  return "\016"
+      if (c == ")")  return "\017"
       return c
     }
     function maskstr(t,   k, o) {
@@ -202,7 +224,7 @@ mask_shell_quotes() {
 }
 
 unmask_shell_quotes() {
-  tr '\001\002\003\004\005\006\007\010' '|&;>< \t\n'
+  tr '\001\002\003\004\005\006\007\010\016\017' '|&;>< \t\n()'
 }
 
 # --- Paths ------------------------------------------------------------------

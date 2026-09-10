@@ -190,6 +190,78 @@ assert_blocked "$FIX" 'echo x >| src/main.ts'          src/main.ts 'clobber redi
 assert_allowed "$FIX" 'xargs touch < list'             'touch fed by an input redirect'
 
 # ---------------------------------------------------------------------------
+describe "RED: a paren inside a quoted argument is data, not a terminator"
+set_phase "$FIX" RED
+
+# mask_shell_quotes turned every operator inside a quoted span into a control
+# character so the extractors would see structure and not data - but it left
+# `(` and `)` alone, and every extractor treats them as terminators (a
+# subshell's paren really does end a target). So a paren in QUOTED data
+# truncated the match, and the fragment left behind was classified on its own.
+#
+# Reported from MC-003's RED as "the guard misparses sed -e": it refused
+#   sed -i -e '111s/if (x)/if (y)/' crates/core/tests/common/mod.rs
+# on `path: 111s/if `, a write to a test path that RED allows. `-e` was
+# innocent - the same command without it truncates identically - and the
+# believed workaround only worked because that command had no paren in it.
+assert_allowed "$FIX" "sed -i -e '111s/if (x)/if (y)/' tests/main.test.ts" \
+  'sed -i -e with parens in the script, writing a test'
+assert_allowed "$FIX" "sed -i 's/if (x)/if (y)/' tests/main.test.ts" \
+  'sed -i with parens in the script, writing a test'
+# The same truncation on cp: the quoted operand is a READ, and the fragment
+# `src/a ` left by cutting at the paren was blocked as source while the real
+# destination - docs, allowed in RED - was never looked at.
+assert_allowed "$FIX" "cp 'src/a (1).ts' docs/notes.md" \
+  'cp from a quoted name containing parens, writing docs'
+
+# It must not open a hole. Same scripts, real target now source.
+assert_blocked "$FIX" "sed -i -e '111s/if (x)/if (y)/' src/main.ts" \
+  src/main.ts 'sed -i -e with parens, writing source'
+assert_blocked "$FIX" "sed -i 's/if (x)/if (y)/' src/main.ts" \
+  src/main.ts 'sed -i with parens, writing source'
+# And the guard must be right on the WHOLE name rather than right by accident
+# on a prefix of it: this used to block on `src/my `, which is the same verdict
+# reached for the wrong reason and would have been wrong for `docs/my (1).md`.
+assert_blocked "$FIX" "echo x > 'src/my (1).ts'" \
+  'src/my (1).ts' 'quoted target containing parens'
+assert_blocked "$FIX" "rm 'src/x (1).ts'" \
+  'src/x (1).ts' 'rm of a quoted name containing parens'
+
+# ---------------------------------------------------------------------------
+describe "RED: sed -i writes every operand, not just the last one"
+set_phase "$FIX" RED
+
+# `awk '{print $NF}'` took the LAST field of the sed run, so a sed over several
+# files was judged on one of them. Found while fixing the paren truncation
+# above: this is the opposite failure - a hole, not a false positive - and the
+# more serious of the two, because a write to a frozen path went unexamined
+# whenever an allowed path happened to come last.
+assert_blocked "$FIX" "sed -i 's/a/b/' src/main.ts docs/notes.md" \
+  src/main.ts 'sed -i over two files, the frozen one first'
+assert_blocked "$FIX" "sed -i 's/a/b/' docs/notes.md src/main.ts" \
+  src/main.ts 'sed -i over two files, the frozen one last'
+assert_blocked "$FIX" "sed -i.bak 's/a/b/' src/main.ts docs/notes.md" \
+  src/main.ts 'sed -i with a backup suffix, several files'
+
+# The flags that consume the following token. `-e` and `-f` take a script and a
+# script FILE respectively; neither argument is a write target, and the script
+# file is only ever read.
+assert_allowed "$FIX" "sed -i -f src/fix.sed docs/notes.md" \
+  'sed -i -f: the script file is read, the operand is docs'
+assert_allowed "$FIX" "sed -i -e 's/a/b/' -e 's/c/d/' docs/notes.md" \
+  'sed -i with two -e scripts, writing docs'
+assert_blocked "$FIX" "sed -i -f fix.sed src/main.ts" \
+  src/main.ts 'sed -i -f writing source'
+assert_blocked "$FIX" "sed -i -e 's/a/b/' -e 's/c/d/' src/main.ts" \
+  src/main.ts 'sed -i with two -e scripts, writing source'
+
+# Without -e or -f the first operand is the script and must not be a target;
+# this is what the old $NF rule got right by accident and must keep getting
+# right.
+assert_allowed "$FIX" "sed -i 's/src/main.ts/x/' docs/notes.md" \
+  'a script that looks like a path is not a target'
+
+# ---------------------------------------------------------------------------
 describe "RED: a parse the guard cannot believe declines rather than denies"
 set_phase "$FIX" RED
 
