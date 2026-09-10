@@ -1,0 +1,17 @@
+[package]
+name = "cropper-core"
+description = "Pixels in, crop decision out. No I/O, no GUI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+proptest = { workspace = true }

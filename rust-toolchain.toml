@@ -1,0 +1,7 @@
+# Pinned toolchain (docs/wiki/stack.md). rustup reads this file and installs
+# the channel and components on first use, so a fresh clone gets the lint and
+# coverage gates' components without a manual step (docs/wiki/environment.md).
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt", "llvm-tools"]
+profile = "minimal"

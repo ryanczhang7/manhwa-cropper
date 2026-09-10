@@ -7,21 +7,28 @@ on:
 
 jobs:
   gates:
-    runs-on: ubuntu-latest
+    # Windows, not ubuntu: the product is Windows-only (docs/wiki/product-brief.md),
+    # eframe and rfd need X11/GTK development libraries on Linux that nothing
+    # else here wants, and the coverage gate's ignore regex was verified against
+    # the backslash paths cargo-llvm-cov prints on Windows (docs/wiki/environment.md).
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
-      # The harness itself needs nothing but bash. Add the toolchain your
-      # project.conf gate commands actually invoke - the bootstrap story should
-      # add the setup step for the chosen stack here.
-      #
-      # - uses: actions/setup-python@v5
-      #   with: { python-version: "3.12" }
-      # - uses: astral-sh/setup-uv@v5
-      #
-      # - uses: pnpm/action-setup@v4
-      # - uses: actions/setup-node@v4
-      #   with: { node-version: "22", cache: pnpm }
+      # The toolchain the project.conf gate commands invoke (docs/wiki/stack.md).
+      # Pinned to the same channel as rust-toolchain.toml so CI and a developer
+      # machine compile the same compiler.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          components: clippy, rustfmt, llvm-tools
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - uses: Swatinem/rust-cache@v2
 
       # The harness's own tests. They need nothing but bash and git, and they
       # guard the machinery every other check in this workflow depends on: the
