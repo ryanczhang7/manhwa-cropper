@@ -58,6 +58,15 @@ __pycache__/
 # Rust
 target/
 
+# proptest writes a seed file next to the test file whenever a case fails, and
+# recommends committing it. Here it is noise: this harness makes every story
+# probe its suite by deliberately breaking the implementation, so these files
+# record failures of code that was wrong on purpose and are re-run for nothing
+# afterwards. Found in MC-003's GREEN, when the mutation probes left one behind
+# that the shipped module passes. A genuine counterexample is not lost by this:
+# it goes in the story's `## Regressions` and comes back as a named test.
+*.proptest-regressions
+
 # Godot
 .godot/
 *.import
