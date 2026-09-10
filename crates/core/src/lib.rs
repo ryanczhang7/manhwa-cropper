@@ -7,10 +7,12 @@
 //! MC-001 leaves it as a walking skeleton: one type with one method, so the
 //! test runner and the coverage gate have something real to see. MC-003 adds
 //! the data model ([`Luma`], [`Rect`], [`Tuning`]) and the first pipeline
-//! stage, [`trim`]; the rest arrives story by story.
+//! stage, [`trim`]; MC-004 adds the second, [`edges`]; the rest arrives story
+//! by story.
 
 #![forbid(unsafe_code)]
 
+pub mod edges;
 pub mod trim;
 
 /// Width and height of a pixel plane, in pixels.

@@ -9,9 +9,20 @@
 //! Everything here is deterministic: the same `Recipe` always renders the same
 //! bytes, on any machine.
 //!
-//! Note for whoever extends it: this module is compiled into a test target
-//! that is linted at `-D warnings`, so an unused helper is a build failure.
-//! Add a field or a function in the story that first uses it.
+//! Note for whoever extends it: **add a field or a function in the story that
+//! first uses it.** MC-003 wrote that this was enforced mechanically - an
+//! unused helper being a build failure under `-D warnings` - and while there
+//! was exactly one test target that was true. MC-004 added a second
+//! (`tests/edges.rs`), and Cargo compiles `tests/common/mod.rs` separately
+//! into *each* test binary, so from that moment on every helper used by one
+//! target is dead code in the other: `flat_band`, `any_recipe`,
+//! `Recipe::art_rect` and `Layout::Gutters` are all unused in the `edges`
+//! target, and `soft_art` is unused in the `trim` target. The lint stopped
+//! being a guard and became noise the moment the second target existed, which
+//! is why the `allow` below is here and why the rule above is now a rule for
+//! people rather than for the compiler. It is not an invitation to leave dead
+//! fixtures behind.
+#![allow(dead_code)]
 
 use cropper_core::{Luma, Rect};
 use proptest::strategy::Strategy;
@@ -326,4 +337,64 @@ pub fn any_recipe(max_border: u32) -> impl Strategy<Value = Recipe> {
             },
             seed,
         })
+}
+
+// --- A second art texture: soft, for the edge tests (MC-004) ----------------
+
+/// The checkerboard art above is *maximally* textured on purpose: adjacent
+/// rows are opposite phases of the board, so the mean absolute difference
+/// between one art row and the next measures **165.7** (200 seeds, measured in
+/// MC-004's RED). Under `Tuning::edge_threshold = 24` that art is a strong
+/// line at every single row and column, which is exactly what MC-003 needed
+/// (nothing in it is ever uniform) and exactly the wrong fixture for MC-004
+/// AC-5, which needs art whose *own* texture is not an edge.
+///
+/// [`soft_art`] is that second texture. It is a triangular ramp in both axes
+/// plus seeded jitter: no discontinuity anywhere, so every adjacent-row and
+/// adjacent-column mean absolute difference stays well under
+/// `edge_threshold`, while the field as a whole still spans far more than
+/// `uniform_tolerance` and so is genuinely textured rather than flat.
+///
+/// Measured over 200 seeds at four sizes (7x5, 24x18, 40x30, 64x48): the
+/// largest adjacent-row mean absolute difference is **13.14** and the largest
+/// adjacent-column one **13.20**, against a threshold of 24. Whole-field
+/// spread ranges 49..96.
+const SOFT_BASE: u8 = 48;
+const SOFT_PERIOD_X: usize = 8;
+const SOFT_STEP_X: u32 = 6;
+const SOFT_PERIOD_Y: usize = 6;
+const SOFT_STEP_Y: u32 = 6;
+const SOFT_JITTER: u8 = 12;
+
+/// A triangular wave: `0, 1, .. period, period - 1, .. 0, 1, ..`. Consecutive
+/// values always differ by exactly 1, so a ramp driven by it has no
+/// discontinuity at any width or height - which is the whole point, since a
+/// wrapping sawtooth would put a strong line at every wrap.
+fn triangle(t: usize, period: usize) -> u32 {
+    let p = t % (2 * period);
+    (if p <= period { p } else { 2 * period - p }) as u32
+}
+
+/// Art whose own texture is not an edge: see the constants above. Deterministic
+/// in `seed`, and bounded well inside `u8` for the fixture sizes this suite
+/// uses (the ramps contribute at most `6 * 8 + 6 * 6 = 84` over a base of 48).
+///
+/// Used by `tests/edges.rs` (MC-004 AC-5); unused by `tests/trim.rs`, which is
+/// what the module-level `allow(dead_code)` at the top of this file is for.
+pub fn soft_art(width: u32, height: u32, seed: u32) -> Luma {
+    let mut rng = Rng::new(seed);
+    let mut data = vec![0u8; width as usize * height as usize];
+    for (y, row) in data.chunks_mut(width as usize).enumerate() {
+        for (x, px) in row.iter_mut().enumerate() {
+            let ramp = u32::from(SOFT_BASE)
+                + triangle(x, SOFT_PERIOD_X) * SOFT_STEP_X
+                + triangle(y, SOFT_PERIOD_Y) * SOFT_STEP_Y;
+            *px = (ramp.min(255) as u8).saturating_add(rng.between(0, SOFT_JITTER));
+        }
+    }
+    Luma {
+        width,
+        height,
+        data,
+    }
 }
