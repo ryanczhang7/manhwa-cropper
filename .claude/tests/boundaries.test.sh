@@ -182,4 +182,42 @@ commit_all "T-1 review"
 out="$(boundaries)"
 assert_contains "changed criteria with no amendment" "## Acceptance criteria differ from main" "$out"
 
+
+# ---------------------------------------------------------------------------
+describe "a large section is read, not silently treated as empty"
+
+# The bug this pins: `has_content` and `has_pasted_output` were
+# `strip_comments | grep -q ...`, and this script runs under `set -o pipefail`.
+# `grep -q` leaves at the first match, the awk upstream takes SIGPIPE on its
+# next write, and the pipeline reports 141 - which reads as false. So a story
+# was refused for having a handoff too BIG to fit one awk output buffer, and
+# the message said the handoff was empty. Nothing was printed to stderr,
+# because a SIGPIPE death is silent.
+#
+# The buffer size is the implementation's, so the threshold moves: gawk's is
+# large and mawk's is 8 KB, which is why this passed on developer machines and
+# failed on Ubuntu runners. The sections below are a megabyte so that the bug
+# reproduces under EVERY awk rather than only the runner's - a test that only
+# fails on CI is not much of a test.
+big_text() { # <lines> <prefix>
+  awk -v n="$1" -v p="$2" 'BEGIN { for (i = 0; i < n; i++)
+    print p " line " i " with enough text on it to make the section large" }'
+}
+
+# `story_on_branch` has already opened `## Handoff: RED -> GREEN`, so the first
+# block below lands inside it. A second heading of the same name would give
+# `section` a small section to stop at and the test would pass either way.
+{
+  big_text 16000 "handoff"
+  printf -- '\n## Gate probes\n\n'
+  big_text 16000 "    probe"
+  printf -- '\n'
+} > "$FIX/.big-sections"
+
+story_on_branch < "$FIX/.big-sections"
+out="$(boundaries)"
+assert_contains "a megabyte handoff is filled in" "## Handoff is filled in" "$out"
+assert_contains "a megabyte gate probe shows its output" "## Gate probes carries pasted output" "$out"
+rm -f "$FIX/.big-sections"
+
 summary "boundaries"
