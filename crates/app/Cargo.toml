@@ -1,0 +1,27 @@
+[package]
+name = "manhwa-cropper"
+description = "Auto-crops manhwa and manga panel screenshots. The exe: entry point, view-model and egui window."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+default-run = "manhwa-cropper"
+
+# The view-model and the paint function live in the library so tests can reach
+# them; the binary is the thinnest possible shell over it.
+[lib]
+name = "manhwa_cropper"
+path = "src/lib.rs"
+
+[[bin]]
+name = "manhwa-cropper"
+path = "src/main.rs"
+
+[dependencies]
+cropper-engine = { workspace = true }
+eframe = { workspace = true }
+
+[dev-dependencies]
+egui_kittest = { workspace = true }

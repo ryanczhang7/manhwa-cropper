@@ -1,0 +1,46 @@
+# Virtual workspace: no root package, so `cargo test` at the root has nothing
+# to test on its own and `--workspace` (mandatory in every gate) is what runs
+# the members. Layout and pins: docs/wiki/stack.md.
+
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/engine", "crates/app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+repository = "https://github.com/ryanczhang7/manhwa-cropper"
+publish = false
+
+# Every pin lives here; member crates say `workspace = true`. Versions were
+# confirmed with `cargo search` on 2026-09-10 (MC-001); exact resolutions are in
+# Cargo.lock, which is committed because the workspace builds a binary.
+[workspace.dependencies]
+cropper-core = { path = "crates/core" }
+cropper-engine = { path = "crates/engine" }
+
+# engine
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+directories = "6"
+
+# app
+eframe = "0.36"
+rfd = "0.17"
+
+# dev
+egui_kittest = "0.36"
+tempfile = "3"
+proptest = "1"
+
+# One small exe: docs/wiki/stack.md, "Release shape".
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,18 @@
+[package]
+name = "cropper-engine"
+description = "Files in, files out: codecs, naming, batch runner, settings, CLI args. No GUI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+cropper-core = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
