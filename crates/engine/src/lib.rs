@@ -3,9 +3,13 @@
 //!
 //! MC-001 walking skeleton: one function that reaches into `cropper-core`,
 //! which proves the crate graph links and gives the runner and the coverage
-//! gate a line to measure. Real behaviour starts at MC-002.
+//! gate a line to measure. MC-002 adds [`args`] (the command line) and
+//! [`copy`] (the headless walking-skeleton path that copies bytes unchanged).
 
 #![forbid(unsafe_code)]
+
+pub mod args;
+pub mod copy;
 
 use cropper_core::Dimensions;
 
