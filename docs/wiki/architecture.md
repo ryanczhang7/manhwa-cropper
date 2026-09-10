@@ -48,9 +48,15 @@ to luma with the BT.601 weights so JPEG chroma noise does not reach the
 detector). Responsibilities, in pipeline order:
 
 1. **Uniform-border trim** (`trim`): from each edge inward, drop rows/columns
-   whose pixels are all within `Tuning.uniform_tolerance` of that edge's
-   border colour (the median of the outermost row/column). Yields the
-   inner rect, or `None` when the whole image is one colour.
+   whose pixels — measured *within the current rect* — span at most
+   `Tuning.uniform_tolerance` from darkest to lightest (`max - min <=
+   tolerance`). Passes repeat until no side changes, which is what makes
+   full-width top/bottom bands and full-height left/right gutters both work
+   without the detector knowing which it has. Yields the inner rect, or
+   `None` when the whole image is one colour. (MC-003 settled this rule with
+   the user. The earlier wording here — within tolerance of that edge's
+   border colour, the median of the outermost row/column — lost because it
+   judges a textured art row of `{c-10, c, c+10}` uniform and trims it.)
 2. **Edge profiles** (`edges`): for each row, the mean absolute luma
    difference to the next row; likewise for columns. A **strong line** is a
    row/column whose profile value is at or above `Tuning.edge_threshold`,
