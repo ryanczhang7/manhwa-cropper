@@ -226,9 +226,11 @@ fn write_crop(
     format: SourceFormat,
     output: &Path,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    if let Some(parent) = output.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    // The planner deliberately creates nothing (MC-010), so the writer is
+    // where a missing output folder is made - and where an unmakeable one
+    // becomes an `Outcome::Failed`. See `copy::copy_to` for why `parent` is
+    // taken this way rather than with an `if let`.
+    fs::create_dir_all(output.parent().unwrap_or(Path::new("")))?;
     let cropped = img.crop_imm(rect.x, rect.y, rect.w, rect.h);
     // `save_with_format` rather than `save`: the format is the one detected
     // from the input's content, never the one its extension claims.

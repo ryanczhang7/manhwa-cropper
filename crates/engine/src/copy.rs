@@ -28,9 +28,11 @@ use std::path::{Path, PathBuf};
 /// the copy.
 pub fn copy_to(input: &Path, output: &Path) -> io::Result<()> {
     let bytes = fs::read(input)?;
-    if let Some(parent) = output.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    // `Path::parent` is `Some("")` for a bare file name and `None` only for a
+    // path that is nothing but a root, and `create_dir_all("")` is a
+    // documented no-op - so this is the whole of "create the folder if it is
+    // missing", with no branch that no caller can reach.
+    fs::create_dir_all(output.parent().unwrap_or(Path::new("")))?;
     fs::write(output, bytes)
 }
 
