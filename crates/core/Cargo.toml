@@ -12,6 +12,13 @@ publish.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
+# MC-007: `CropDecision` and `FlagReason` derive `Serialize` because MC-011's
+# run summary carries them. A derive on a production type is a regular
+# dependency, not a dev one; the test targets see it as well.
+serde = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }
+# Only the tests read the bytes back (tests/decide.rs pins the plain derive's
+# JSON), so this stays out of the library's own dependencies.
+serde_json = { workspace = true }

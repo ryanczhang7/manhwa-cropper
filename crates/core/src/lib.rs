@@ -9,12 +9,17 @@
 //! the data model ([`Luma`], [`Rect`], [`Tuning`]) and the first pipeline
 //! stage, [`trim`]; MC-004 adds the second, [`edges`]; MC-005 the third,
 //! [`content`]; MC-006 the fourth, [`margin`], and [`decide`], which is where
-//! they are finally composed into [`detect`]; the rest arrives story by story.
+//! they are finally composed into [`detect`]; MC-007 puts [`decide()`] on top
+//! of that, which turns a [`Detection`] into the one answer the engine acts
+//! on; the rest arrives story by story.
 //!
-//! [`detect`] and [`Detection`] are re-exported at the root because they are
-//! what a caller outside the crate wants - the engine asks this crate one
-//! question - while the stages stay behind their module names, where the tests
-//! that pin each of them individually reach for them.
+//! [`decide()`], [`CropDecision`], [`FlagReason`], [`detect`] and
+//! [`Detection`] are re-exported at the root because they are what a caller
+//! outside the crate wants - the engine asks this crate one question - while
+//! the stages stay behind their module names, where the tests that pin each of
+//! them individually reach for them. The module [`decide`] and the function
+//! [`decide()`] share a name without clashing: one lives in the type namespace
+//! and the other in the value namespace.
 
 #![forbid(unsafe_code)]
 
@@ -24,7 +29,7 @@ pub mod edges;
 pub mod margin;
 pub mod trim;
 
-pub use decide::{Detection, detect};
+pub use decide::{CropDecision, Detection, FlagReason, decide, detect};
 
 /// Width and height of a pixel plane, in pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,7 +64,11 @@ pub struct Luma {
 }
 
 /// A rectangle in pixel coordinates, measured from the top left.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// `Serialize` because [`CropDecision::Crop`] carries one and MC-011's run
+/// summary serialises that (MC-007). The plain derive, with no `#[serde(..)]`
+/// attribute: the field names are the JSON keys.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub struct Rect {
     /// Left edge, in pixels from the left of the image.
     pub x: u32,
