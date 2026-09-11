@@ -16,13 +16,17 @@
 //! 5. act on that answer: crop the *decoded pixels* to the rect and re-encode
 //!    them in the format they came in - PNG lossless, JPEG at quality 100,
 //!    WebP lossless (`docs/wiki/architecture.md` decision 4) - or copy the
-//!    input's bytes unchanged with
-//!    [`copy::copy_unchanged`](crate::copy::copy_unchanged).
+//!    input's bytes unchanged with [`copy::copy_to`](crate::copy::copy_to).
 //!
-//! Every one of those paths writes to `out_dir/<the input's own file name>`,
-//! case and extension untouched (MC-008 AC-4), so no input is ever dropped on
-//! the floor: the user's output folder has as many files in it as they
-//! selected. Name collisions are MC-010's.
+//! Every one of those paths writes to the `output` path it was given, under
+//! that exact name, so no input is ever dropped on the floor: the user's
+//! output folder has as many files in it as they selected. **Since MC-010 the
+//! name is not this module's to choose**: `naming::plan_outputs` picks one
+//! free path per input up front, before any of them is written, because
+//! MC-011 runs the writes in parallel and "find a free name, then write it"
+//! inside a worker is a race that loses a file. What survives here from
+//! MC-008 AC-4 is that the writer honours the name it is handed, case and
+//! extension included.
 //!
 //! # Why the content decides the format and the name does not
 //!
@@ -142,14 +146,16 @@ pub enum Flag {
     DecodeFailed(String),
 }
 
-/// Crop `input` into `out_dir`, or copy it there unchanged when the detector
+/// Crop `input` to `output`, or copy it there unchanged when the detector
 /// flags it.
 ///
-/// The output is always `out_dir/<input's file name>`; `out_dir` is created if
-/// it does not exist. Returns what happened - this function does not fail, it
-/// reports (see [`Outcome::Failed`]).
+/// `output` is the whole path, name included, as
+/// [`naming::plan_outputs`](crate::naming::plan_outputs) planned it (MC-010);
+/// this function chooses nothing about it and writes nowhere else. Its parent
+/// directory is created if it does not exist. Returns what happened - this
+/// function does not fail, it reports (see [`Outcome::Failed`]).
 #[must_use]
-pub fn process_file(input: &Path, out_dir: &Path, tuning: &Tuning) -> FileResult {
+pub fn process_file(input: &Path, output: &Path, tuning: &Tuning) -> FileResult {
     FileResult {
         input: input.to_path_buf(),
         // One place turns an error into an outcome, so every step below can
@@ -159,7 +165,7 @@ pub fn process_file(input: &Path, out_dir: &Path, tuning: &Tuning) -> FileResult
         // one it does and will not decode is `DecodeFailed`, and both are
         // still copied - so what reaches here is I/O: an unreadable input, an
         // output folder that cannot be created or written.
-        outcome: match run(input, out_dir, tuning) {
+        outcome: match run(input, output, tuning) {
             Ok(outcome) => outcome,
             Err(err) => Outcome::Failed {
                 error: err.to_string(),
@@ -169,7 +175,7 @@ pub fn process_file(input: &Path, out_dir: &Path, tuning: &Tuning) -> FileResult
 }
 
 /// The pipeline itself, with every I/O error left to the caller.
-fn run(input: &Path, out_dir: &Path, tuning: &Tuning) -> Result<Outcome, Box<dyn Error>> {
+fn run(input: &Path, output: &Path, tuning: &Tuning) -> Result<Outcome, Box<dyn Error>> {
     // Not `image::open`, which is `ImageReader::open(path)?.decode()` and
     // guesses the format from the *path* alone: on a PNG named `x.jpg` it
     // fails with "Illegal start bytes:8950" (AC-6). `with_guessed_format`
@@ -180,50 +186,49 @@ fn run(input: &Path, out_dir: &Path, tuning: &Tuning) -> Result<Outcome, Box<dyn
     // the latter claims a format the engine handles.
     let reader = ImageReader::open(input)?.with_guessed_format()?;
     let Some(format) = reader.format().and_then(codec::source_format) else {
-        return flagged(Flag::Unsupported, input, out_dir);
+        return flagged(Flag::Unsupported, input, output);
     };
     let img = match reader.decode() {
         Ok(img) => img,
-        Err(err) => return flagged(Flag::DecodeFailed(err.to_string()), input, out_dir),
+        Err(err) => return flagged(Flag::DecodeFailed(err.to_string()), input, output),
     };
     match decide(&codec::to_luma(&img), tuning) {
         CropDecision::Crop(rect) => Ok(Outcome::Cropped {
             rect,
-            output: write_crop(&img, rect, format, input, out_dir)?,
+            output: write_crop(&img, rect, format, output)?,
         }),
-        CropDecision::Flag(reason) => flagged(Flag::Detector(reason), input, out_dir),
+        CropDecision::Flag(reason) => flagged(Flag::Detector(reason), input, output),
     }
 }
 
-/// Copy `input` into `out_dir` unchanged and report it as flagged for
-/// `reason`. All three reasons end the same way, by design: every input
-/// reaches the output folder, and a file nobody cropped is handed back exactly
-/// as it arrived.
-fn flagged(reason: Flag, input: &Path, out_dir: &Path) -> Result<Outcome, Box<dyn Error>> {
+/// Copy `input` to `output` unchanged and report it as flagged for `reason`.
+/// All three reasons end the same way, by design: every input reaches the
+/// output folder, and a file nobody cropped is handed back exactly as it
+/// arrived.
+fn flagged(reason: Flag, input: &Path, output: &Path) -> Result<Outcome, Box<dyn Error>> {
+    copy::copy_to(input, output)?;
     Ok(Outcome::Flagged {
         reason,
-        output: copy::copy_unchanged(input, out_dir)?,
+        output: output.to_path_buf(),
     })
 }
 
-/// Write `rect` of `img` to `out_dir/<input's file name>` in `format`, at the
-/// highest quality that format has. Returns the path written.
+/// Write `rect` of `img` to `output` in `format`, at the highest quality that
+/// format has. Returns the path written, which is the path it was given.
 ///
-/// The name is the input's, extension and case untouched, even when the
-/// extension disagrees with `format` (AC-6): the container follows the file's
-/// content, the name follows the user.
+/// The name is the planner's (MC-010), and `format` is the input's content's
+/// (MC-009 AC-6), so a PNG named `x.jpg` is still written as a PNG under
+/// whatever name the plan chose: the container follows the file's content, the
+/// name follows the user.
 fn write_crop(
     img: &DynamicImage,
     rect: Rect,
     format: SourceFormat,
-    input: &Path,
-    out_dir: &Path,
+    output: &Path,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let name = input
-        .file_name()
-        .ok_or_else(|| format!("{} has no file name", input.display()))?;
-    fs::create_dir_all(out_dir)?;
-    let output = out_dir.join(name);
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+    }
     let cropped = img.crop_imm(rect.x, rect.y, rect.w, rect.h);
     // `save_with_format` rather than `save`: the format is the one detected
     // from the input's content, never the one its extension claims.
@@ -234,11 +239,11 @@ fn write_crop(
         // `WebPEncoder::new_lossless` - decision 4's "lossless" comes free, and
         // the crate narrows a 16-bit source to 8 bits on the way rather than
         // refusing it.
-        SourceFormat::Png => cropped.save_with_format(&output, ImageFormat::Png)?,
-        SourceFormat::WebP => cropped.save_with_format(&output, ImageFormat::WebP)?,
-        SourceFormat::Jpeg => write_jpeg(&cropped, &output)?,
+        SourceFormat::Png => cropped.save_with_format(output, ImageFormat::Png)?,
+        SourceFormat::WebP => cropped.save_with_format(output, ImageFormat::WebP)?,
+        SourceFormat::Jpeg => write_jpeg(&cropped, output)?,
     }
-    Ok(output)
+    Ok(output.to_path_buf())
 }
 
 /// Write `img` as a baseline JPEG at [`JPEG_QUALITY`], 4:4:4.
