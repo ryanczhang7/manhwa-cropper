@@ -24,12 +24,36 @@ use crate::{Luma, Rect, Tuning};
 /// and it falls out of the emptiness check rather than needing a guard.
 #[must_use]
 pub fn trim_uniform(img: &Luma, t: &Tuning) -> Option<Rect> {
-    let mut rect = Rect {
-        x: 0,
-        y: 0,
-        w: img.width,
-        h: img.height,
-    };
+    trim_within(
+        img,
+        Rect {
+            x: 0,
+            y: 0,
+            w: img.width,
+            h: img.height,
+        },
+        t,
+    )
+}
+
+/// The same trim, starting from `within` instead of from the whole image.
+///
+/// The pipeline runs this stage twice (`architecture.md`, "cropper-core",
+/// step 3): once over the whole image, and again *inside* the content box,
+/// because peeling a chrome band off the top of a screenshot often exposes a
+/// page gutter that was not an edge of the image before. MC-006 AC-2 is
+/// exactly that scene - a full-width toolbar above a page with 70 px white
+/// gutters - and on it the first trim moves nothing at all, because every edge
+/// line of the image either is chrome or spans both a gutter and the art.
+///
+/// [`trim_uniform`] is this function over the whole image and keeps its own
+/// name because MC-003's tests pin that signature. Everything about the rule
+/// itself is in the module documentation above; `within` changes only where
+/// the search starts, and, as in [`content_box`](crate::content::content_box),
+/// a uniform line outside it is never looked at.
+#[must_use]
+pub fn trim_within(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect> {
+    let mut rect = within;
     loop {
         let mut changed = false;
         // The visiting order is not load-bearing here - this loop runs to a
