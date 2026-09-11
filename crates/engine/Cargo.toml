@@ -13,6 +13,10 @@ path = "src/lib.rs"
 
 [dependencies]
 cropper-core = { workspace = true }
+# A regular dependency rather than a dev-dependency: `codec` decodes and
+# encodes with it (MC-008), and a regular dependency is also what the
+# integration tests under `tests/` can `use`.
+image = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
