@@ -8,12 +8,23 @@
 //! detector flags the image - copy the input's bytes unchanged. Either way the
 //! output lands at `out_dir/<the input's own file name>`.
 //!
+//! **MC-010 moved the choice of that name out of `process_file`**, which now
+//! takes the output *path* rather than the output *directory*: the planner
+//! (`naming::plan_outputs`) decides names and the codec only writes. The call
+//! sites below pass `out_dir.join(<the input's own file name>)`, which is the
+//! name MC-008 pinned, so every assertion in this file is the one it was.
+//! `the_output_keeps_the_input_file_name_case_and_extension` still reads the
+//! directory back, so a writer that mangles the name it is handed still fails
+//! here.
+//!
 //! # What is settled, what is mechanical, what was measured
 //!
 //! * **Settled**: nothing in this file. `margin_px` and every other threshold
 //!   is read from `Tuning::default()`; the one place a settled number appears
 //!   is AC-3's BT.601 weights, which are pinned in `tests/codec.rs`.
-//! * **Mechanical**: `process_file(&Path, &Path, &Tuning) -> FileResult`,
+//! * **Mechanical**: `process_file(&Path, &Path, &Tuning) -> FileResult` -
+//!   input, output path (MC-010; it was the output directory in MC-008 and
+//!   MC-009), tuning -
 //!   `FileResult { input, outcome }`, `Outcome { Cropped { rect, output },
 //!   Flagged { reason, output }, Failed { error } }` and
 //!   `Flag { Detector(FlagReason), Unsupported, DecodeFailed(String) }`.
@@ -78,7 +89,7 @@ struct Cropped {
 fn crop_file(writer: common::Writer, file_name: &str, tmp: &Path, out: &Path) -> Cropped {
     let input = tmp.join(file_name);
     writer(&common::screenshot(), &input);
-    let result = process_file(&input, out, &Tuning::default());
+    let result = process_file(&input, &out.join(file_name), &Tuning::default());
     assert_eq!(
         result.input, input,
         "{file_name}: the result must name the file it was given"
@@ -239,11 +250,14 @@ fn a_file_result_carries_the_input_path_and_one_outcome() {
     let FileResult {
         input: reported,
         outcome,
-    } = process_file(&input, &out, &Tuning::default());
+    } = process_file(&input, &out.join("shot.png"), &Tuning::default());
 
     let _: PathBuf = reported;
     let _: Outcome = outcome;
-    let printed = format!("{:?}", process_file(&input, &out, &Tuning::default()));
+    let printed = format!(
+        "{:?}",
+        process_file(&input, &out.join("shot.png"), &Tuning::default())
+    );
     assert!(
         printed.contains("FileResult"),
         "a FileResult prints its own name in Debug, so a failing assertion \
@@ -460,7 +474,7 @@ fn a_uniform_png_is_flagged_and_copied_byte_for_byte() {
     let input = tmp.path().join("flat.png");
     common::write_marked_uniform_png(&common::uniform(), &input);
 
-    let result = process_file(&input, &out, &Tuning::default());
+    let result = process_file(&input, &out.join("flat.png"), &Tuning::default());
     assert_eq!(
         result.input, input,
         "the result names the file it was given"

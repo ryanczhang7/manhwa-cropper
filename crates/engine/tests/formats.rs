@@ -37,6 +37,15 @@
 //! test says so before any criterion below fails for a reason that has nothing
 //! to do with `process_file`.
 //!
+//! # One thing here is not MC-009's
+//!
+//! MC-010 gave `process_file` an explicit output **path** in place of the
+//! output **directory**, so that `naming::plan_outputs` decides names and the
+//! codec only writes. The two helpers below therefore pass
+//! `out.join(file_name)` where they passed `out`. Nothing else changed: every
+//! assertion, fixture, expected value and test name in this file is MC-009's,
+//! and `out.join(file_name)` is the path MC-009 asserted the output landed at.
+//!
 //! # AC-3 is not here
 //!
 //! AC-3 asks for "a recipe saved as lossy WebP". Nothing in this workspace can
@@ -76,7 +85,7 @@ struct Cropped {
 fn crop_file(write: impl FnOnce(&Path), file_name: &str, tmp: &Path, out: &Path) -> Cropped {
     let input = tmp.join(file_name);
     write(&input);
-    let result = process_file(&input, out, &Tuning::default());
+    let result = process_file(&input, &out.join(file_name), &Tuning::default());
     assert_eq!(
         result.input, input,
         "{file_name}: the result must name the file it was given"
@@ -103,7 +112,7 @@ fn flag_file(
 ) -> (PathBuf, Flag, PathBuf) {
     let input = tmp.join(file_name);
     write(&input);
-    let result = process_file(&input, out, &Tuning::default());
+    let result = process_file(&input, &out.join(file_name), &Tuning::default());
     assert_eq!(
         result.input, input,
         "{file_name}: the result must name the file it was given"
