@@ -674,9 +674,9 @@ pub fn encode_webp(img: &DynamicImage, path: &Path) {
     fs::write(path, bytes).unwrap_or_else(|err| panic!("writing {}: {err}", path.display()));
 }
 
-/// A small textured plane for the fixtures whose *pixels* never matter -
-/// AC-4's BMP is never decoded by anything in this workspace, so it is 16x12
-/// rather than the screenshot's 147x120.
+/// A small textured plane for the fixtures whose *pixels* never matter - no
+/// test decodes AC-4's BMP, only the engine's refusal to handle it and the
+/// bytes it copies, so it is 16x12 rather than the screenshot's 147x120.
 #[must_use]
 pub fn small_gradient() -> Luma {
     let (w, h) = (16u32, 12u32);
@@ -694,15 +694,21 @@ pub fn small_gradient() -> Luma {
 }
 
 /// `plane` as a 24-bit uncompressed BMP at `path`: a real image file in a
-/// format this build neither reads nor writes.
+/// format the engine declines to handle.
 ///
-/// Written by hand because the `image` dependency is pinned with
-/// `features = ["png", "jpeg", "webp"]`, so the crate cannot produce one -
-/// which is the point. AC-4 is about a *valid* image the engine declines to
-/// handle (`Unsupported`), not about a corrupt one (`DecodeFailed`), and the
-/// only way to tell those two criteria apart is with a file that really is a
-/// BMP. `BITMAPFILEHEADER` (14 bytes) then `BITMAPINFOHEADER` (40), then
-/// bottom-up BGR rows padded to a multiple of four bytes.
+/// Written by hand rather than with `image`, and *not* because the crate
+/// cannot produce one: whether a `bmp` codec is compiled in depends on which
+/// crates the workspace unified and on the platform - on Windows `arboard`
+/// takes `image` with `features = ["png", "bmp"]` for the clipboard's DIB
+/// format, so a `cargo test --workspace` build has it and a
+/// `cargo test -p cropper-engine` build does not. A fixture written from these
+/// bytes is the same 630 bytes either way, which is what the tests need.
+///
+/// AC-4 is about a *valid* image the engine declines to handle
+/// (`Unsupported`), not about a corrupt one (`DecodeFailed`), and the only way
+/// to tell those two criteria apart is with a file that really is a BMP.
+/// `BITMAPFILEHEADER` (14 bytes) then `BITMAPINFOHEADER` (40), then bottom-up
+/// BGR rows padded to a multiple of four bytes.
 ///
 /// # Panics
 ///

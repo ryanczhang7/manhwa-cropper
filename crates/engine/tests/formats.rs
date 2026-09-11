@@ -49,7 +49,7 @@ mod common;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use cropper_core::{CropDecision, Rect, Tuning, decide};
+use cropper_core::{CropDecision, Luma, Rect, Tuning, decide};
 use cropper_engine::codec::{detect_format, to_luma};
 use cropper_engine::{Flag, Outcome, SourceFormat, process_file};
 use image::ImageFormat;
@@ -234,20 +234,98 @@ fn each_fixture_is_the_container_its_name_claims() {
     );
 }
 
+/// Every container this engine can write, in a form the control below can walk.
+///
+/// The list itself is [`SourceFormat`]: `process.rs`'s `write_crop` matches on
+/// it with one arm per variant, so what the engine can encode and what this
+/// enum names are the same three things by construction.
+const ENGINE_CONTAINERS: [SourceFormat; 3] =
+    [SourceFormat::Png, SourceFormat::Jpeg, SourceFormat::WebP];
+
+/// One container the engine writes, the name a fixture of the scene takes in
+/// it, and the `common` writer that produces that fixture.
+type ContainerFixture = (SourceFormat, &'static str, fn(&Luma, &Path));
+
+/// The bytes every file this engine writes in `format` must begin with.
+///
+/// The `match` is exhaustive on purpose, and that is load-bearing rather than
+/// idiomatic: a control which claims "the engine can write nothing else" is
+/// only as good as its enumeration, so a fourth [`SourceFormat`] variant has to
+/// stop this file compiling rather than quietly shrink the claim.
+fn container_signature(format: SourceFormat) -> &'static [u8] {
+    match format {
+        SourceFormat::Png => common::PNG_SIGNATURE,
+        SourceFormat::Jpeg => common::JPEG_SIGNATURE,
+        // A WebP is a RIFF container; which codec chunk sits inside it is
+        // AC-2's business, not this test's.
+        SourceFormat::WebP => b"RIFF",
+    }
+}
+
 /// The control that gives AC-4's and AC-5's byte comparisons their force.
 ///
 /// MC-008 needed a `tEXt` chunk to make "copied, not re-encoded" mean
 /// something, because a flat PNG re-encoded by this crate came back
 /// byte-identical. Here the argument is different and stronger, and this test
-/// is where it is made executable: **none of these three files can be produced
-/// by any encoder this build has**. BMP is compiled out entirely; the other two
-/// are not images at all. So an implementation that decoded and re-encoded them
-/// could not reproduce a single one of their bytes - it could not get past the
-/// decode.
+/// is where it is made executable, in three linked steps:
+///
+/// 1. **The engine writes three containers and no others.** That is not
+///    asserted from the dependency's feature list: each of the three is put
+///    through `process_file` and the container it produced is read out of the
+///    output's first bytes. The enumeration is closed by
+///    [`container_signature`]'s exhaustive `match`.
+/// 2. **The engine calls none of these three fixtures one of those formats.**
+///    `detect_format` answers `None` for the BMP, the text file and the junk,
+///    from the bytes alone.
+/// 3. **None of the three begins with any of the signatures from step 1.** The
+///    BMP begins `42 4D`, which is not the PNG signature, not `FF D8` and not
+///    `RIFF`; the other two are not images at all.
+///
+/// So whichever of its three encoders had run, the file it produced would have
+/// begun with a signature none of these three carries. Byte equality therefore
+/// means a copy, and AC-4 and AC-5 are testing what they claim to test.
+///
+/// # Why this is no longer the argument RED first made
+///
+/// The test originally asserted that `ImageFormat::Bmp` was neither readable
+/// nor writable here - that the `bmp` codec was compiled out of this build.
+/// That premise is false under `cargo test --workspace`, which is the `unit`
+/// gate's own command, and it is false *only on some platforms*:
+/// `crates/app` -> `eframe` -> `egui-winit/clipboard` -> `arboard/image-data`
+/// takes `image` with `features = ["png", "bmp"]` on Windows
+/// (`arboard-3.6.1/Cargo.toml:156`), `["png"]` on Linux and `["tiff"]` on
+/// macOS, and cargo unifies features across a workspace build. A control that
+/// passes or fails according to the operating system is not a control.
+///
+/// Nothing about the engine's behaviour changed, and nothing here is weaker
+/// for it: `codec::source_format` maps `ImageFormat::Bmp` to `None` because
+/// MC-009 AC-4 says a BMP is `Unsupported`, and it never asks which decoders
+/// happen to be compiled in - so neither do the assertions below.
 #[test]
 fn no_copy_of_an_unsupported_file_could_be_a_re_encode() {
-    let (tmp, _out) = workspace();
+    let (tmp, out) = workspace();
     let dir = tmp.path();
+
+    // 1. What the engine can write, measured through the engine itself.
+    let plane = common::screenshot();
+    let sources: [ContainerFixture; 3] = [
+        (SourceFormat::Png, "shot.png", common::write_rgb8),
+        (SourceFormat::Jpeg, "shot.jpg", common::write_jpeg_q95),
+        (SourceFormat::WebP, "shot.webp", common::write_webp),
+    ];
+    for (format, name, write) in sources {
+        let done = crop_file(|path| write(&plane, path), name, dir, &out);
+        let signature = container_signature(format);
+        assert_eq!(
+            common::head(&done.output, signature.len()),
+            signature,
+            "the crop the engine wrote from a {format:?} source must begin with \
+             that container's signature: this control's whole argument is that \
+             the engine writes these three containers and nothing else"
+        );
+    }
+
+    // 2 and 3. The three files AC-4 and AC-5 are about.
     let bmp = dir.join("x.bmp");
     common::write_bmp(&common::small_gradient(), &bmp);
     let txt = dir.join("x.txt");
@@ -255,40 +333,49 @@ fn no_copy_of_an_unsupported_file_could_be_a_re_encode() {
     let junk = dir.join("x.png");
     common::write_random_bytes(&junk);
 
-    assert!(
-        !ImageFormat::Bmp.reading_enabled() && !ImageFormat::Bmp.writing_enabled(),
-        "the workspace pins image with features [png, jpeg, webp], so BMP is \
-         neither readable nor writable here; if that changes, AC-4's byte \
-         comparison needs a fresh argument"
-    );
     for (path, what) in [
         (&bmp, "a BMP"),
         (&txt, "a text file"),
         (&junk, "200 random bytes"),
     ] {
+        let bytes = fs::read(path).expect("the fixture");
+        assert_eq!(
+            detect_format(&bytes),
+            None,
+            "{what} must be none of the formats the engine encodes, so that it is \
+             copied rather than decoded and written back out - and the engine \
+             decides that from these bytes as a matter of policy, never from \
+             which decoders this build happens to have compiled in"
+        );
+        for format in ENGINE_CONTAINERS {
+            let signature = container_signature(format);
+            assert!(
+                !bytes.starts_with(signature),
+                "{what} begins {:02X?}, which must not be the {format:?} \
+                 signature {signature:02X?}: if it were, a re-encode could \
+                 coincide with a copy and AC-4's byte comparison would prove \
+                 nothing",
+                &bytes[..signature.len().min(bytes.len())]
+            );
+        }
+    }
+
+    // The text file and the 200 junk bytes carry the argument one step
+    // further, and that step is platform-independent for them in a way it
+    // could never be for the BMP: they are not images in any format, so no
+    // decoder could get far enough to re-encode them whatever is compiled in.
+    for (path, what) in [(&txt, "the text fixture"), (&junk, "AC-5's 200 bytes")] {
+        assert!(
+            image::guess_format(&fs::read(path).expect("the fixture")).is_err(),
+            "{what} must not carry any image format's signature - the junk is \
+             drawn from a fixed seed, so this is an assertion and not a hope"
+        );
         assert!(
             image::open(path).is_err(),
-            "{what} must not decode in this build, or the output bytes could be a \
-             re-encode rather than a copy"
-        );
-        let bytes = fs::read(path).expect("the fixture");
-        assert!(
-            !bytes.starts_with(common::PNG_SIGNATURE)
-                && !bytes.starts_with(common::JPEG_SIGNATURE)
-                && !bytes.starts_with(b"RIFF"),
-            "{what} must not begin with a signature this engine can write, or a \
-             byte comparison could not tell a copy from a re-encode"
+            "{what} must not decode, or its output bytes could be a re-encode \
+             rather than a copy"
         );
     }
-    assert!(
-        image::guess_format(&fs::read(&txt).expect("the text fixture")).is_err(),
-        "the text fixture is not any image format"
-    );
-    assert!(
-        image::guess_format(&fs::read(&junk).expect("the junk fixture")).is_err(),
-        "AC-5's 200 bytes must not accidentally carry an image signature - they \
-         are drawn from a fixed seed so this is an assertion and not a hope"
-    );
 }
 
 // --- The format comes from the content --------------------------------------
