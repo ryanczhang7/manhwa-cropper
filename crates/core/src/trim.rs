@@ -14,20 +14,8 @@
 //! also spans both gutter colours and is not uniform until the gutters have
 //! gone.
 
+use crate::content::{SIDES, Side};
 use crate::{Luma, Rect, Tuning};
-
-/// Which edge of the current rect a scan is taken from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Side {
-    Top,
-    Bottom,
-    Left,
-    Right,
-}
-
-/// Visiting order is not load-bearing: the loop below runs to a fixed point,
-/// and every order reaches the same one.
-const SIDES: [Side; 4] = [Side::Top, Side::Bottom, Side::Left, Side::Right];
 
 /// The largest rect of `img` whose four edges are not uniform, or `None` when
 /// nothing survives - a wholly uniform image has no art to find.
@@ -44,6 +32,10 @@ pub fn trim_uniform(img: &Luma, t: &Tuning) -> Option<Rect> {
     };
     loop {
         let mut changed = false;
+        // The visiting order is not load-bearing here - this loop runs to a
+        // fixed point and every order reaches the same one - so it borrows
+        // `content`'s, where it is. `Side` is shared with `content` for the
+        // same reason: one crate, one name for an edge.
         for side in SIDES {
             // Drain the side greedily, then check emptiness *before* moving
             // to the next one: a wholly uniform image loses all its rows here,

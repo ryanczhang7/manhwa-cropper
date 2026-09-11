@@ -49,16 +49,36 @@ strip_comments() {
        }'
 }
 
+# Both predicates below use `grep -c ... >/dev/null` rather than the obvious
+# `grep -q`, and the reason is not style.
+#
+# `grep -q` exits at the FIRST match. This file runs under `set -o pipefail`,
+# so the moment grep leaves, the awk feeding it takes SIGPIPE on its next
+# write and the whole pipeline reports 141 - which `if` reads as false. Awk
+# writes its output in buffered chunks, so this only bites once the text is
+# bigger than one chunk, and the chunk size differs by implementation: gawk's
+# is large, mawk's is 8 KB, and mawk is what Ubuntu runners have. The result
+# was a check that passed on a developer's machine and, on CI, rejected a
+# story for the crime of having a LARGE handoff - reported as an EMPTY one,
+# with no error message anywhere, because a SIGPIPE death is silent. MC-005
+# hit it at 28,916 bytes; MC-004 at 17,281 had been passing on the right side
+# of a race.
+#
+# `grep -c` has to read to EOF to produce a count, so the writer always
+# finishes. It keeps grep's exit status - 0 when something matched - which is
+# the only part of it these two want. Do not "simplify" it back to `-q`;
+# `.claude/tests/boundaries.test.sh` fails if you do.
+
 # has_content   True if stdin holds anything besides whitespace and HTML
 # comments - i.e. somebody wrote something beyond the template.
-has_content() { strip_comments | grep -q '[^[:space:]]'; }
+has_content() { strip_comments | grep -c '[^[:space:]]' >/dev/null; }
 
 # has_pasted_output   True if stdin contains a fenced or indented block, which
 # is what a pasted command output looks like in a story file. It cannot tell
 # real output from prose in a fence, and does not try: it separates "here is
 # what happened" from "trust me, it happened", which is the distinction the
 # non-negotiables are actually about.
-has_pasted_output() { strip_comments | grep -qE '^[[:space:]]*(```|~~~)|^    [^[:space:]]'; }
+has_pasted_output() { strip_comments | grep -cE '^[[:space:]]*(```|~~~)|^    [^[:space:]]' >/dev/null; }
 
 # story_field <file|-> <key>   A frontmatter value.
 story_field() { frontmatter_value "$1" "$2"; }   # lib.sh

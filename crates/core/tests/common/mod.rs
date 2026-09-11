@@ -398,3 +398,137 @@ pub fn soft_art(width: u32, height: u32, seed: u32) -> Luma {
         data,
     }
 }
+
+// --- A chrome band texture, at a requested flat fraction (MC-005) -----------
+
+/// How far a rendered flat fraction may sit from the requested one before
+/// [`chrome_band`] refuses to hand the fixture over. MC-005's Model guidance
+/// fixes this at 0.01; a fixture that drifts past it has quietly moved a
+/// threshold, which is exactly what a self-asserting generator is for.
+pub const CHROME_BAND_FLAT_TOLERANCE: f64 = 0.01;
+
+/// A browser-chrome band: a flat background with sparse "text" pixels on it,
+/// rendered so that its **flat fraction** - the share of its pixels within
+/// `tolerance` of the band's median luma, which is the quantity MC-005's
+/// `chrome_flat_fraction` is measured against - is `flat_fraction` to within
+/// [`CHROME_BAND_FLAT_TOLERANCE`].
+///
+/// The band is `background` everywhere except for exactly
+/// `round((1 - flat_fraction) * width * height)` pixels, which alternate
+/// between `background + deviation` and `background - deviation`. Two
+/// properties the tests lean on, and both are why the deviations are
+/// symmetric and evenly spread rather than random or clustered:
+///
+/// * the **median is exactly `background`** for every `flat_fraction` down to
+///   0.0, because the deviated pixels are split evenly above and below it. A
+///   one-sided deviation would leave the median undefined-by-convention at a
+///   flat fraction of 0.5, which is one of MC-005 AC-3's controls;
+/// * the band carries **no strong line of its own**. The deviated pixels are
+///   spread evenly over the band in row-major order (a Bresenham selection, so
+///   the count is exact), so no row, column or edge between them ever reaches
+///   `edge_threshold`. A band that contained a strong line would be split by
+///   `edges::strong_lines` and would no longer be the strip the test built.
+///
+/// `flat_fraction` is always the share of pixels left **on the background**,
+/// and that is asserted directly. It is also the band's flat fraction whenever
+/// `deviation > tolerance`, which is the ordinary case and the one the
+/// assertion checks. At `deviation <= tolerance` every pixel is within
+/// tolerance of the median, so the band's flat fraction is 1.0 however many
+/// pixels were moved - a fixture MC-005 uses deliberately to pin that "within
+/// `uniform_tolerance`" is inclusive - and the assertion checks that instead.
+/// Either way, what was rendered is checked against what it should be.
+///
+/// # Panics
+///
+/// If `background +/- deviation` leaves `u8`, if the band is empty, if
+/// `flat_fraction` is outside `0.0..=1.0`, or if the rendered band misses
+/// either the requested share on the background or the flat fraction that
+/// implies by more than [`CHROME_BAND_FLAT_TOLERANCE`].
+pub fn chrome_band(
+    width: u32,
+    height: u32,
+    background: u8,
+    deviation: u8,
+    tolerance: u8,
+    flat_fraction: f64,
+) -> Luma {
+    let n = width as usize * height as usize;
+    assert!(n > 0, "a chrome band needs at least one pixel");
+    assert!(
+        (0.0..=1.0).contains(&flat_fraction),
+        "flat fraction {flat_fraction} is not a share"
+    );
+    assert!(
+        background.checked_add(deviation).is_some() && background.checked_sub(deviation).is_some(),
+        "background {background} +/- deviation {deviation} leaves u8; pick a background with headroom"
+    );
+
+    // Exactly `deviated` pixels are moved off the background, and the
+    // Bresenham test below picks them evenly spread through the band: the
+    // number of selections among the first `i` indices is `floor(i * k / n)`,
+    // so the total is exactly `k` and the gaps differ by at most one.
+    let deviated = ((1.0 - flat_fraction) * n as f64).round() as usize;
+    let mut data = vec![background; n];
+    let mut above = true;
+    for (i, px) in data.iter_mut().enumerate() {
+        if (i * deviated) / n != ((i + 1) * deviated) / n {
+            *px = if above {
+                background + deviation
+            } else {
+                background - deviation
+            };
+            above = !above;
+        }
+    }
+
+    let rendered_median = median(&data);
+    assert_eq!(
+        rendered_median, background,
+        "the band's median moved off its background colour"
+    );
+    let on_background = flat_share(&data, rendered_median, 0);
+    assert!(
+        (on_background - flat_fraction).abs() <= CHROME_BAND_FLAT_TOLERANCE,
+        "chrome band {width}x{height} asked for {flat_fraction} of its pixels on the \
+         background and rendered {on_background}; tolerance is {CHROME_BAND_FLAT_TOLERANCE}"
+    );
+    // Every deviated pixel is `deviation` away from the median, so the flat
+    // fraction is the share on the background - unless the deviation is
+    // inside the tolerance, in which case *every* pixel is flat and the band
+    // is the fixture that pins "within `uniform_tolerance`" as inclusive.
+    let expected = if deviation > tolerance {
+        flat_fraction
+    } else {
+        1.0
+    };
+    let rendered = flat_share(&data, rendered_median, tolerance);
+    assert!(
+        (rendered - expected).abs() <= CHROME_BAND_FLAT_TOLERANCE,
+        "chrome band {width}x{height} (background {background}, deviation {deviation}) \
+         should have flat fraction {expected} at tolerance {tolerance} and rendered \
+         {rendered}; tolerance is {CHROME_BAND_FLAT_TOLERANCE}"
+    );
+
+    Luma {
+        width,
+        height,
+        data,
+    }
+}
+
+/// The upper median of `data`. Used only to check what [`chrome_band`]
+/// rendered; the fixtures are built so the two median conventions agree.
+fn median(data: &[u8]) -> u8 {
+    let mut sorted = data.to_vec();
+    sorted.sort_unstable();
+    sorted[sorted.len() / 2]
+}
+
+/// The share of `data` within `tolerance` of `centre`, inclusive.
+fn flat_share(data: &[u8], centre: u8, tolerance: u8) -> f64 {
+    let flat = data
+        .iter()
+        .filter(|&&px| px.abs_diff(centre) <= tolerance)
+        .count();
+    flat as f64 / data.len() as f64
+}
