@@ -44,16 +44,19 @@
 //! screenshot's flat borders into noise the trim cannot see.
 
 use cropper_core::Luma;
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat};
 
 /// The image formats the engine reads.
 ///
-/// MC-008 only decodes and encodes PNG; the type is here because the outcome
-/// of a run names the format it came from, and MC-009 - which adds JPEG and
-/// WebP, and the detection of a format from the file rather than its
-/// extension - needs the vocabulary to already exist. Note for MC-009:
-/// `image` 0.25 *decodes* WebP but does not encode it, so this variant is not
-/// a promise that a WebP can be written back out.
+/// All three are read and written (MC-009): PNG losslessly at the source's own
+/// colour type, JPEG at quality 100, WebP lossless - `architecture.md`
+/// decision 4. The value is decided by [`detect_format`] from the file's
+/// content, never from its name.
+///
+/// MC-008 introduced the type while only PNG was handled, and left a note here
+/// saying `image` 0.25 could not encode WebP. That was wrong and is corrected
+/// in MC-008's `## Notes`: `image::codecs::webp::WebPEncoder` writes lossless
+/// WebP, which is exactly the mode decision 4 asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceFormat {
     /// Portable Network Graphics.
@@ -86,4 +89,49 @@ pub fn to_luma(img: &DynamicImage) -> Luma {
         height: rgb.height(),
         data,
     }
+}
+
+/// The engine's own name for an `image` format, or `None` when it is one the
+/// engine does not handle.
+///
+/// The three it handles are exactly the three the `image` dependency is pinned
+/// with (`features = ["png", "jpeg", "webp"]`), and this is where that list is
+/// a *decision* rather than a build detail: MC-009 AC-4 says a BMP - a
+/// perfectly valid image - is `Unsupported`, so the answer here is `None`
+/// whether or not a decoder for it happens to be compiled in.
+pub(crate) fn source_format(format: ImageFormat) -> Option<SourceFormat> {
+    match format {
+        ImageFormat::Png => Some(SourceFormat::Png),
+        ImageFormat::Jpeg => Some(SourceFormat::Jpeg),
+        ImageFormat::WebP => Some(SourceFormat::WebP),
+        _ => None,
+    }
+}
+
+/// The format of `bytes`, read from the bytes themselves (MC-009).
+///
+/// `None` means "not PNG, JPEG or WebP" - the file may still be a valid image
+/// in some other format, or not an image at all; this function does not
+/// distinguish those, because the engine treats both the same way
+/// ([`Unsupported`](crate::Flag::Unsupported)).
+///
+/// # The name is never consulted
+///
+/// This takes a byte slice and not a path on purpose. A file's extension is a
+/// claim made by whoever named it, and screenshots are renamed and re-saved by
+/// hand all the time; the container is a fact about the file. So a PNG called
+/// `x.jpg` answers [`SourceFormat::Png`] here, and MC-009 AC-6 requires it to
+/// be cropped losslessly as the PNG it is - under its own name, which is the
+/// user's to choose.
+///
+/// # What it is not
+///
+/// Signature recognition, not validation: `image::guess_format` reads the first
+/// few bytes, so a truncated or corrupt PNG that still carries the PNG
+/// signature answers [`SourceFormat::Png`]. Deciding a file is undecodable is
+/// the decoder's job, and it is reported separately
+/// ([`DecodeFailed`](crate::Flag::DecodeFailed)).
+#[must_use]
+pub fn detect_format(bytes: &[u8]) -> Option<SourceFormat> {
+    source_format(image::guess_format(bytes).ok()?)
 }
