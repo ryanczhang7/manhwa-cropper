@@ -37,6 +37,20 @@ egui_kittest = "0.36"
 tempfile = "3"
 proptest = "1"
 
+# Tests are compiled optimised (MC-006). The detector is a few dozen passes
+# over an image, and MC-006 AC-4's generator - art up to 1200 px a side inside
+# borders up to 200 - reaches 3184x3184, which is 10 Mpx a case at 256 cases.
+# At the default `opt-level = 0` that suite takes `cargo test --workspace` from
+# ~1 s to 99 s and the `coverage` gate from 7 s to 102 s; at `opt-level = 2`
+# they are 6 s and 20 s. Measured on this machine, warm, and the instrumented
+# run reports the identical 739 regions / 452 lines either way, so nothing
+# about the coverage evidence or the 95% floor moves - only the wall clock.
+#
+# `2` rather than `3`: it is where the saving is, and it keeps compile time and
+# debuginfo closer to the default for the eventual debugging session.
+[profile.test]
+opt-level = 2
+
 # One small exe: docs/wiki/stack.md, "Release shape".
 [profile.release]
 opt-level = 3

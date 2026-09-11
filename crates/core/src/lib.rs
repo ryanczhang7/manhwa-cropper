@@ -8,13 +8,23 @@
 //! test runner and the coverage gate have something real to see. MC-003 adds
 //! the data model ([`Luma`], [`Rect`], [`Tuning`]) and the first pipeline
 //! stage, [`trim`]; MC-004 adds the second, [`edges`]; MC-005 the third,
-//! [`content`]; the rest arrives story by story.
+//! [`content`]; MC-006 the fourth, [`margin`], and [`decide`], which is where
+//! they are finally composed into [`detect`]; the rest arrives story by story.
+//!
+//! [`detect`] and [`Detection`] are re-exported at the root because they are
+//! what a caller outside the crate wants - the engine asks this crate one
+//! question - while the stages stay behind their module names, where the tests
+//! that pin each of them individually reach for them.
 
 #![forbid(unsafe_code)]
 
 pub mod content;
+pub mod decide;
 pub mod edges;
+pub mod margin;
 pub mod trim;
+
+pub use decide::{Detection, detect};
 
 /// Width and height of a pixel plane, in pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
