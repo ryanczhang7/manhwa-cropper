@@ -20,6 +20,7 @@
 pub mod args;
 pub mod codec;
 pub mod copy;
+pub mod naming;
 pub mod process;
 
 pub use codec::SourceFormat;

@@ -1,11 +1,40 @@
-//! The walking-skeleton output path (MC-002): copy an input's bytes
-//! unchanged into the output folder under the input's own file name.
-//! Nothing is decoded. Collision handling belongs to `naming` (a later
-//! story); the summary and the batch runner belong to `batch` (MC-011).
+//! Copying an input's bytes out unchanged: nothing here decodes anything.
+//!
+//! [`copy_to`] is the primitive - an exact destination path, chosen by
+//! [`naming::plan_outputs`](crate::naming::plan_outputs) (MC-010), which is
+//! what [`process`](crate::process) uses for a flagged file.
+//! [`copy_unchanged`] and [`copy_all`] are MC-002's walking-skeleton path,
+//! which still names its own outputs from the input's file name and which
+//! MC-011 retires when the batch runner takes over `--no-gui`. The summary
+//! and that runner belong to `batch` (MC-011).
 
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+
+/// Copy `input` byte-for-byte to `output`, creating `output`'s parent
+/// directory (and its missing parents) first.
+///
+/// The destination is exactly `output`, name and case included: this function
+/// chooses nothing, which is what lets MC-010 plan every name in the batch
+/// before the first byte is written.
+///
+/// The input is read in full before anything is created, so an unreadable
+/// input leaves an existing output folder untouched.
+///
+/// # Errors
+///
+/// Any I/O error from reading the input, creating the directory or writing
+/// the copy.
+pub fn copy_to(input: &Path, output: &Path) -> io::Result<()> {
+    let bytes = fs::read(input)?;
+    // `Path::parent` is `Some("")` for a bare file name and `None` only for a
+    // path that is nothing but a root, and `create_dir_all("")` is a
+    // documented no-op - so this is the whole of "create the folder if it is
+    // missing", with no branch that no caller can reach.
+    fs::create_dir_all(output.parent().unwrap_or(Path::new("")))?;
+    fs::write(output, bytes)
+}
 
 /// Copy `input` byte-for-byte to `out_dir/<input file name>`, creating
 /// `out_dir` (and missing parents) first. Returns the path written.
@@ -24,10 +53,8 @@ pub fn copy_unchanged(input: &Path, out_dir: &Path) -> io::Result<PathBuf> {
             format!("{} has no file name", input.display()),
         )
     })?;
-    let bytes = fs::read(input)?;
-    fs::create_dir_all(out_dir)?;
     let target = out_dir.join(name);
-    fs::write(&target, bytes)?;
+    copy_to(input, &target)?;
     Ok(target)
 }
 
