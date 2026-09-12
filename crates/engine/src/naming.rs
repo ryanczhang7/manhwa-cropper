@@ -1,4 +1,4 @@
-//! Output names, decided before anything is written (MC-010).
+//! Output names, decided before anything is written (MC-010, MC-020).
 //!
 //! [`plan_outputs`] answers one distinct, currently-free path per input, in
 //! input order, accounting both for what is already in the output folder and
@@ -8,6 +8,12 @@
 //! (`docs/wiki/architecture.md` decision 7). Nothing here reads, writes or
 //! creates a file; the only question it asks the filesystem is whether a path
 //! is taken.
+//!
+//! "Distinct" means distinct *to the filesystem*, which on Windows ignores
+//! letter case: `a.png` and `A.PNG` are one file, so planning them as two
+//! names would write one and destroy the other. Names are therefore compared
+//! [`fold`]ed, on both halves of the question - the disk's and the batch's own
+//! - while the name that gets written stays the input's own bytes (MC-020).
 //!
 //! # Why the whole batch is planned at once, and up front
 //!
@@ -56,6 +62,14 @@ const NAMELESS: &str = "output";
 /// still free, counting from 2 and skipping whatever is already on disk. The
 /// stem's case and the extension's case are the input's own, untouched.
 ///
+/// **Taken is decided without regard to letter case**, on both halves of that
+/// question: the disk is asked through [`Path::exists`], which is
+/// case-insensitive on the volume this ships on, and the batch's own claims
+/// are kept under a [`fold`]ed key for the same reason. So `x/a.png` and
+/// `y/A.PNG` are planned as `a.png` and `A (2).PNG`, which are two files,
+/// rather than as two names that are one file (MC-020). The fold decides
+/// *comparison* only; it never reaches the name that gets written.
+///
 /// The returned vector has exactly one entry per input, in the same order, so
 /// a caller may zip it against `inputs`.
 #[must_use]
@@ -63,20 +77,45 @@ pub fn plan_outputs(out_dir: &Path, inputs: &[PathBuf]) -> Vec<PathBuf> {
     let mut planned = Vec::with_capacity(inputs.len());
     // What this batch has already handed out. The disk cannot answer for it:
     // nothing is written until every name is planned, which is the whole
-    // point (see the module docs).
-    let mut claimed: HashSet<PathBuf> = HashSet::with_capacity(inputs.len());
+    // point (see the module docs). Held as `fold`ed file names - every
+    // candidate is in `out_dir`, so the folded name is the whole of what
+    // distinguishes one from another, and folding is what keeps `a.png` and
+    // `A.PNG` from being handed out as two names for one file (MC-020).
+    let mut claimed: HashSet<String> = HashSet::with_capacity(inputs.len());
     for input in inputs {
         let name = input.file_name().unwrap_or(OsStr::new(NAMELESS));
         let mut candidate = out_dir.join(name);
+        let mut key = fold(name);
         let mut n = FIRST_SUFFIX;
-        while claimed.contains(&candidate) || candidate.exists() {
-            candidate = out_dir.join(suffixed(name, n));
+        while claimed.contains(&key) || candidate.exists() {
+            let next = suffixed(name, n);
+            key = fold(&next);
+            candidate = out_dir.join(next);
             n += 1;
         }
-        claimed.insert(candidate.clone());
+        claimed.insert(key);
         planned.push(candidate);
     }
     planned
+}
+
+/// How two names are compared for "is this one taken?", and the only place
+/// case is touched: the answer is a key for [`plan_outputs`]'s set and is
+/// never written anywhere. The name that reaches the disk is always the
+/// input's own bytes (MC-020 AC-4).
+///
+/// Lower-case, not upper-case. They differ on exactly one pair that matters -
+/// `\u{df}` upper-cases to `SS`, while it lower-cases to itself - and this
+/// volume keeps `\u{df}.png` and `SS.png` as two files, which lower-casing
+/// agrees with and upper-casing would not.
+///
+/// [`to_string_lossy`](OsStr::to_string_lossy) rather than a fallible decode:
+/// `plan_outputs` returns a `Vec` and has nowhere to report an error, so a
+/// name this program cannot decode must still get a key. Two such names may
+/// fold together and cost one unnecessary suffix, which is the safe direction
+/// - a spurious suffix is cosmetic, a missed collision loses a file.
+fn fold(name: &OsStr) -> String {
+    name.to_string_lossy().to_lowercase()
 }
 
 /// `name` with ` (n)` between its stem and its extension: `a.png` and 2 give
