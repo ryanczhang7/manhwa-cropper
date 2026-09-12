@@ -1,4 +1,4 @@
-//! MC-011, AC-1 to AC-5: a batch runs every file and reports a run summary.
+//! MC-011, AC-1 to AC-6: a batch runs every file and reports a run summary.
 //!
 //! `batch::run(&inputs, out_dir, &tuning, progress)` plans one output name per
 //! input with `naming::plan_outputs` (MC-010, MC-020), processes the files on
@@ -7,9 +7,12 @@
 //! answers with a `RunSummary` whose JSON shape MC-012 writes to disk and
 //! MC-015 renders.
 //!
-//! AC-6 - the timing claim - is not in this file. See the story's
-//! `## Test plan`: it cannot be honoured under the `coverage` gate as the
-//! criterion is worded, and that is escalated rather than decided here.
+//! AC-6 was amended on 2026-09-12, from a wall-time comparison to an
+//! observation that the work happened on more than one thread. The old
+//! wording could not be satisfied under the `coverage` gate by any correct
+//! implementation, and was a 20-80% control where it did run; the
+//! reproduction, the numbers and the approval are in the story's
+//! `## Amendments`.
 //!
 //! # What is settled, what is mechanical, what was measured
 //!
@@ -44,11 +47,14 @@
 
 mod common;
 
+use std::collections::HashSet;
 use std::fs;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::thread::ThreadId;
 
-use cropper_core::{FlagReason, Tuning};
+use cropper_core::{FlagReason, Luma, Tuning};
 use cropper_engine::batch::{Progress, RunSummary, run};
 use cropper_engine::{FileResult, Flag, Outcome};
 use serde_json::json;
@@ -592,5 +598,123 @@ fn a_folder_given_as_an_input_is_failed_rather_than_recursed_into() {
         entries(&out),
         ["a.png"],
         "and nothing from inside the folder was written out"
+    );
+}
+
+// --- AC-6: the batch is parallel --------------------------------------------
+//
+// Amended on 2026-09-12 from a wall-time comparison to a thread observation;
+// the reproduction and the reasons are in the story's `## Amendments`. In
+// short: `coverage` runs this suite under `cargo llvm-cov`, whose counters are
+// process-global and uninstrumented for concurrency, so a parallel batch pays
+// an order of magnitude more for them than a sequential one and the old
+// comparison inverted. A `ThreadId` is not a duration and instrumentation
+// cannot change how many of them there were.
+
+/// How many inputs AC-6 hands the batch.
+const AC6_INPUTS: usize = 32;
+
+/// How much bigger AC-6's fixture is than the MC-008 scene.
+///
+/// Not a threshold and not a performance target: it is how much work each of
+/// the 32 items carries, and the only thing it buys is that the pool has a
+/// reason to spread them rather than let one worker drain the queue.
+///
+/// **1x was clean too** - 50 runs of this file at each scale, no failure at
+/// either - so this is margin and not a fix for a measured flake. It is here
+/// because 50 clean runs do not exclude a one-in-fifty rate, the failure mode
+/// it insures against is likelier the cheaper an item is, and 3x buys ~4.6 ms
+/// of real work per item against 1x's ~1 ms for 0.05 s of test time. If that
+/// ever needs revisiting, revisit it with a measurement; do not lower it to
+/// make something pass.
+const AC6_SCALE: u32 = 3;
+
+/// The MC-008 screenshot scene at `k` times its size, nearest neighbour: the
+/// same four borders, chrome band and art, every pixel a `k x k` block, and
+/// still `Cropped` at `Tuning::default()`.
+fn upscaled(k: u32) -> Luma {
+    let base = common::screenshot();
+    let (width, height) = (base.width * k, base.height * k);
+    let mut data = vec![0u8; (width * height) as usize];
+    for y in 0..height {
+        for x in 0..width {
+            data[(y * width + x) as usize] = base.data[((y / k) * base.width + (x / k)) as usize];
+        }
+    }
+    Luma {
+        width,
+        height,
+        data,
+    }
+}
+
+#[test]
+fn the_thirty_two_files_are_processed_on_more_than_one_thread() {
+    // The one skip this story authorises, and it is the criterion's own: on a
+    // single-core machine there is no second thread to observe and nothing to
+    // assert. It is conditioned on the core count and on nothing else - if
+    // this assertion fails on a machine with two or more cores, that is a real
+    // failure and not a reason to widen this branch.
+    let cores = std::thread::available_parallelism().map_or(1, NonZeroUsize::get);
+    if cores < 2 {
+        eprintln!(
+            "MC-011 AC-6 skipped: available_parallelism() reports {cores} core, and the \
+             criterion is checked only on a machine with more than one. Nothing about \
+             the batch was asserted here."
+        );
+        return;
+    }
+
+    let (_tmp, src, out) = workspace();
+    let plane = upscaled(AC6_SCALE);
+    let inputs: Vec<PathBuf> = (0..AC6_INPUTS)
+        .map(|i| {
+            let path = src.join(format!("s{i:02}.png"));
+            common::write_grey8(&plane, &path);
+            path
+        })
+        .collect();
+
+    // The progress callback is the only hook a caller has inside the run, so
+    // it is where the thread is read. AC-3 makes the calls serial - they are
+    // made under one lock, in order - but serialising *when* they happen does
+    // not move them: each one is still made by the worker that finished the
+    // file. What this records, then, is the set of threads the work was done
+    // on.
+    let seen: Mutex<HashSet<ThreadId>> = Mutex::new(HashSet::new());
+    let summary = run(&inputs, &out, &Tuning::default(), &|_: Progress| {
+        seen.lock()
+            .expect("the thread log is not poisoned")
+            .insert(std::thread::current().id());
+    });
+    let seen = seen.into_inner().expect("the thread log is not poisoned");
+
+    // A fixture guard, not a criterion: 32 items that all failed in a
+    // microsecond would give the pool no reason to spread them, and the
+    // assertion below would be measuring nothing.
+    assert_eq!(
+        summary.results.len(),
+        AC6_INPUTS,
+        "AC-6: {AC6_INPUTS} inputs in"
+    );
+    assert_eq!(
+        summary.failed(),
+        0,
+        "the fixture is wrong: AC-6 needs {AC6_INPUTS} inputs that are really \
+         cropped, so that each item carries real work. A batch of failures \
+         costs a microsecond each and gives the pool no reason to spread them"
+    );
+
+    assert!(
+        seen.len() >= 2,
+        "AC-6: {AC6_INPUTS} files were processed on {} thread(s) - {seen:?} - so \
+         this batch is not parallel (decision 12). Two things produce exactly \
+         one thread here, and the difference matters: a `run` that iterates \
+         the inputs itself instead of handing them to the pool, or a `run` \
+         that is parallel but reports progress from the calling thread after \
+         the pool has finished. The second also breaks what AC-3's callback is \
+         for - MC-015's progress bar has to move while the run is happening, \
+         not once at the end",
+        seen.len()
     );
 }
