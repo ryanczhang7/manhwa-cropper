@@ -17,6 +17,17 @@ cropper-core = { workspace = true }
 # encodes with it (MC-008), and a regular dependency is also what the
 # integration tests under `tests/` can `use`.
 image = { workspace = true }
+# MC-011: the batch runs on the rayon pool
+# (`docs/wiki/architecture.md` decision 12).
+rayon = { workspace = true }
+# MC-011: `RunSummary` is serialised by the library itself - MC-012 writes it
+# to disk and MC-015 renders it - so the derive is a regular dependency, the
+# way `cropper-core` already takes it for `Rect` and `FlagReason`.
+serde = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+# Only the tests turn the summary into bytes (tests/batch.rs pins the JSON
+# shape); the library writes the shape and does not choose the format, so this
+# stays out of its own dependencies until MC-012 needs it there.
+serde_json = { workspace = true }
