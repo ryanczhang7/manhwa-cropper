@@ -18,9 +18,9 @@ use cropper_engine::args::{self, Invocation};
 use cropper_engine::batch;
 use cropper_engine::settings::Settings;
 use cropper_engine::{Tuning, resolve_out_dir};
-use eframe::egui;
-use manhwa_cropper::gui::CropperApp;
-use manhwa_cropper::window_title;
+
+use manhwa_cropper::gui::{self, CropperApp};
+use manhwa_cropper::{Model, window_title};
 
 /// Exit code for a run in which every input was cropped or flagged.
 const EXIT_OK: u8 = 0;
@@ -79,17 +79,21 @@ fn headless(inv: &Invocation) -> ExitCode {
     }
 }
 
-/// Open the window as MC-001 did; blocks until it is closed.
+/// Open the window; blocks until it is closed.
+///
+/// The size, the minimum and the title are `gui::viewport()`, which is what
+/// `docs/wiki/design/layout.md` specifies and what MC-015's AC-8 pins. The
+/// model starts from the settings on disk, so a remembered folder is on screen
+/// from the first frame; MC-016 wires the events that change it.
 fn open_window() -> eframe::Result {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title(window_title())
-            .with_inner_size([480.0, 320.0]),
+        viewport: gui::viewport(),
         ..Default::default()
     };
+    let model = Model::new(Settings::load());
     eframe::run_native(
         window_title(),
         options,
-        Box::new(|_cc| Ok(Box::new(CropperApp))),
+        Box::new(move |cc| Ok(Box::new(CropperApp::new(cc, model)))),
     )
 }

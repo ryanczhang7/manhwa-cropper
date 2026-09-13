@@ -63,6 +63,17 @@ const DROPZONE_BUSY: &str = "Cropping…";
 /// `folder.none`.
 const FOLDER_NONE: &str = "No output folder chosen";
 
+/// `folder.button`. One U+2026. No function returns it - it is a caption, not
+/// a state - so [`gui`] reads the constant, which keeps the table here.
+pub(crate) const FOLDER_BUTTON: &str = "Choose folder…";
+
+/// The separator of `list.row`: space, em dash (U+2014), space.
+///
+/// Named because it is used three times: [`row_text`] builds a row with it and
+/// [`gui`] splits a row on it to give the file name and the reason word their
+/// own colours, without either of them typing the characters out.
+pub(crate) const ROW_SEPARATOR: &str = " — ";
+
 /// `error.no_folder`.
 const ERROR_NO_FOLDER: &str = "No output folder chosen. Choose one, then drop the files again.";
 
@@ -332,7 +343,7 @@ pub fn result_line(summary: &RunSummary) -> String {
 #[must_use]
 pub fn row_text(result: &FileResult) -> String {
     format!(
-        "{} — {}",
+        "{}{ROW_SEPARATOR}{}",
         file_name(&result.input),
         reason_word(&result.outcome)
     )
