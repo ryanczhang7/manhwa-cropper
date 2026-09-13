@@ -20,7 +20,7 @@ use cropper_engine::settings::Settings;
 use cropper_engine::{Tuning, resolve_out_dir};
 
 use manhwa_cropper::gui::{self, CropperApp};
-use manhwa_cropper::{Model, window_title};
+use manhwa_cropper::window_title;
 
 /// Exit code for a run in which every input was cropped or flagged.
 const EXIT_OK: u8 = 0;
@@ -36,7 +36,7 @@ fn main() -> ExitCode {
     if inv.no_gui {
         return headless(&inv);
     }
-    match open_window() {
+    match open_window(inv) {
         Ok(()) => ExitCode::from(EXIT_OK),
         Err(_) => ExitCode::from(EXIT_WRITE_FAILED),
     }
@@ -83,17 +83,21 @@ fn headless(inv: &Invocation) -> ExitCode {
 ///
 /// The size, the minimum and the title are `gui::viewport()`, which is what
 /// `docs/wiki/design/layout.md` specifies and what MC-015's AC-8 pins. The
-/// model starts from the settings on disk, so a remembered folder is on screen
-/// from the first frame; MC-016 wires the events that change it.
-fn open_window() -> eframe::Result {
+/// shell starts from the command line and the settings on disk (MC-016): a
+/// remembered folder is on screen from the first frame, and a launch that
+/// carried file paths - Explorer's "Send to", decision 6 - is already running
+/// them into the folder `resolve_out_dir` chose by the time the window
+/// appears.
+fn open_window(inv: Invocation) -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: gui::viewport(),
         ..Default::default()
     };
-    let model = Model::new(Settings::load());
+    let settings = Settings::load();
+
     eframe::run_native(
         window_title(),
         options,
-        Box::new(move |cc| Ok(Box::new(CropperApp::new(cc, model)))),
+        Box::new(move |cc| Ok(Box::new(CropperApp::new(cc, &inv, settings)))),
     )
 }
