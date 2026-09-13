@@ -22,6 +22,10 @@ path = "src/main.rs"
 [dependencies]
 cropper-engine = { workspace = true }
 eframe = { workspace = true }
+# MC-014: `row_text` names `FlagReason`'s four detector reasons to give each
+# one its word from `voice.md`, and `cropper-engine` re-exports only `Tuning`
+# from the core crate. So the library - not just the tests - links it.
+cropper-core = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }
@@ -32,7 +36,8 @@ egui_kittest = { workspace = true }
 # `cropper-core` (Luma, Rect, Tuning) and `image` (the encoders, and decoding
 # an output to check its size); the test itself needs `serde_json` for the
 # summary document. All three are already linked transitively, so none of
-# them compiles anything new.
-cropper-core = { workspace = true }
+# them compiles anything new. `cropper-core` moved to `[dependencies]` in
+# MC-014, where the library itself came to need it; the tests reach it from
+# there.
 image = { workspace = true }
 serde_json = { workspace = true }

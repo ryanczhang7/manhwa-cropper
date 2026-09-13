@@ -73,7 +73,12 @@ pub struct Progress {
 /// outcome is decided, and it is [`process_file`] - and the JSON the
 /// `Serialize` impl writes is the contract MC-012 saves to disk and MC-015
 /// renders.
-#[derive(Debug)]
+///
+/// `Clone` and `PartialEq` are for the app's view-model (MC-014), which parks
+/// a whole summary in `AppState::Done` and compares that state by value; the
+/// counts stay derived either way, so a cloned summary can no more disagree
+/// with itself than the original could.
+#[derive(Debug, Clone, PartialEq)]
 pub struct RunSummary {
     /// One result per input, in the order the inputs were given.
     pub results: Vec<FileResult>,
