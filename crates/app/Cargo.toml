@@ -26,6 +26,9 @@ eframe = { workspace = true }
 # one its word from `voice.md`, and `cropper-engine` re-exports only `Tuning`
 # from the core crate. So the library - not just the tests - links it.
 cropper-core = { workspace = true }
+# MC-016: the native "choose a folder" dialog behind `gui::RfdPicker`. The pin
+# has been in `[workspace.dependencies]` since MC-001, unused until now.
+rfd = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }

@@ -31,6 +31,10 @@
 
 use std::collections::BTreeMap;
 use std::f32::consts::{FRAC_PI_2, PI};
+use std::path::PathBuf;
+
+use cropper_engine::args::Invocation;
+use cropper_engine::settings::Settings;
 
 use eframe::egui::{
     self, Align, Button, Color32, CornerRadius, Direction, FontFamily, FontId, Label, Layout,
@@ -40,6 +44,7 @@ use eframe::egui::{
     text::{LayoutJob, TextFormat},
 };
 
+use crate::shell::{FolderPicker, Shell, ThreadRunner};
 use crate::{
     AppState, FOLDER_BUTTON, Model, ROW_SEPARATOR, dropzone_text, path_text, progress_text,
     result_line, rows, window_title,
@@ -286,7 +291,28 @@ fn widgets(palette: Palette) -> Widgets {
 /// `hovering` is true while files are dragged over the window
 /// (`layout.md`, "Drop target"). Nothing here reads input or returns an event:
 /// the window's four regions are a function of the model and that one flag.
+///
+/// Returns nothing, and cannot start returning anything: MC-015's frozen
+/// `crates/app/tests/gui.rs` passes this function straight to
+/// `HarnessBuilder::build_ui`, whose closure is `FnMut(&mut Ui)`. A caller
+/// that needs to know whether the folder button was activated calls
+/// [`paint_interactive`] instead, which is the same paint with its one
+/// interactive answer kept.
 pub fn paint(ui: &mut Ui, model: &Model, hovering: bool) {
+    let _ = paint_interactive(ui, model, hovering);
+}
+
+/// [`paint`], returning the folder button's [`Response`].
+///
+/// The window has exactly one interactive widget (`accessibility.md`,
+/// "Focus"), so its response is the whole of what a frame can answer with,
+/// and a `Response` carries a click and a keyboard activation alike - egui
+/// turns `Enter` and `Space` on a focused button into a click, and reports
+/// neither for a disabled one. [`crate::shell::Shell::frame`] is the caller;
+/// `paint` above is the same frame with the answer discarded, so the two can
+/// never drift apart.
+#[must_use]
+pub fn paint_interactive(ui: &mut Ui, model: &Model, hovering: bool) -> Response {
     let palette = palette(ui.visuals().dark_mode);
     egui::Frame::NONE
         .inner_margin(Margin::same(SPACE_WINDOW))
@@ -294,10 +320,12 @@ pub fn paint(ui: &mut Ui, model: &Model, hovering: bool) {
             ui.spacing_mut().item_spacing = egui::vec2(SPACE_INLINE, SPACE_STACK);
             let width = ui.available_width();
             drop_zone(ui, width, model, hovering, palette);
-            folder_row(ui, width, model, palette);
+            let folder = folder_row(ui, width, model, palette);
             status_slot(ui, width, model, palette);
             flagged_list(ui, model, palette);
-        });
+            folder
+        })
+        .inner
 }
 
 /// Whether a run is under way, which every region reads.
@@ -366,11 +394,13 @@ fn drop_zone(ui: &mut Ui, width: f32, model: &Model, hovering: bool, palette: Pa
 }
 
 /// Region 2: the path label on the left, the folder button right-aligned.
-fn folder_row(ui: &mut Ui, width: f32, model: &Model, palette: Palette) {
+///
+/// Returns the button's response, which is the window's only one.
+fn folder_row(ui: &mut Ui, width: f32, model: &Model, palette: Palette) -> Response {
     let size = egui::vec2(width, SIZE_CONTROL);
     ui.allocate_ui_with_layout(size, Layout::right_to_left(Align::Center), |ui| {
         ui.set_min_size(size);
-        folder_button(ui, !is_processing(model), palette);
+        let button = folder_button(ui, !is_processing(model), palette);
         // The label takes every point the button did not need.
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
             let color = if is_processing(model) {
@@ -382,7 +412,9 @@ fn folder_row(ui: &mut Ui, width: f32, model: &Model, palette: Palette) {
             };
             path_label(ui, &path_text(model), color);
         });
-    });
+        button
+    })
+    .inner
 }
 
 /// The one focusable widget in the window.
@@ -636,29 +668,61 @@ fn rounded_rect_outline(rect: Rect, radius: f32) -> Vec<Pos2> {
 
 // --- The eframe application --------------------------------------------------
 
-/// The eframe application: the style, and the model the window paints.
+// --- The real folder dialog --------------------------------------------------
+
+/// The native "choose a folder" dialog, through `rfd`.
 ///
-/// MC-015 paints; MC-016 wires the events. Until it does, the model is the one
-/// a launch leaves behind and nothing changes it.
-#[derive(Debug)]
+/// It lives in this file rather than beside the rest of the wiring in
+/// `shell.rs` for one reason: `pick_folder` opens a modal OS dialog and blocks
+/// until a person answers it, so no test can ever execute this body, and the
+/// `coverage` gate measures `shell.rs` against the workspace's line floor
+/// while ignoring `main.rs` and `gui.rs`. Everything that *can* be tested -
+/// when the dialog is opened, with what title, starting where, and what
+/// becomes of the answer - is in `shell.rs` and is tested there.
+#[derive(Debug, Default)]
+pub struct RfdPicker;
+
+impl FolderPicker for RfdPicker {
+    fn pick(&self, title: &str, start_in: Option<&std::path::Path>) -> Option<PathBuf> {
+        let mut dialog = rfd::FileDialog::new().set_title(title);
+        if let Some(directory) = start_in {
+            dialog = dialog.set_directory(directory);
+        }
+        dialog.pick_folder()
+    }
+}
+
+// --- The eframe application --------------------------------------------------
+
+/// The eframe application: the style, and the shell that owns everything else.
+///
+/// A window with no `Model` of its own - [`Shell`] holds it, applies the
+/// events and carries out the commands, and this type is only what eframe
+/// needs to call it once a frame.
 pub struct CropperApp {
-    model: Model,
+    shell: Shell<RfdPicker, ThreadRunner>,
 }
 
 impl CropperApp {
-    /// Install the style once, and start from the settings on disk.
+    /// Install the style once, and start the shell from the command line and
+    /// the settings on disk.
+    ///
+    /// A launch carrying file paths begins its run here, before the first
+    /// frame: that is Explorer's "Send to" (`architecture.md` decision 6).
     #[must_use]
-    pub fn new(cc: &eframe::CreationContext<'_>, model: Model) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, inv: &Invocation, settings: Settings) -> Self {
         install_style(&cc.egui_ctx);
-        Self { model }
+        Self {
+            shell: Shell::from_invocation(inv, settings, RfdPicker, ThreadRunner::new()),
+        }
     }
 }
 
 impl eframe::App for CropperApp {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
-        let hovering = ui.ctx().input(|i| !i.raw.hovered_files.is_empty());
+        let ctx = ui.ctx().clone();
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE.fill(ui.visuals().panel_fill))
-            .show(ui, |ui| paint(ui, &self.model, hovering));
+            .show(ui, |ui| self.shell.frame(&ctx, ui));
     }
 }

@@ -38,3 +38,19 @@ freezes it.
 Thumbnails, preview or adjustment, a settings pane, theme customisation,
 cancelling a run in progress, a system tray icon, and remembering window size
 or position.
+
+## Follow-up, agreed 2026-09-13
+
+**Run `/audit-mutations` once MC-016 closes this epic**, and point it first at
+the window's look-only rules. MC-015's test surface is the AccessKit tree,
+which carries text and roles but no colour, so every rule in
+`components.md` that is *only* a fill, a stroke or a text colour - the drop
+zone's `drop-hover-fill` and 2 px `primary` border, the disabled greys, the
+focus ring - is pinned by nothing. That is not a suspicion: MC-015's `## Notes`
+records a mutation that makes the drop zone paint the hover look during a run
+and leaves all 15 of its tests green.
+
+Deferred rather than done inside MC-015 because closing it means image
+snapshot tests, which need a GPU renderer feature and are out of MC-015's
+scope by its own `## Out of scope`. The user's decision was to finish the epic
+first; this note exists so the next agent does not have to rediscover the gap.

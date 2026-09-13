@@ -37,6 +37,7 @@ use cropper_engine::process::{FileResult, Flag, Outcome};
 use cropper_engine::settings::Settings;
 
 pub mod gui;
+pub mod shell;
 
 /// The window title, and the one label the walking-skeleton window shows.
 pub const APP_TITLE: &str = "Manhwa Cropper";
@@ -66,6 +67,11 @@ const FOLDER_NONE: &str = "No output folder chosen";
 /// `folder.button`. One U+2026. No function returns it - it is a caption, not
 /// a state - so [`gui`] reads the constant, which keeps the table here.
 pub(crate) const FOLDER_BUTTON: &str = "Choose folder…";
+
+/// `folder.dialog_title` - the one argument the native dialog is given. No
+/// function returns it either: [`shell`] hands it to the picker exactly as it
+/// stands, so the table still lives here and not in the wiring.
+pub(crate) const FOLDER_DIALOG_TITLE: &str = "Choose output folder";
 
 /// The separator of `list.row`: space, em dash (U+2014), space.
 ///
