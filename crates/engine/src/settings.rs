@@ -56,7 +56,10 @@ const APPLICATION: &str = "manhwa-cropper";
 /// The path is recorded, not validated - a folder can be deleted or a drive
 /// unplugged between two runs, and answering that question is the caller's
 /// job at the moment it wants to write.
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq)]
+///
+/// `Clone` is for MC-014's `Command::SaveSettings`, which carries a copy of
+/// the settings out of the view-model for someone else to write.
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq)]
 pub struct Settings {
     /// Where crops go, once a folder has been chosen.
     ///
