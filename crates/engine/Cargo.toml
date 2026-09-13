@@ -13,6 +13,9 @@ path = "src/lib.rs"
 
 [dependencies]
 cropper-core = { workspace = true }
+# MC-013: `settings` asks it where the config directory is when
+# MANHWA_CROPPER_CONFIG_DIR is unset (`docs/wiki/architecture.md` decision 6).
+directories = { workspace = true }
 # A regular dependency rather than a dev-dependency: `codec` decodes and
 # encodes with it (MC-008), and a regular dependency is also what the
 # integration tests under `tests/` can `use`.
@@ -24,10 +27,11 @@ rayon = { workspace = true }
 # to disk and MC-015 renders it - so the derive is a regular dependency, the
 # way `cropper-core` already takes it for `Rect` and `FlagReason`.
 serde = { workspace = true }
+# MC-013: the library itself now parses and writes JSON - `settings` reads and
+# writes settings.json - so this moved up from [dev-dependencies], where it was
+# only what tests/batch.rs used to pin the summary's shape. A regular
+# dependency is still visible to the tests under `tests/`.
+serde_json = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
-# Only the tests turn the summary into bytes (tests/batch.rs pins the JSON
-# shape); the library writes the shape and does not choose the format, so this
-# stays out of its own dependencies until MC-012 needs it there.
-serde_json = { workspace = true }
