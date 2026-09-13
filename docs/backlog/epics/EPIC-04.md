@@ -54,3 +54,10 @@ Deferred rather than done inside MC-015 because closing it means image
 snapshot tests, which need a GPU renderer feature and are out of MC-015's
 scope by its own `## Out of scope`. The user's decision was to finish the epic
 first; this note exists so the next agent does not have to rediscover the gap.
+
+**Done, 2026-09-13.** The audit ran and is at
+`docs/wiki/audits/app-window-2026-09-13.md`: 151 mutants over
+`crates/app/src/`, 76 survived, 72 of them in `gui.rs`, while `lib.rs` killed
+every viable mutant. The premise above was confirmed rather than merely
+restated. The work it found is **EPIC-06**, not this epic - MC-021 to MC-024
+live there, and this epic stays closed on the goal it delivered.
