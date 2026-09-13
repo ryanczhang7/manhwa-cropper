@@ -43,6 +43,7 @@
 //! what "called once per completed file" means (MC-011 AC-3, AC-6).
 
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
@@ -175,6 +176,23 @@ pub fn run(
             })
             .collect(),
     }
+}
+
+/// Write `summary` to `path` as the JSON document below - what `--summary`
+/// asks for (MC-012 AC-1, AC-2).
+///
+/// Serialised with `to_vec_pretty`, the way `settings.json` is: the file is a
+/// script's input and a person's, and neither is served by one long line. The
+/// file is replaced whole, and `path` is taken exactly as given - a summary
+/// is one named file, not a name this function gets to choose.
+///
+/// # Errors
+///
+/// If the document cannot be serialised, or `path` cannot be written -
+/// a folder that is not there, say.
+pub fn write_summary(summary: &RunSummary, path: &Path) -> io::Result<()> {
+    let document = serde_json::to_vec_pretty(summary).map_err(io::Error::other)?;
+    fs::write(path, document)
 }
 
 /// `path`'s file name, or the whole path when it has none (`..`, a bare
