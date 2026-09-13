@@ -25,3 +25,14 @@ eframe = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }
+# MC-012: tests/headless.rs reaches the engine's fixture generator with
+# `#[path = "../../engine/tests/common/mod.rs"]` rather than re-implementing
+# it - `formats.rs` already proves that scene crops to that rect in all three
+# containers, and a copy would inherit none of it. The generator needs
+# `cropper-core` (Luma, Rect, Tuning) and `image` (the encoders, and decoding
+# an output to check its size); the test itself needs `serde_json` for the
+# summary document. All three are already linked transitively, so none of
+# them compiles anything new.
+cropper-core = { workspace = true }
+image = { workspace = true }
+serde_json = { workspace = true }
