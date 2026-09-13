@@ -78,3 +78,11 @@ out/
 coverage/
 htmlcov/
 .coverage
+
+# LLVM coverage counters. `cargo llvm-cov` normally keeps these under
+# `target/`, but any test binary built with `-C instrument-coverage` and run
+# directly writes `default_*.profraw` into its own working directory - which is
+# the crate root, not `target/`. Found in MC-011's RED, measuring AC-6's flake
+# rate against an instrumented binary; two of them reached a commit before this
+# line existed.
+*.profraw

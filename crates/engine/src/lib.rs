@@ -7,7 +7,10 @@
 //! [`copy`] (the headless walking-skeleton path that copies bytes unchanged).
 //! MC-008 adds the first real file path through the detector: [`codec`], which
 //! turns decoded pixels into the luma plane `cropper-core` works on, and
-//! [`process`], which is one file in and one file out.
+//! [`process`], which is one file in and one file out. MC-010 adds
+//! [`naming`], which chooses every output name before anything is written,
+//! and MC-011 [`batch`], which is a whole run: many files in, one
+//! [`RunSummary`](batch::RunSummary) out.
 //!
 //! [`process_file`] and the types it answers with are re-exported at the root,
 //! because they are what a caller outside this crate wants - the GUI and the
@@ -18,6 +21,7 @@
 #![forbid(unsafe_code)]
 
 pub mod args;
+pub mod batch;
 pub mod codec;
 pub mod copy;
 pub mod naming;
