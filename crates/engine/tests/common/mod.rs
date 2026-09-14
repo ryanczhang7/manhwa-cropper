@@ -48,6 +48,15 @@
 //! directory, so a helper used by one target is dead code in the other. That
 //! is why `dead_code` is allowed here, exactly as in `crates/core/tests/`.
 #![allow(dead_code)]
+//
+// `corpus.rs` sits beside this file but is deliberately NOT declared here.
+// `crates/app/tests/headless.rs` reaches this module with `#[path]`, so a
+// `pub mod corpus;` would compile the corpus loader into the app crate's test
+// binaries as well - and it needs `serde`, which the app crate has no reason
+// to carry. A target that wants the loader includes it directly:
+//
+//     #[path = "common/corpus.rs"]
+//     mod corpus;
 
 use std::fs;
 use std::path::Path;
