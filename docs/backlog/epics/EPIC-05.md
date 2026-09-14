@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-019]
+stories: [MC-017, MC-018, MC-025, MC-019]
 ---
 
 ## Goal
