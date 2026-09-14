@@ -26,6 +26,7 @@
 pub mod content;
 pub mod decide;
 pub mod edges;
+pub mod flat;
 pub mod margin;
 pub mod trim;
 
@@ -123,6 +124,27 @@ pub struct Tuning {
     /// How far the final rect is expanded on every side, in pixels, before it
     /// is clamped to the image (MC-006).
     pub margin_px: u32,
+    /// Mean absolute deviation, about the line's own mean, at or above which a
+    /// row or column is **textured** rather than flat: the threshold
+    /// [`edges::textured_span`] locates a boundary with (MC-025).
+    ///
+    /// `f32` rather than `u8` because the quantity is a mean absolute
+    /// deviation and is not integral in general - the same reason
+    /// [`min_content_stddev`](Tuning::min_content_stddev), the other
+    /// spread-like statistic in this table, is one.
+    ///
+    /// It has a floor and a ceiling, and both come from constants this field
+    /// does not own. **Above `uniform_tolerance / 2`**, which is the largest
+    /// deviation a line [`trim::trim_uniform`] calls uniform can have (half
+    /// its pixels at each end of the band); at or below that the flatness
+    /// locator would call art a line stage 1 trims away, and the two stages
+    /// would contradict each other. **Below the flattest line of real art**,
+    /// measured at 8.26 on the art every scene in `crates/core/tests` builds;
+    /// above that, art reads as gutter. 8.0 is the one value inside that
+    /// window with a corpus measurement behind it: MC-025's `## Context`
+    /// records that thresholding per-row spread at 8 locates the art boundary
+    /// at 0 px offset for 15 of 19 marked edges.
+    pub min_line_spread: f32,
 }
 
 impl Default for Tuning {
@@ -137,6 +159,7 @@ impl Default for Tuning {
             min_content_fraction: 0.20,
             min_content_side: 64,
             margin_px: 3,
+            min_line_spread: 8.0,
         }
     }
 }

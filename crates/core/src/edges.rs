@@ -21,6 +21,38 @@
 //!
 //! What lives here stops at *locating* lines. Deciding which side of a line is
 //! chrome is MC-005's job, and nothing in this module knows about it.
+//!
+//! # The other question: is this line flat? (MC-025)
+//!
+//! Everything above asks *how much did this line change from the last one*,
+//! and on a gradual fade - a dark panel bleeding into a dark gutter over tens
+//! of pixels - there is no answer to it. MC-019 measured seven such edges in
+//! the corpus: peak adjacent-line step 0.59 to 7.2 against an
+//! [`edge_threshold`](Tuning::edge_threshold) of 24, while the control taken
+//! at a title bar in the same file measured 27 to 29. The transition is real
+//! and it is simply spread too thin for any step-detector to see. Colour was
+//! measured there too and ruled out (peak chroma step 0.07 to 4.18, weaker
+//! still), so the signal has to be something other than a step.
+//!
+//! [`spread_profile`] asks the other question. Its entry for a line is that
+//! line's **mean absolute deviation about its own mean**, so it is a property
+//! of one line rather than of a pair, and a plane of `h` rows has `h` row
+//! entries and `w` column entries - not `h - 1` and `w - 1`. Flat gutter reads
+//! near zero however gradually the art faded into it; art reads well above
+//! zero however little it changes from row to row.
+//!
+//! [`textured_span`] is the decision over that profile, and it mirrors
+//! [`strong_lines`] deliberately: a function of a profile and a [`Tuning`],
+//! knowing nothing about images or rects, with its threshold
+//! ([`Tuning::min_line_spread`]) read from the argument at the one comparison
+//! site. It returns the **outermost** textured indices and does not stop at a
+//! flat run between them, because a flat run between two textured ones is a
+//! panel gutter and MC-005's decision 13 keeps the panels rather than cutting
+//! there.
+//!
+//! Where in the pipeline these are called is [`crate::flat`]'s business, not
+//! this module's - the same separation [`strong_lines`] and
+//! [`crate::content`] already have.
 
 use crate::{Luma, Rect, Tuning};
 
@@ -125,6 +157,134 @@ pub fn strong_lines(profile: &[f32], t: &Tuning) -> Vec<Line> {
     }
 
     lines
+}
+
+/// Which way a profile runs.
+///
+/// A plain value type with no data: [`spread_profile`] needs to be told which
+/// lines to measure, and `Rows` / `Columns` is the whole of that argument.
+/// [`row_profile`] and [`col_profile`] predate it and keep their own names,
+/// which MC-004's tests pin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Axis {
+    /// Lines running left to right, indexed top to bottom.
+    Rows,
+    /// Lines running top to bottom, indexed left to right.
+    Columns,
+}
+
+/// The mean absolute deviation of each line of `img` about **its own mean**,
+/// one entry per line, in the axis's natural order.
+///
+/// `img.height` entries on [`Axis::Rows`] and `img.width` on
+/// [`Axis::Columns`]; an empty plane yields an empty profile on both. See the
+/// module documentation for why this is the statistic and why the count is one
+/// per line rather than one per adjacent pair.
+///
+/// It measures the whole plane and takes no rect, which is MC-025 AC-1
+/// verbatim. Callers inside the crate that need the spread of a line clipped
+/// to a rect use [`spread_within`], which is what this is a thin wrapper over.
+#[must_use]
+pub fn spread_profile(img: &Luma, axis: Axis) -> Vec<f32> {
+    spread_within(
+        img,
+        Rect {
+            x: 0,
+            y: 0,
+            w: img.width,
+            h: img.height,
+        },
+        axis,
+    )
+}
+
+/// [`spread_profile`] over `rect` instead of over the whole plane: one entry
+/// per line of the rect, measured only over the pixels inside it.
+///
+/// Crate-private on purpose. AC-1 fixes the public signature at two arguments,
+/// and the pipeline needs the same statistic over the rect the earlier stages
+/// left, so the rect-taking form is the one with the narrower audience.
+pub(crate) fn spread_within(img: &Luma, rect: Rect, axis: Axis) -> Vec<f32> {
+    let stride = img.width as usize;
+    let (x, y) = (rect.x as usize, rect.y as usize);
+    let (w, h) = (rect.w as usize, rect.h as usize);
+
+    match axis {
+        Axis::Rows => (0..h)
+            .map(|dy| {
+                let start = (y + dy) * stride + x;
+                let line = &img.data[start..start + w];
+                deviation(w, |i| line[i])
+            })
+            .collect(),
+        Axis::Columns => (0..w)
+            .map(|dx| {
+                let column = x + dx;
+                deviation(h, |i| img.data[(y + i) * stride + column])
+            })
+            .collect(),
+    }
+}
+
+/// The first and last index of `spread` at or above `t.min_line_spread`, both
+/// **inclusive**, or `None` when no index reaches it.
+///
+/// "At or above" is `>=`, exactly as it is for
+/// [`edge_threshold`](Tuning::edge_threshold) in [`strong_lines`]. The span
+/// reaches the *outermost* textured indices and is not ended by a flat run
+/// between them: see the module documentation, and MC-005's decision 13.
+///
+/// For a spread profile an index **is** a line index, which is the other half
+/// of what makes this locator comparable with the gradient one - a
+/// [`Line`]'s index `i` sits *between* lines `i` and `i + 1` and has to be
+/// converted, and this one does not.
+#[must_use]
+pub fn textured_span(spread: &[f32], t: &Tuning) -> Option<(usize, usize)> {
+    // The only place the threshold is read, and it is read from the argument.
+    let threshold = t.min_line_spread;
+    let textured = |&value: &f32| value >= threshold;
+    // Both ends found independently, from their own end. A scan that stopped
+    // at the first flat index after the first textured one would cut at a
+    // panel gutter; searching backwards for the last one cannot.
+    let first = spread.iter().position(textured)?;
+    let last = spread.iter().rposition(textured)?;
+    Some((first, last))
+}
+
+/// The mean absolute deviation of `count` samples about their own mean.
+///
+/// # Arithmetic
+///
+/// Taken as one exact rational rather than as two floating passes. With
+/// `total` the integer sum of the line, `n * x_i - total` is an integer, and
+/// `MAD = sum(|n * x_i - total|) / n^2` is that sum of integers over an
+/// integer count - so the only rounding in the whole statistic is the final
+/// division. That is what makes the exact cases exact under any width: an art
+/// row of the fade fixture measures its amplitude to the bit, a chrome band's
+/// column measures 0.0, and a caller can compare with `==` instead of
+/// inventing a tolerance.
+///
+/// The widths are not thrift either. `n * x_i` reaches `65535 * 255`, the sum
+/// of `n` of them `n^2 * 255`, which is 1.1e12 for a 65535-line image: past
+/// `u32` and comfortable in `u64`. The division is done in `f64` because
+/// `n^2` itself stops being exactly representable in `f32` at 4096 lines,
+/// which a tall webtoon page passes, and the quotient is narrowed once at the
+/// end - [`Tuning::min_line_spread`] is an `f32` and the profile is compared
+/// against it.
+fn deviation(count: usize, sample: impl Fn(usize) -> u8) -> f32 {
+    if count == 0 {
+        // A line with no pixels deviates from nothing. Only reachable for a
+        // rect that is zero-wide or zero-tall on the other axis, which no
+        // pipeline stage produces; the guard is here so the division below
+        // never sees a zero.
+        return 0.0;
+    }
+    let n = count as u64;
+    let total: u64 = (0..count).map(|i| u64::from(sample(i))).sum();
+    let deviations: u64 = (0..count)
+        .map(|i| (n * u64::from(sample(i))).abs_diff(total))
+        .sum();
+    (deviations as f64 / (n * n) as f64) as f32
 }
 
 /// Absolute difference of two luma samples, widened so the sum of a whole
