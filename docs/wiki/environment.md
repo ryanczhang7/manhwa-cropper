@@ -112,15 +112,32 @@ configured"; that is expected, not a failure.
 
 ## Optional
 
-- **`cargo-mutants`** for the optional `mutation` gate (`/audit-mutations`).
-  Not installed here and not needed for v1.
+- **`cargo-mutants`** for `/audit-mutations`. **Installed** here as of
+  2026-09-13 (v27.1.0), for the `crates/app` audit recorded in
+  `docs/wiki/audits/app-window-2026-09-13.md`.
 
   ```bash
-  cargo install cargo-mutants
+  cargo install cargo-mutants --locked
   ```
 
-  Verify with `cargo mutants --version`. Skip unless you are running the
-  mutation audit.
+  Verify with `cargo mutants --version`.
+
+  **It is not a gate.** `project.conf` carried a `gate | mutation` line until
+  2026-09-13, waived on the grounds that the tool was not installed. Installing
+  it made that waiver false, and a waived gate still runs - so the next full
+  `gates.sh` would have executed `cargo mutants --workspace`: **466 mutants,
+  1-2 hours**, on every story's GATES phase. The gate line was removed instead
+  (MC-017 `## Notes`, decided by the product owner). Mutation testing is a
+  deliberate audit invoked by `/audit-mutations`, not a per-story gate, which
+  is how it was actually used to produce EPIC-06.
+
+  Scope a run rather than taking the workspace default:
+
+  ```bash
+  cargo mutants --file 'crates/app/src/*.rs' --output .claude/state/mutants
+  ```
+
+  151 mutants over `crates/app` took 20 minutes with a warm cache.
 
 ## Notes
 
