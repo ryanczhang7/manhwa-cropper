@@ -62,11 +62,14 @@
 //! [`content`](crate::content)'s two shares are and with the same consequence:
 //! [`Tuning::min_content_fraction`] is an `f32`, and AC-3 flags a rect whose
 //! area is *below* it, so a rect sitting exactly on the limit must be cropped.
-//! `32000f32 / 160000f32` is bit for bit `0.20f32` and `<` is false;
-//! `f64::from(32000) / f64::from(160000)` is a few ulps under
-//! `f64::from(0.20f32)` and the boundary moves without anyone touching a
-//! constant. MC-007 pins that boundary with a fixture measured in whole
-//! pixels.
+//! `8000f32 / 160000f32` is bit for bit `0.05f32` and `<` is false;
+//! `f64::from(8000) / f64::from(160000)` is 0.05000000000000000278, which
+//! sits below `f64::from(0.05f32)` = 0.05000000074505805969, and the boundary
+//! moves without anyone touching a constant. MC-007 pins that boundary with a
+//! fixture measured in whole pixels; MC-026 rebuilt that fixture at 8000 px
+//! of 160000 when it re-settled
+//! [`min_content_fraction`](Tuning::min_content_fraction) from 0.20 to 0.05,
+//! and 0.05 was chosen partly because it keeps the fixture exact.
 //!
 //! # What `trimmed` means
 //!

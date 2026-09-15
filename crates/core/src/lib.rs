@@ -113,10 +113,71 @@ pub struct Tuning {
     /// (horizontal strips) or width (vertical strips) (MC-005).
     pub chrome_max_extent: f32,
     /// How far below `chrome_flat_fraction` a strip's flat fraction may fall
-    /// and still be called ambiguous rather than content (MC-005).
+    /// and still be called ambiguous rather than content (MC-005): a strip in
+    /// `[chrome_flat_fraction - ambiguity_band, chrome_flat_fraction)` is
+    /// kept, and the detection it came from is marked ambiguous.
+    ///
+    /// Re-settled from 0.05 by MC-026 against the corpus - one of the two
+    /// carve-outs the user made from MC-019's reservation of this table,
+    /// because at 0.05 eight of the twenty-one hand-marked corpus pages were
+    /// answered `Flag(Ambiguous)` before [`decide()`] reached its size test at
+    /// all, so no locator story could be measured against the corpus. It has a
+    /// floor and a ceiling, and both are measured.
+    ///
+    /// **Below 0.00324973**, the ceiling, from bisecting the band per corpus
+    /// entry: the binding pair is `2026-01-05 13_45_59.png` and
+    /// `2026-01-05 13_49_39.png`, whose offending strip has flat fraction
+    /// 0.846750, and the next entry up sits 0.009935 below the threshold. Zero
+    /// entries are ambiguous at a band of 0.0032, and exactly two at 0.0033
+    /// and at every larger band tried. Above the ceiling a page a person
+    /// marked is discarded on a close call.
+    ///
+    /// **Above 1/600 = 0.0016667**, the floor, from a control that stops
+    /// firing: a strip of `n` pixels can only take flat fractions that are
+    /// multiples of `1/n`, so a band narrower than `1/n` cannot contain one
+    /// and the ambiguous verdict becomes unreachable - the same defect
+    /// `ambiguity_band = 0.0` has, arriving gradually. 600 is the smallest
+    /// strip the suites judge (the 100x6 band in `crates/core/tests`).
+    ///
+    /// 0.0025 is 1.50x the floor, 1.30x below the ceiling, and within a
+    /// percent of the window's arithmetic centre (0.0024582). It is also the
+    /// only value in that window whose foot is a ratio of whole pixels:
+    /// `0.85 - 0.0025 = 0.8475 = 339/400`, and `678f32 / 800f32` and
+    /// `0.85f32 - 0.0025f32` are the same bits (`14218691 * 2^-24`), so a
+    /// fixture can sit *on* the foot rather than near it and a one-ulp change
+    /// of the comparison stays visible. At 0.002, 0.0015 and 0.001 no strip
+    /// size in either suite lands on the foot at all.
     pub ambiguity_band: f32,
     /// Smallest content box, as a share of the image area, that is not
     /// flagged `LowContent` (MC-007).
+    ///
+    /// Re-settled from 0.20 by MC-026 against the corpus - the second of those
+    /// two carve-outs. 0.20 was settled on synthetic fixtures where the art
+    /// fills most of the frame; a real reader page on a 2560x1440 screen is
+    /// roughly 500x1150 px, one sixth of the screen, and at 0.20 eleven of the
+    /// twenty-one hand-marked corpus pages were flagged `LowContent` even when
+    /// [`decide()`] was handed the marked rect itself.
+    ///
+    /// **At or below 0.080186**, the ceiling, measured: the smallest marked
+    /// page is `Screenshot (93).jpg`, 246x1167 marked and 252x1173 once
+    /// expanded by [`margin_px`](Tuning::margin_px), in a 2560x1440 frame. The
+    /// twenty-one run 0.080186 to 0.211156, so above the ceiling a page a
+    /// person marked is rejected.
+    ///
+    /// **Above 0.024082**, the floor, from a control that fires: the same
+    /// twenty-one rects with both sides divided by three - one ninth of the
+    /// area - run 0.009426 to 0.024082, the largest being
+    /// `2025-08-05 00_11_13.webp` at 216x411. At or below the floor a rect one
+    /// ninth the area of a page is admitted, which is no floor at all.
+    ///
+    /// 0.05 is 2.08x the floor and 1.60x below the ceiling, deliberately above
+    /// the window's geometric centre (0.0439): the defect a too-low value
+    /// permits is a **clip** and the defect a too-high value permits is a
+    /// **flag**, and MC-005's decision 13 is that a clip is the worse of the
+    /// two. On a 500 px wide page it rejects anything shorter than about
+    /// 370 px. It is also exact in `f32` - `8000f32 / 160000f32` is bit for
+    /// bit `0.05f32` - so a fixture can sit on the boundary rather than near
+    /// it.
     pub min_content_fraction: f32,
     /// Smallest content box side, in pixels, that is not flagged
     /// `LowContent` (MC-007). Fixed, not tuned by the corpus.
@@ -155,8 +216,8 @@ impl Default for Tuning {
             min_content_stddev: 12.0,
             chrome_flat_fraction: 0.85,
             chrome_max_extent: 0.30,
-            ambiguity_band: 0.05,
-            min_content_fraction: 0.20,
+            ambiguity_band: 0.0025,
+            min_content_fraction: 0.05,
             min_content_side: 64,
             margin_px: 3,
             min_line_spread: 8.0,

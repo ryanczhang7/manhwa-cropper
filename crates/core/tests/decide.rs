@@ -32,11 +32,22 @@
 //!
 //! # What is settled, what is mechanical, what was measured
 //!
-//! * **Settled**: `min_content_fraction = 0.20` and `min_content_side = 64`.
+//! * **Settled**: `min_content_fraction = 0.05` and `min_content_side = 64`.
 //!   Each is pinned by its own test, and neither is ever written as a literal
 //!   at a comparison site - the tests read them out of the `Tuning` argument,
 //!   and one test below drives `decide` at *different* limits to pin that they
 //!   come from the argument rather than from the source.
+//!
+//!   `min_content_fraction` was **0.20 until MC-026**, which re-settled it
+//!   against the calibration corpus: a reader page on a 2560x1440 screen is
+//!   roughly one sixth of the screen, every one of the twenty-one hand-marked
+//!   pages is below 0.2113 of its image, and the smallest is 0.0802 - so at
+//!   0.20 a *perfect* locator was answered `LowContent` on eleven of them.
+//!   The derivation of 0.05 - ceiling 0.080186, floor 0.024082 from the
+//!   one-ninth control, and why the value leans above the window's centre -
+//!   is in `crates/engine/tests/corpus.rs`. It is read out here, not
+//!   re-derived, and the area fixtures below moved with it: 4%, exactly 5% and
+//!   6% where they were 19%, exactly 20% and 21%.
 //! * **Mechanical**: `decide(&Luma, &Tuning) -> CropDecision`,
 //!   `CropDecision { Crop(Rect), Flag(FlagReason) }`,
 //!   `FlagReason { Uniform, NoBorderFound, LowContent, Ambiguous }`, their
@@ -53,16 +64,18 @@
 //!
 //! `min_content_fraction` is an `f32` field, and
 //! `a_rect_at_exactly_min_content_fraction_is_not_below_it_and_is_cropped`
-//! sits **exactly** on the boundary: its rect is 32,000 px of a 160,000 px
-//! image, and AC-3 flags a rect whose area is *below* the fraction, so 20% of
-//! 20% must be cropped. Do the arithmetic in `f32`, as `tests/content.rs`
-//! already does for `chrome_flat_fraction`: `32000f32 / 160000f32` is bit for
-//! bit `0.20f32`, so `<` is false and the rect is kept, whereas the same
-//! quotient taken in `f64` - or `f64::from(0.20f32) * 160000.0` - lands a few
+//! sits **exactly** on the boundary: its rect is 8,000 px of a 160,000 px
+//! image, and AC-3 flags a rect whose area is *below* the fraction, so 5% of
+//! 5% must be cropped. Do the arithmetic in `f32`, as `tests/content.rs`
+//! already does for `chrome_flat_fraction`: `8000f32 / 160000f32` is bit for
+//! bit `0.05f32`, so `<` is false and the rect is kept, whereas the same
+//! quotient taken in `f64` - or `f64::from(0.05f32) * 160000.0` - lands a few
 //! ulps the other side of the constant and the boundary moves without anyone
 //! touching a number. Both quantities are pinned here as whole pixel counts
 //! rather than as a fraction, so the test never has to make that choice
-//! itself.
+//! itself. MC-026 moved the fixture from 32,000 px and 0.20; the property it
+//! pins, and the reason the new value was chosen to keep it exact, did not
+//! change.
 
 mod common;
 
@@ -99,13 +112,25 @@ const CHROME_FLAT: f64 = 0.90;
 /// A band inside `[chrome_flat_fraction - ambiguity_band,
 /// chrome_flat_fraction)`, which is the shape `tests/content.rs` already uses
 /// for an ambiguous strip. Kept, and marks the detection ambiguous.
-const AMBIGUOUS_FLAT: f64 = 0.84;
+///
+/// MC-026 moved it from 0.84 with the band, and it is the same rung as
+/// `tests/content.rs`'s `INSIDE_THE_BAND`: 679 of 800. `common::Chrome` draws
+/// exactly `text_per_line` pixels of each line of the band's long axis, so on
+/// the [`AMBIGUITY_ART_W`]-wide bands below it renders as 679/800 = 0.84875
+/// on every line and therefore over the whole strip, one pixel inside each
+/// edge of `[0.8475, 0.85)`.
+const AMBIGUOUS_FLAT: f64 = 679.0 / 800.0;
 
 /// The same band one step *below* the foot of the ambiguity band: plain
 /// content, kept without any close call. Every ambiguity test below has a
 /// twin at this flat fraction, and the twin is what makes the ambiguity test
 /// a test of ambiguity rather than of the geometry it shares.
-const PLAIN_CONTENT_FLAT: f64 = 0.79;
+///
+/// MC-026 moved it from 0.79, and it is `tests/content.rs`'s
+/// `BELOW_THE_BAND`: 677 of 800, rendering at 0.84625 - one pixel of 800
+/// below the foot of the band, which is the closest a strip of this width can
+/// come to it from below.
+const PLAIN_CONTENT_FLAT: f64 = 677.0 / 800.0;
 
 // --- Fixture builders -------------------------------------------------------
 
@@ -129,17 +154,23 @@ fn bordered(art_w: u32, art_h: u32, side_x: u32, side_y: u32, chrome: Vec<Chrome
 
 /// AC-3's area controls. All three are 400x400 images whose detected rect is
 /// the art grown by the margin, so the area lands on a whole percentage of the
-/// image: 19% (flagged), exactly 20% (the boundary, cropped) and 21%
-/// (cropped). Both sides of every one of them are far above
-/// `min_content_side`, so the area is the only thing that can decide them.
-fn area_at_nineteen_percent() -> Luma {
-    bordered(154, 184, 123, 108, vec![]).render()
+/// image: 4% (flagged), exactly 5% (the boundary, cropped) and 6% (cropped).
+/// Both sides of every one of them are far above `min_content_side`, so the
+/// area is the only thing that can decide them.
+///
+/// MC-026 rebuilt all three around the new `min_content_fraction`; they were
+/// 19%, exactly 20% and 21%. They keep their shape - a tight bracket one
+/// percentage point either side of the constant, with the middle one exactly
+/// on it in whole pixels - and every rect keeps an 80 px height, so the three
+/// differ only in width and only the area can decide them.
+fn area_at_four_percent() -> Luma {
+    bordered(74, 74, 163, 163, vec![]).render()
 }
-fn area_at_exactly_twenty_percent() -> Luma {
-    bordered(154, 194, 123, 103, vec![]).render()
+fn area_at_exactly_five_percent() -> Luma {
+    bordered(94, 74, 153, 163, vec![]).render()
 }
-fn area_at_twenty_one_percent() -> Luma {
-    bordered(162, 194, 119, 103, vec![]).render()
+fn area_at_six_percent() -> Luma {
+    bordered(114, 74, 143, 163, vec![]).render()
 }
 
 /// AC-3's side controls: a 300 px wide rect 63 px tall (flagged) and the same
@@ -152,21 +183,51 @@ fn side_at_sixty_four_px() -> Luma {
     bordered(294, 58, 13, 13, vec![]).render()
 }
 
+/// How wide the art is in every scene that carries an ambiguity band, and the
+/// one number in this file MC-026 had to move for a reason that is not the
+/// constant itself.
+///
+/// `common::Chrome` draws its "text" pixels **per line**, `text_per_line`
+/// pixels of each line of the band's long axis, so the flat fractions a band
+/// of width `long` can take are exactly the multiples of `1 / long`. At the
+/// old width of 200 the step was 0.005 - **twice** the whole new
+/// `ambiguity_band` - so no band of that width can land inside `[0.8475,
+/// 0.85)` at all, and every value that tried rounded up onto
+/// `chrome_flat_fraction` and was peeled as chrome. 800 makes the step
+/// 0.00125, half the band, which is the same resolution
+/// `tests/content.rs`'s 100x8 ladder has and the reason both files can use the
+/// identical rungs 677/800 and 679/800.
+const AMBIGUITY_ART_W: u32 = 800;
+
 /// AC-4's scene: a 20 px band at `flat` above textured art, inside four
 /// borders. At [`AMBIGUOUS_FLAT`] the band is kept and the detection is
 /// ambiguous; at [`PLAIN_CONTENT_FLAT`] the band is kept and it is not; at
 /// [`CHROME_FLAT`] the band is peeled. The rect and every other report field
 /// are identical in the first two cases, which is what makes them a pair.
 fn band_over_art(flat: f64) -> Luma {
-    bordered(200, 150, 20, 20, vec![Chrome::new(20, BAND_BG, flat)]).render()
+    bordered(
+        AMBIGUITY_ART_W,
+        150,
+        20,
+        20,
+        vec![Chrome::new(20, BAND_BG, flat)],
+    )
+    .render()
 }
 
 /// AC-6's scene: [`band_over_art`] with the art cut down to 20 px tall and the
 /// band to 6, so the detected rect is 32 px tall - below `min_content_side` -
-/// while still filling 41% of the image. Low-content on the side alone, and
+/// while still filling 47% of the image. Low-content on the side alone, and
 /// ambiguous or not according to `flat`.
 fn short_band_over_short_art(flat: f64) -> Luma {
-    bordered(200, 20, 20, 20, vec![Chrome::new(6, BAND_BG, flat)]).render()
+    bordered(
+        AMBIGUITY_ART_W,
+        20,
+        20,
+        20,
+        vec![Chrome::new(6, BAND_BG, flat)],
+    )
+    .render()
 }
 
 /// The 2-before-4 scene: no borders at all, and a band at `flat` over the art.
@@ -177,7 +238,7 @@ fn short_band_over_short_art(flat: f64) -> Luma {
 fn unbordered_band_over_art(flat: f64) -> Luma {
     Recipe {
         top_chrome: vec![Chrome::new(20, BAND_BG, flat)],
-        ..Recipe::new(200, 150)
+        ..Recipe::new(AMBIGUITY_ART_W, 150)
     }
     .render()
 }
@@ -213,15 +274,18 @@ fn detected(img: &Luma) -> cropper_core::Detection {
 
 // --- The settled constants --------------------------------------------------
 
-/// `min_content_fraction` is settled at 0.20 (`architecture.md`, the `Tuning`
-/// table; the corpus story MC-019 may change it under `## Amendments`). Every
-/// area fixture in this file is sized around this number *because of this
-/// test*, not because 0.20 was assumed.
+/// `min_content_fraction` is settled at 0.05 (`architecture.md`, the `Tuning`
+/// table). MC-007 settled it at 0.20 on synthetic fixtures where the art fills
+/// most of the frame; MC-026 re-settled it against the calibration corpus,
+/// where it rejected nineteen of the twenty-one hand-marked pages, and the
+/// derivation is in `crates/engine/tests/corpus.rs`. Every area fixture in
+/// this file is sized around this number *because of this test*, not because
+/// 0.05 was assumed.
 #[test]
-fn the_default_min_content_fraction_is_zero_point_two() {
+fn the_default_min_content_fraction_is_zero_point_zero_five() {
     assert_eq!(
         Tuning::default().min_content_fraction,
-        0.20,
+        0.05,
         "the settled smallest content box, as a share of the image area"
     );
 }
@@ -363,46 +427,46 @@ fn every_low_content_fixture_has_the_geometry_its_control_claims() {
     // (name, image, rect, rect area, image area, short side, long side)
     let cases: [(&str, Luma, Rect, u64, u64, u32, u32); 5] = [
         (
-            "19% of the area",
-            area_at_nineteen_percent(),
+            "4% of the area",
+            area_at_four_percent(),
             Rect {
-                x: 120,
-                y: 105,
-                w: 160,
-                h: 190,
+                x: 160,
+                y: 160,
+                w: 80,
+                h: 80,
             },
-            30_400,
+            6_400,
             160_000,
-            160,
-            190,
+            80,
+            80,
         ),
         (
-            "exactly 20% of the area",
-            area_at_exactly_twenty_percent(),
+            "exactly 5% of the area",
+            area_at_exactly_five_percent(),
             Rect {
-                x: 120,
-                y: 100,
-                w: 160,
-                h: 200,
+                x: 150,
+                y: 160,
+                w: 100,
+                h: 80,
             },
-            32_000,
+            8_000,
             160_000,
-            160,
-            200,
+            80,
+            100,
         ),
         (
-            "21% of the area",
-            area_at_twenty_one_percent(),
+            "6% of the area",
+            area_at_six_percent(),
             Rect {
-                x: 116,
-                y: 100,
-                w: 168,
-                h: 200,
+                x: 140,
+                y: 160,
+                w: 120,
+                h: 80,
             },
-            33_600,
+            9_600,
             160_000,
-            168,
-            200,
+            80,
+            120,
         ),
         (
             "a 63 px side",
@@ -698,12 +762,12 @@ fn a_screenshot_whose_chrome_was_peeled_is_not_flagged_no_border_found() {
 #[test]
 fn a_rect_below_min_content_fraction_of_the_image_is_flagged_low_content() {
     let t = Tuning::default();
-    let img = area_at_nineteen_percent();
+    let img = area_at_four_percent();
     let found = detected(&img);
     assert_eq!(
         areas(&img, found.rect),
-        (30_400, 160_000),
-        "AC-3's control: 19% of the image area"
+        (6_400, 160_000),
+        "AC-3's control: 4% of the image area"
     );
     assert!(
         found.rect.w.min(found.rect.h) > t.min_content_side,
@@ -714,24 +778,24 @@ fn a_rect_below_min_content_fraction_of_the_image_is_flagged_low_content() {
     assert_eq!(
         decide(&img, &t),
         CropDecision::Flag(FlagReason::LowContent),
-        "AC-3: 30400 of 160000 px is 19%, below min_content_fraction"
+        "AC-3: 6400 of 160000 px is 4%, below min_content_fraction"
     );
 }
 
 #[test]
 fn a_rect_above_min_content_fraction_of_the_image_is_cropped() {
     let t = Tuning::default();
-    let img = area_at_twenty_one_percent();
+    let img = area_at_six_percent();
     let found = detected(&img);
     assert_eq!(
         areas(&img, found.rect),
-        (33_600, 160_000),
-        "AC-3's control: 21% of the image area"
+        (9_600, 160_000),
+        "AC-3's control: 6% of the image area"
     );
     assert_eq!(
         decide(&img, &t),
         CropDecision::Crop(found.rect),
-        "AC-3: 33600 of 160000 px is 21%, above min_content_fraction"
+        "AC-3: 9600 of 160000 px is 6%, above min_content_fraction"
     );
 }
 
@@ -743,16 +807,16 @@ fn a_rect_above_min_content_fraction_of_the_image_is_cropped() {
 #[test]
 fn a_rect_at_exactly_min_content_fraction_is_not_below_it_and_is_cropped() {
     let t = Tuning::default();
-    let img = area_at_exactly_twenty_percent();
+    let img = area_at_exactly_five_percent();
     let found = detected(&img);
     let (area, total) = areas(&img, found.rect);
     assert_eq!(
         (area, total),
-        (32_000, 160_000),
+        (8_000, 160_000),
         "AC-3's boundary: exactly min_content_fraction of the image area"
     );
     // The fixture is tied to the settled constant rather than to the number
-    // 0.20: its area is exactly `min_content_fraction` of the image's, read
+    // 0.05: its area is exactly `min_content_fraction` of the image's, read
     // out of the tuning. Both counts are powers-of-ten multiples that `f32`
     // represents exactly, so this equality is not a tolerance in disguise.
     assert_eq!(
@@ -763,7 +827,7 @@ fn a_rect_at_exactly_min_content_fraction_is_not_below_it_and_is_cropped() {
     assert_eq!(
         decide(&img, &t),
         CropDecision::Crop(found.rect),
-        "AC-3: 32000 of 160000 px is exactly min_content_fraction, which is not below it"
+        "AC-3: 8000 of 160000 px is exactly min_content_fraction, which is not below it"
     );
 }
 
@@ -783,9 +847,10 @@ fn a_rect_with_a_side_below_min_content_side_is_flagged_low_content() {
         "the other dimension must be well inside the limit"
     );
     assert!(
-        area * 100 > total * 20,
-        "the area must be well above min_content_fraction, so the short side is what \
-         decides this fixture: {area} of {total}"
+        area as f32 / total as f32 > t.min_content_fraction,
+        "the area must be well above min_content_fraction ({}), so the short side is \
+         what decides this fixture: {area} of {total}",
+        t.min_content_fraction
     );
     assert_eq!(
         decide(&img, &t),
@@ -812,20 +877,25 @@ fn a_rect_with_a_side_at_min_content_side_is_cropped() {
 
 /// Both limits come from the `Tuning` argument, not from the source. Each
 /// fixture is driven twice, once at the default and once at a limit that
-/// reverses its answer - so a `decide` with 0.20 or 64 compiled in fails four
+/// reverses its answer - so a `decide` with 0.05 or 64 compiled in fails four
 /// of these eight and a `decide` that ignores the limits entirely fails all
 /// eight.
+///
+/// The two off-default fractions moved with the constant in MC-026: 0.07 and
+/// 0.03 bracket the 6% and 4% fixtures the way 0.25 and 0.10 bracketed the 21%
+/// and 19% ones. They are positions relative to the fixtures, not candidate
+/// values for anything.
 #[test]
 fn the_low_content_limits_are_read_from_the_tuning_they_were_given() {
     let default = Tuning::default();
     let mut wrong = Vec::new();
 
-    // 21% of the area is cropped at a 0.20 limit and flagged at a 0.25 one.
-    let img = area_at_twenty_one_percent();
+    // 6% of the area is cropped at a 0.05 limit and flagged at a 0.07 one.
+    let img = area_at_six_percent();
     let rect = detected(&img).rect;
     for (fraction, want) in [
         (default.min_content_fraction, CropDecision::Crop(rect)),
-        (0.25, CropDecision::Flag(FlagReason::LowContent)),
+        (0.07, CropDecision::Flag(FlagReason::LowContent)),
     ] {
         let t = Tuning {
             min_content_fraction: fraction,
@@ -834,7 +904,7 @@ fn the_low_content_limits_are_read_from_the_tuning_they_were_given() {
         let got = decide(&img, &t);
         if got != want {
             wrong.push(format!(
-                "21% at min_content_fraction {fraction}: wanted {want:?}, got {got:?}"
+                "6% at min_content_fraction {fraction}: wanted {want:?}, got {got:?}"
             ));
         }
     }
@@ -863,16 +933,16 @@ fn the_low_content_limits_are_read_from_the_tuning_they_were_given() {
 
     // And the same two fixtures the other way round, so neither limit can be
     // satisfied by an implementation that only ever reads one of them.
-    let img = area_at_nineteen_percent();
+    let img = area_at_four_percent();
     let rect = detected(&img).rect;
     let t = Tuning {
-        min_content_fraction: 0.10,
+        min_content_fraction: 0.03,
         ..Tuning::default()
     };
     let got = decide(&img, &t);
     if got != CropDecision::Crop(rect) {
         wrong.push(format!(
-            "19% at min_content_fraction 0.10: wanted Crop({rect:?}), got {got:?}"
+            "4% at min_content_fraction 0.03: wanted Crop({rect:?}), got {got:?}"
         ));
     }
     let img = side_at_sixty_four_px();
@@ -906,10 +976,13 @@ fn a_detection_with_a_nearly_chrome_edge_strip_is_flagged_ambiguous() {
         "AC-4's precondition: a strip at {AMBIGUOUS_FLAT} is inside \
          [chrome_flat_fraction - ambiguity_band, chrome_flat_fraction)"
     );
-    // "Regardless of the rect": this rect is 72% of the image and both its
+    // "Regardless of the rect": this rect is 80% of the image and both its
     // sides are far above the limits, so nothing else in the order fires and
-    // the only thing that can produce a flag here is the ambiguity.
-    assert_eq!(areas(&img, found.rect), (36_256, 50_400));
+    // the only thing that can produce a flag here is the ambiguity. MC-026
+    // widened the scene from 240x210 with the art; the share it covers barely
+    // moved, and the point of the assertion - that the size gate cannot be
+    // what decides this fixture - did not move at all.
+    assert_eq!(areas(&img, found.rect), (141_856, 176_400));
     assert!(found.rect.w.min(found.rect.h) > t.min_content_side);
     assert_eq!(
         decide(&img, &t),
@@ -952,7 +1025,7 @@ fn an_ordinary_screenshot_is_cropped_to_the_rect_detect_produced() {
             "chrome peeled with no borders",
             unbordered_band_over_art(CHROME_FLAT),
         ),
-        ("21% of the area", area_at_twenty_one_percent()),
+        ("6% of the area", area_at_six_percent()),
         ("a 64 px side", side_at_sixty_four_px()),
     ] {
         // The oracle is `detect`'s own return value on the same image and the
@@ -1025,7 +1098,13 @@ fn the_decision_does_not_depend_on_which_pair_of_borders_spans_the_image() {
         for layout in [Layout::Bands, Layout::Gutters] {
             let img = Recipe {
                 layout,
-                ..bordered(200, 150, 20, 20, vec![Chrome::new(20, BAND_BG, chrome)])
+                ..bordered(
+                    AMBIGUITY_ART_W,
+                    150,
+                    20,
+                    20,
+                    vec![Chrome::new(20, BAND_BG, chrome)],
+                )
             }
             .render();
             let found = detect(&img, &t).expect("this fixture is textured");

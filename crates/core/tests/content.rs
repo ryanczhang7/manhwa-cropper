@@ -25,11 +25,22 @@
 //! # What is settled, what is mechanical, what was measured
 //!
 //! * **Settled**: `chrome_flat_fraction = 0.85`, `chrome_max_extent = 0.30`,
-//!   `ambiguity_band = 0.05`, `min_content_stddev = 12`,
+//!   `ambiguity_band = 0.0025`, `min_content_stddev = 12`,
 //!   `uniform_tolerance = 10`, `edge_threshold = 24`. Every one is read out of
 //!   `Tuning::default()` and pinned by its own test; not one number in this
 //!   file was calibrated, and no threshold is ever written as a literal at a
 //!   comparison site.
+//!
+//!   `ambiguity_band` was **0.05 until MC-026**, which re-settled it against
+//!   the calibration corpus: at 0.05 eight of the twenty-one hand-marked pages
+//!   are answered `Flag(Ambiguous)` before the size gate is reached. The whole
+//!   derivation - a ceiling of 0.0032497 bisected out of the corpus, a floor
+//!   of 1/600 below which the `NearlyChrome` verdict is unreachable on the
+//!   strips this file builds, and why 0.0025 is the one value in that window
+//!   whose foot is a ratio of whole pixels - is in
+//!   `crates/engine/tests/corpus.rs`. It is read out here, not re-derived.
+//!   Every fixture in this file that was positioned against the old band moved
+//!   with it; the four-rung ladder below is what replaced them.
 //! * **Mechanical**: `content_box`, `ContentBox` and `Side`. Pinned exactly.
 //! * **Measured**: only the fixtures. The chrome band generator
 //!   ([`common::chrome_band`]) asserts its own flat fraction on every call, and
@@ -42,10 +53,14 @@
 //!
 //! * The flat fraction and the extent share are compared against `f32` fields
 //!   of `Tuning`, and three tests below sit **exactly** on a boundary (flat
-//!   fraction 0.85, flat fraction 0.80 = `0.85 - 0.05`, extent 30 of 100).
+//!   fraction 0.85, flat fraction 0.8475 = `0.85 - 0.0025`, extent 30 of 100).
 //!   Do the arithmetic in `f32`, as the fields are: `510f32 / 600f32` is bit
 //!   for bit `0.85f32`, so `>=` holds, while the same quotient in `f64` is one
-//!   ulp *below* `f64::from(0.85f32)` and the boundary silently moves.
+//!   ulp *below* `f64::from(0.85f32)` and the boundary silently moves. The
+//!   foot of the band is the same kind of equality one rung down:
+//!   `678f32 / 800f32` and `0.85f32 - 0.0025f32` are both `14218691 * 2^-24`,
+//!   which is what lets `a_top_strip_exactly_at_the_foot_..` pin the foot
+//!   rather than approach it.
 //! * `stddev` is a population standard deviation here, but every fixture is
 //!   far from `min_content_stddev` (18.06 or 30.39 against 12 where it must
 //!   pass, 5.00 against 12 where it must fail), so the sample/population
@@ -90,6 +105,32 @@ const SEED: u32 = 7;
 /// spread - 5.0, comfortably below `min_content_stddev`.
 const FLAT_ART_LOW: u8 = 40;
 const FLAT_ART_SPREAD: u8 = 10;
+
+/// MC-026's ambiguity ladder, and the height of the strip it is measured on.
+///
+/// `ambiguity_band` is 0.0025, so the band is `[0.8475, 0.85)` and is 0.0025
+/// wide. One pixel of a 100x8 strip is `1 / 800 = 0.00125`, half that width,
+/// which is the finest rung any strip in this file can offer - and it is why
+/// the ladder is written as **exact pixel counts of 800** rather than as
+/// rounded decimals, which at this width land on the wrong rung.
+///
+/// | flat pixels | flat fraction | where it sits |
+/// |---|---|---|
+/// | 677 | 0.84625 | below the band: plain content |
+/// | 678 | 0.84750 | exactly on the band's foot: ambiguous |
+/// | 679 | 0.84875 | inside the band: ambiguous |
+/// | 680 | 0.85000 | at `chrome_flat_fraction`: chrome, and peeled |
+///
+/// None of these is a threshold - the thresholds are read from
+/// `Tuning::default()` at every use. They are positions relative to one, and
+/// 678/800 is the position that is `chrome_flat_fraction - ambiguity_band`
+/// **bit for bit** in `f32`. Before MC-026 the same three rungs were 0.84,
+/// 0.80 and 0.79 against a band of 0.05.
+const LADDER_H: u32 = 8;
+const LADDER_PIXELS: f64 = (W * LADDER_H) as f64;
+const BELOW_THE_BAND: f64 = 677.0 / LADDER_PIXELS;
+const AT_THE_FOOT: f64 = 678.0 / LADDER_PIXELS;
+const INSIDE_THE_BAND: f64 = 679.0 / LADDER_PIXELS;
 
 // --- Fixture builders -------------------------------------------------------
 
@@ -162,6 +203,17 @@ fn art(width: u32, height: u32) -> Luma {
 /// band across the top of the image, textured art filling the rest.
 fn top_band_scene(band_h: u32, flat_fraction: f64) -> Luma {
     stack(&[band(W, band_h, BAND_BG, flat_fraction), art(W, H - band_h)])
+}
+
+/// The strip of a [`top_band_scene`] built at [`LADDER_H`]: the rungs of the
+/// ambiguity ladder are measured over exactly the pixels `content_box` judges.
+fn ladder_strip() -> Rect {
+    Rect {
+        x: 0,
+        y: 0,
+        w: W,
+        h: LADDER_H,
+    }
 }
 
 /// The art rect of [`top_band_scene`]: everything below the band.
@@ -277,9 +329,20 @@ fn the_default_chrome_max_extent_is_zero_point_three() {
     assert_eq!(Tuning::default().chrome_max_extent, 0.30);
 }
 
+/// MC-026 re-settled this one against the calibration corpus; it was 0.05
+/// from MC-005 until then. The derivation - ceiling 0.0032497 bisected out of
+/// the corpus, floor 1/600, and why 0.0025 rather than any other value in that
+/// window - is in `crates/engine/tests/corpus.rs`. Every ambiguity fixture in
+/// this file is positioned around this number *because of this test*, not
+/// because 0.0025 was assumed.
 #[test]
-fn the_default_ambiguity_band_is_zero_point_zero_five() {
-    assert_eq!(Tuning::default().ambiguity_band, 0.05);
+fn the_default_ambiguity_band_is_zero_point_zero_zero_two_five() {
+    assert_eq!(
+        Tuning::default().ambiguity_band,
+        0.0025,
+        "how far below chrome_flat_fraction a strip may fall and still be called \
+         a close call rather than content"
+    );
 }
 
 #[test]
@@ -346,8 +409,26 @@ fn a_content_box_carries_a_rect_a_removal_order_and_an_ambiguity_flag() {
 fn the_chrome_band_generator_hits_every_requested_flat_fraction() {
     let tolerance = Tuning::default().uniform_tolerance;
     let mut drifted = Vec::new();
-    for &requested in &[0.50f64, 0.79, 0.80, 0.84, 0.85, 0.86, 0.90, 0.95] {
-        for &(w, h) in &[(W, 6u32), (W, 29), (W, 30), (W, 31), (15, 94)] {
+    for &requested in &[
+        0.50f64,
+        0.79,
+        0.84,
+        BELOW_THE_BAND,
+        AT_THE_FOOT,
+        INSIDE_THE_BAND,
+        0.85,
+        0.86,
+        0.90,
+        0.95,
+    ] {
+        for &(w, h) in &[
+            (W, 6u32),
+            (W, LADDER_H),
+            (W, 29),
+            (W, 30),
+            (W, 31),
+            (15, 94),
+        ] {
             let fixture = band(w, h, BAND_BG, requested);
             let rendered = flat_fraction(&fixture, whole(&fixture), tolerance);
             if (rendered - requested).abs() > common::CHROME_BAND_FLAT_TOLERANCE {
@@ -365,8 +446,19 @@ fn the_chrome_band_generator_hits_every_requested_flat_fraction() {
 fn a_chrome_band_carries_no_strong_line_of_its_own() {
     let t = Tuning::default();
     let mut split = Vec::new();
-    for &requested in &[0.50f64, 0.79, 0.80, 0.84, 0.85, 0.86, 0.90, 0.95] {
-        for &(w, h) in &[(W, 6u32), (W, 31), (15, 94)] {
+    for &requested in &[
+        0.50f64,
+        0.79,
+        0.84,
+        BELOW_THE_BAND,
+        AT_THE_FOOT,
+        INSIDE_THE_BAND,
+        0.85,
+        0.86,
+        0.90,
+        0.95,
+    ] {
+        for &(w, h) in &[(W, 6u32), (W, LADDER_H), (W, 31), (15, 94)] {
             let fixture = band(w, h, BAND_BG, requested);
             let rows = strong_lines(&row_profile(&fixture, whole(&fixture)), &t);
             let cols = strong_lines(&col_profile(&fixture, whole(&fixture)), &t);
@@ -629,25 +721,56 @@ fn a_top_strip_flatter_than_the_threshold_is_peeled() {
 
 #[test]
 fn a_top_strip_just_under_the_threshold_is_kept_and_marks_the_result_ambiguous() {
-    let scene = top_band_scene(6, 0.84);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
-    assert_eq!(found.rect, whole(&scene), "0.84 is below the threshold");
+    let t = Tuning::default();
+    let scene = top_band_scene(LADDER_H, INSIDE_THE_BAND);
+    let measured = flat_fraction(&scene, ladder_strip(), t.uniform_tolerance);
+    assert!(
+        measured >= f64::from(t.chrome_flat_fraction - t.ambiguity_band)
+            && measured < f64::from(t.chrome_flat_fraction),
+        "the fixture's precondition: 679 of 800 pixels on the background is \
+         {measured}, which must land inside [chrome_flat_fraction - \
+         ambiguity_band, chrome_flat_fraction)"
+    );
+    let found = content_box(&scene, whole(&scene), &t);
+    assert_eq!(
+        found.rect,
+        whole(&scene),
+        "a strip inside the band is kept, not peeled"
+    );
     assert_eq!(found.removed, Vec::new());
     assert!(
         found.ambiguous,
-        "0.84 is inside [chrome_flat_fraction - ambiguity_band, chrome_flat_fraction)"
+        "679/800 is inside [chrome_flat_fraction - ambiguity_band, chrome_flat_fraction)"
     );
 }
 
+/// The twin of `a_top_strip_exactly_at_the_foot_..`, one pixel of 800 lower.
+/// The band is 0.0025 wide and a pixel is 0.00125, so this is the closest a
+/// strip of this size can come to the foot from below - which is what makes
+/// the pair a test of the foot rather than of the neighbourhood of the foot.
 #[test]
 fn a_top_strip_below_the_ambiguity_band_is_kept_without_marking_the_result_ambiguous() {
-    let scene = top_band_scene(6, 0.79);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
+    let t = Tuning::default();
+    let scene = top_band_scene(LADDER_H, BELOW_THE_BAND);
+    let measured = flat_fraction(&scene, ladder_strip(), t.uniform_tolerance);
+    assert_eq!(
+        measured * LADDER_PIXELS,
+        677.0,
+        "the fixture's precondition: exactly 677 of 800 pixels on the background, \
+         one pixel below the foot of the band"
+    );
+    assert!(
+        measured < f64::from(t.chrome_flat_fraction - t.ambiguity_band),
+        "677/800 = {measured} must be strictly below the foot of the band, \
+         chrome_flat_fraction - ambiguity_band = {}",
+        t.chrome_flat_fraction - t.ambiguity_band
+    );
+    let found = content_box(&scene, whole(&scene), &t);
     assert_eq!(found.rect, whole(&scene));
     assert_eq!(found.removed, Vec::new());
     assert!(
         !found.ambiguous,
-        "0.79 is below chrome_flat_fraction - ambiguity_band, so it is plain content"
+        "677/800 is below chrome_flat_fraction - ambiguity_band, so it is plain content"
     );
 }
 
@@ -664,10 +787,30 @@ fn a_top_strip_exactly_at_the_flat_fraction_threshold_is_peeled() {
     assert!(!found.ambiguous);
 }
 
+/// The band is **closed** at its foot, and this fixture sits exactly on it.
+///
+/// 678 of 800 pixels on the background is 0.8475, and `678f32 / 800f32` is bit
+/// for bit `0.85f32 - 0.0025f32` - both are `14218691 * 2^-24` - so the
+/// equality below is an equality and not a tolerance in disguise. That is the
+/// property that chose 0.0025 out of its window rather than 0.002 or 0.0015,
+/// for which no strip size in this suite lands on the foot at all.
 #[test]
 fn a_top_strip_exactly_at_the_foot_of_the_ambiguity_band_is_ambiguous() {
-    let scene = top_band_scene(6, 0.80);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
+    let t = Tuning::default();
+    let scene = top_band_scene(LADDER_H, AT_THE_FOOT);
+    let measured = flat_fraction(&scene, ladder_strip(), t.uniform_tolerance);
+    assert_eq!(
+        measured * LADDER_PIXELS,
+        678.0,
+        "the fixture's precondition: exactly 678 of 800 pixels on the background"
+    );
+    assert_eq!(
+        measured as f32,
+        t.chrome_flat_fraction - t.ambiguity_band,
+        "this fixture is the foot of the band, not a value near it: 678/800 must \
+         be chrome_flat_fraction - ambiguity_band bit for bit in f32"
+    );
+    let found = content_box(&scene, whole(&scene), &t);
     assert_eq!(found.rect, whole(&scene));
     assert!(
         found.ambiguous,
@@ -865,35 +1008,71 @@ fn chrome_is_never_peeled_off_an_image_with_no_content_left_to_keep() {
 
 #[test]
 fn a_strip_too_tall_to_be_chrome_does_not_mark_the_result_ambiguous() {
-    let scene = top_band_scene(31, 0.82);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
+    let t = Tuning::default();
+    let scene = top_band_scene(31, INSIDE_THE_BAND);
+    let strip = Rect {
+        x: 0,
+        y: 0,
+        w: W,
+        h: 31,
+    };
+    let measured = flat_fraction(&scene, strip, t.uniform_tolerance);
+    assert!(
+        measured >= f64::from(t.chrome_flat_fraction - t.ambiguity_band)
+            && measured < f64::from(t.chrome_flat_fraction),
+        "this test only says anything while the strip really is inside the band; \
+         measured {measured}"
+    );
+    let found = content_box(&scene, whole(&scene), &t);
     assert_eq!(found.rect, whole(&scene));
     assert!(
         !found.ambiguous,
-        "flat fraction 0.82 is inside the band, but a strip covering 31% of the \
-         image is not a chrome candidate, so it is ordinary art"
+        "the strip's flat fraction is inside the band, but a strip covering 31% of \
+         the image is not a chrome candidate, so it is ordinary art"
     );
 }
 
 #[test]
 fn a_strip_whose_removal_would_leave_no_content_does_not_mark_the_result_ambiguous() {
+    let t = Tuning::default();
     let scene = stack(&[
-        band(W, 6, BAND_BG, 0.82),
-        flat_band(W, 94, FLAT_ART_LOW, FLAT_ART_SPREAD),
+        band(W, LADDER_H, BAND_BG, INSIDE_THE_BAND),
+        flat_band(W, H - LADDER_H, FLAT_ART_LOW, FLAT_ART_SPREAD),
     ]);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
+    let measured = flat_fraction(&scene, ladder_strip(), t.uniform_tolerance);
+    assert!(
+        measured >= f64::from(t.chrome_flat_fraction - t.ambiguity_band)
+            && measured < f64::from(t.chrome_flat_fraction),
+        "this test only says anything while the strip really is inside the band; \
+         measured {measured}"
+    );
+    let found = content_box(&scene, whole(&scene), &t);
     assert_eq!(found.rect, whole(&scene));
     assert!(
         !found.ambiguous,
-        "flat fraction 0.82 is inside the band, but there is no content to keep, \
-         so the strip is not nearly chrome-like"
+        "the strip's flat fraction is inside the band, but there is no content to \
+         keep, so the strip is not nearly chrome-like"
     );
 }
 
 #[test]
 fn a_peeled_side_and_an_ambiguous_side_both_show_in_one_result() {
-    let scene = top_band_and_sidebar(0.84);
-    let found = content_box(&scene, whole(&scene), &Tuning::default());
+    let t = Tuning::default();
+    let scene = top_band_and_sidebar(INSIDE_THE_BAND);
+    let sidebar = Rect {
+        x: 0,
+        y: 6,
+        w: 15,
+        h: 94,
+    };
+    let measured = flat_fraction(&scene, sidebar, t.uniform_tolerance);
+    assert!(
+        measured >= f64::from(t.chrome_flat_fraction - t.ambiguity_band)
+            && measured < f64::from(t.chrome_flat_fraction),
+        "the sidebar's precondition: its flat fraction must land inside the band; \
+         measured {measured} over a 15x94 strip"
+    );
+    let found = content_box(&scene, whole(&scene), &t);
     assert_eq!(
         found.rect,
         below_band(6),
