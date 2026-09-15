@@ -339,4 +339,174 @@ EOF
 out="$(gates --audit)"
 assert_contains "a factor naming no gate fails the audit" "names no configured gate" "$out"
 
+# ---------------------------------------------------------------------------
+describe "one run at a time: two gate runs on one checkout"
+
+# The field report: an orchestrator and a subagent it had dispatched both ran
+# gates.sh on the same checkout. They shared `target/`, fought over
+# cargo-llvm-cov's profraw counters, and both rewrote the story's ## Gate
+# results - so the SAME tree hash was recorded `result: fail` and then
+# `result: pass`, with three runs' durations interleaved, while the coverage
+# log on disk held a complete table at 99.71% against a floor of 95. Nothing
+# had failed. check-boundaries.sh caught it on the tree hash, which is the last
+# line of defence being asked to do the first line's job.
+
+LOCK="$FIX/.claude/state/gate-run.lock"
+rm -rf "$LOCK"
+
+# fake_lock <pid> <host>   A lock as gates.sh would have left one.
+fake_lock() {
+  rm -rf "$LOCK"; mkdir -p "$LOCK"
+  printf 'pid:     %s\nhost:    %s\nstarted: 2020-01-01T00:00:00Z\ncommand: gates.sh\n' \
+    "$1" "$2" > "$LOCK/owner"
+}
+
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'Tests  47 passed (47)\n'
+evidence | unit | Tests +[1-9][0-9]* passed
+EOF
+
+# A run that finishes normally must not leave the next one queueing forever.
+out="$(gates)"
+assert_contains "an ordinary run still passes" "All required gates passed" "$out"
+if [ -d "$LOCK" ]; then _bad "the lock is released on exit" "$LOCK still exists"
+else _ok "the lock is released on exit"; fi
+
+# --- held by a live process -------------------------------------------------
+sleep 30 & LIVE=$!
+fake_lock "$LIVE" "$(hostname 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
+
+out="$(gates --no-wait)"; rc=$?
+assert_contains "a second run says what is holding it" "Another gate run is already in progress" "$out"
+assert_contains "and names the owner"                  "pid:     $LIVE" "$out"
+assert_contains "and refuses rather than proceeding"   "Refusing to start a second one" "$out"
+assert_eq "with an exit code that is not a gate verdict" "3" "$rc"
+case "$out" in
+  *"PASS         unit"*) _bad "and runs nothing" "the gate ran anyway: $out" ;;
+  *) _ok "and runs nothing" ;;
+esac
+
+# --gate shares `target/` with everything else, so it queues like any other run.
+out="$(gates --gate unit --no-wait)"; rc=$?
+assert_eq "--gate is locked too"   "3" "$rc"
+out="$(gates --fast --no-wait)"; rc=$?
+assert_eq "--fast is locked too"   "3" "$rc"
+out="$(gates --required --no-wait)"; rc=$?
+assert_eq "--required is locked too" "3" "$rc"
+
+# Reading project.conf is not running a gate. An audit must not queue behind a
+# twenty-minute coverage run to tell you a regex is misspelt.
+out="$(gates --audit)"; rc=$?
+assert_eq "--audit takes no lock"  "0" "$rc"
+out="$(gates --list)"; rc=$?
+assert_eq "--list takes no lock"   "0" "$rc"
+
+# Waiting is the default, and it gives up with a message rather than hanging.
+out="$(GATES_LOCK_WAIT=2 gates)"; rc=$?
+assert_contains "waiting is the default"     "Waiting for it to finish" "$out"
+assert_contains "and it gives up out loud"   "gave up waiting for the gate run lock" "$out"
+assert_contains "saying nothing ran"         "neither a pass nor a failure" "$out"
+assert_eq "and exits 3"                      "3" "$rc"
+
+kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
+
+# --- left behind by a dead process ------------------------------------------
+# A hard kill leaves a lock with nobody behind it. Wedging until somebody reads
+# a message about `rm -rf` teaches people to `rm -rf` first and read later.
+sleep 0 & DEAD=$!; wait "$DEAD" 2>/dev/null
+fake_lock "$DEAD" "$(hostname 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
+out="$(GATES_LOCK_WAIT=2 gates)"; rc=$?
+assert_contains "a lock with no live owner is taken over" "which is gone. Taking it over" "$out"
+assert_contains "and the run proceeds"                    "All required gates passed" "$out"
+assert_eq "successfully"                                  "0" "$rc"
+
+# A lock with no owner file names nobody to wait for. It is only makeable by
+# dying in the microseconds between `mkdir` and the write after it, so it is
+# debris - but it used to cost the next run the whole wait for nothing.
+rm -rf "$LOCK"; mkdir -p "$LOCK"
+out="$(GATES_LOCK_WAIT=120 gates)"; rc=$?
+assert_contains "a lock naming no owner is taken over" "names no owner" "$out"
+assert_eq "and the run proceeds"                       "0" "$rc"
+
+# A lock held from another machine is waited for, never broken: this host
+# cannot see that process table, so "no such pid" means nothing about it.
+fake_lock 999991 some-other-host
+out="$(GATES_LOCK_WAIT=2 gates)"; rc=$?
+case "$out" in
+  *"Taking it over"*) _bad "another host's lock is never broken" "broke it: $out" ;;
+  *) _ok "another host's lock is never broken" ;;
+esac
+assert_eq "and the run gives up instead" "3" "$rc"
+rm -rf "$LOCK"
+
+# --- two real runs, racing --------------------------------------------------
+# Not a fabricated lock: two actual gates.sh processes, the way MC-026 had them.
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'Tests  47 passed (47)\n'; sleep 5
+evidence | unit | Tests +[1-9][0-9]* passed
+EOF
+story "$FIX" T-1 GATES </dev/null
+set_phase "$FIX" GATES
+
+( cd "$FIX" && bash scripts/gates.sh >"$FIX/a.out" 2>&1 ) & RACER=$!
+sleep 2
+out="$(gates --no-wait)"; rc=$?
+assert_eq "the second of two real runs is refused" "3" "$rc"
+assert_contains "naming the first"                 "Another gate run is already in progress" "$out"
+wait "$RACER"
+assert_contains "and the first one records its result" \
+  "recorded in docs/backlog/stories/T-1.md" "$(cat "$FIX/a.out")"
+
+# One run, one record. The MC-026 story file carried three runs' worth.
+runs="$(grep -c '^ *run: ' "$FIX/docs/backlog/stories/T-1.md")"
+assert_eq "the story holds exactly one gate record" "1" "$runs"
+
+# ---------------------------------------------------------------------------
+describe "the record: an older run does not overwrite a newer one"
+
+# Belt to the lock's braces, for what the lock cannot see: a lock broken as
+# stale while its owner was merely unresponsive, a run that started before the
+# lock existed, a --story pointed at a file another checkout is recording into.
+# In MC-026 the losing process wrote last, so the story ended up claiming a
+# failure that the winning run had already disproved.
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'Tests  47 passed (47)\n'
+evidence | unit | Tests +[1-9][0-9]* passed
+EOF
+story "$FIX" T-1 GATES </dev/null
+MARKER='<!-- gates.sh: written by bash scripts/gates.sh; do not edit or paste by hand -->'
+{
+  sed -e '/^## Gate results/q' "$FIX/docs/backlog/stories/T-1.md"
+  printf '\n%s\n\n' "$MARKER"
+  printf '    run:    2099-01-01T00:00:00Z\n    commit: deadbee\n    tree:   abc123\n'
+  printf '    result: pass (1 ran, 0 unconfigured, 0 known)\n    PASS         unit (0s)\n\n'
+  printf '## Notes\n'
+} > "$FIX/t1.new" && mv "$FIX/t1.new" "$FIX/docs/backlog/stories/T-1.md"
+
+out="$(gates)"; rc=$?
+assert_contains "the older run declines to record"  "not recorded" "$out"
+assert_contains "saying whose record stands"        "2099-01-01T00:00:00Z" "$out"
+assert_eq "and the gates' own verdict is unchanged" "0" "$rc"
+assert_contains "the newer record is left alone" "2099-01-01T00:00:00Z" \
+  "$(cat "$FIX/docs/backlog/stories/T-1.md")"
+runs="$(grep -c '^ *run: ' "$FIX/docs/backlog/stories/T-1.md")"
+assert_eq "and was not appended to"  "1" "$runs"
+
+# An equally-old or older record is this run's to replace: same-second re-runs
+# are ordinary, and refusing them would make the record unwritable.
+story "$FIX" T-1 GATES </dev/null
+{
+  sed -e '/^## Gate results/q' "$FIX/docs/backlog/stories/T-1.md"
+  printf '\n%s\n\n' "$MARKER"
+  printf '    run:    2020-01-01T00:00:00Z\n    commit: deadbee\n    tree:   abc123\n'
+  printf '    result: fail (1 required gate(s) failed)\n\n## Notes\n'
+} > "$FIX/t1.new" && mv "$FIX/t1.new" "$FIX/docs/backlog/stories/T-1.md"
+out="$(gates)"
+assert_contains "an older record is replaced" "recorded in docs/backlog/stories/T-1.md" "$out"
+case "$(cat "$FIX/docs/backlog/stories/T-1.md")" in
+  *2020-01-01T00:00:00Z*) _bad "and the stale one is gone" "2020 record survived" ;;
+  *) _ok "and the stale one is gone" ;;
+esac
+set_phase "$FIX" ""
+
 summary "gates"
