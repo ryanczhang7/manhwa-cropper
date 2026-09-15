@@ -8,6 +8,12 @@
 #   bash scripts/gates.sh --required       required gates only  (not recorded)
 #   bash scripts/gates.sh --fast           every gate not marked `slow`  (not recorded)
 #   bash scripts/gates.sh --audit          check the manifest itself, run nothing
+#   bash scripts/gates.sh --no-wait        refuse rather than queue behind another run
+#
+# Only one run at a time, per checkout. Everything that RUNS a gate takes an
+# exclusive lock first and waits for one already in progress; --list and
+# --audit execute nothing and take nothing. Exit 3 means the lock was not
+# obtained, which is neither a pass nor a failure of any gate.
 #
 # The gate NAMES are stable across every project ("the coverage gate"); the
 # COMMANDS behind them are per-stack. That indirection is what lets the same
@@ -51,7 +57,8 @@ mkdir -p "$LOGDIR"
 BOOTSTRAPPED="$(grep -E '^BOOTSTRAPPED=' "$CONF" | head -1 | cut -d= -f2- | tr -d '[:space:]')"
 [ -z "$BOOTSTRAPPED" ] && BOOTSTRAPPED=no
 
-ONLY=""; REQUIRED_ONLY=0; LIST=0; AUDIT=0; STORY=""; FAST=0
+ONLY=""; REQUIRED_ONLY=0; LIST=0; AUDIT=0; STORY=""; FAST=0; NOWAIT=0
+ARGV_DESC="gates.sh${*:+ $*}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --list) LIST=1 ;;
@@ -59,17 +66,142 @@ while [ $# -gt 0 ]; do
     --required) REQUIRED_ONLY=1 ;;
     --fast) FAST=1 ;;
     --audit) AUDIT=1 ;;
+    --no-wait) NOWAIT=1 ;;
     --story) shift; STORY="${1:-}" ;;
-    -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,43p' "$0"; exit 0 ;;
     *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
   esac
   shift
 done
 
+# When this run started, not when it finishes. The record carries it, and a run
+# that started earlier will not overwrite a record a later one already wrote -
+# see record_in_story.
+RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 trim() { printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
 
 TAB=$(printf '\t')
 ESC=$(printf '\033')
+
+# --- one run at a time --------------------------------------------------------
+# Two gate runs on one checkout are not independent. They share the build
+# directory - `target/`, `node_modules/.vite`, `__pycache__` - and under
+# coverage instrumentation they fight over the same profraw counters. Then they
+# both rewrite the story's ## Gate results and the last writer wins, which is
+# not the same as the right one winning. During MC-026 an orchestrator and a
+# subagent it had dispatched ran at once: the story ended up recording
+# `result: fail` against tree 2b4248021a96, then `result: pass` against the
+# same tree, with three runs' durations interleaved, while the coverage log on
+# disk held a complete table at 99.71% against a floor of 95. Nothing had
+# failed. Only check-boundaries.sh comparing the recorded tree hash stood
+# between that record and a PR, and that is the last line, not the first.
+#
+# So every invocation that RUNS something holds an exclusive lock for the whole
+# run, recording included. That covers --gate and --fast as much as a full run:
+# a single gate shares `target/` with everything else, and a partial run that
+# corrupts a full one's counters is the same bug wearing a smaller hat.
+# --list and --audit execute no gate command and take no lock.
+#
+# mkdir, not flock: flock is missing on macOS and on Git Bash, and the harness
+# is bash/awk/coreutils by rule (see .claude/harness/rules.md, "Portability").
+# `mkdir` fails on a path that exists and creates one that does not, in a single
+# atomic step, on every filesystem that matters here.
+LOCKDIR="$ROOT/.claude/state/gate-run.lock"
+LOCK_HELD=0
+LOCK_HOST="$(hostname 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
+LOCK_WAIT="${GATES_LOCK_WAIT:-1800}"
+LOCK_POLL=2
+
+release_lock() {
+  [ "$LOCK_HELD" = 1 ] || return 0
+  LOCK_HELD=0
+  rm -rf "$LOCKDIR"
+}
+
+lock_field() { # <owner text> <field>
+  printf '%s\n' "$1" | sed -n "s/^$2:[[:space:]]*//p" | head -1
+}
+
+# acquire_lock   Take the lock, or wait for the run that holds it.
+#
+# A lock whose owner process is gone, on this host, is broken and retaken: the
+# way one gets left behind is a hard kill, and a harness that wedges until
+# somebody reads a message about `rm -rf` teaches people to `rm -rf` first and
+# read later. A lock owned by a live process - or by another host, whose
+# process table this one cannot see - is waited for and never broken. It is
+# taken over by renaming first, so that two waiters deciding the same lock is
+# stale cannot both remove it and have the loser delete the winner's new lock.
+acquire_lock() {
+  local waited=0 owner pid host announced=0 stolen=0 seen_empty=0
+  while :; do
+    if mkdir "$LOCKDIR" 2>/dev/null; then
+      LOCK_HELD=1
+      printf 'pid:     %s\nhost:    %s\nstarted: %s\ncommand: %s\n' \
+        "$$" "$LOCK_HOST" "$RUN_STARTED_AT" "$ARGV_DESC" > "$LOCKDIR/owner"
+      trap 'release_lock' EXIT
+      trap 'release_lock; exit 130' INT
+      trap 'release_lock; exit 143' TERM
+      [ "$announced" = 1 ] && printf 'The other gate run finished; starting.\n' >&2
+      return 0
+    fi
+
+    owner="$(cat "$LOCKDIR/owner" 2>/dev/null)"
+    pid="$(lock_field "$owner" pid)"
+    host="$(lock_field "$owner" host)"
+
+    # A lock with no owner file names nobody to wait for. The only way to make
+    # one is to die in the microseconds between `mkdir` and the write that
+    # follows it - so it is always debris, but "always" is worth one poll of
+    # evidence before acting on it. Without this, that microsecond crash costs
+    # the next run the whole GATES_LOCK_WAIT for no reason.
+    if [ -z "$owner" ]; then
+      if [ "$seen_empty" = 1 ]; then
+        printf 'note: the gate run lock names no owner, so nothing holds it. Taking it over.\n' >&2
+        if mv "$LOCKDIR" "$LOCKDIR.stale.$$" 2>/dev/null; then rm -rf "$LOCKDIR.stale.$$"; fi
+        seen_empty=0
+        continue
+      fi
+      seen_empty=1
+      sleep "$LOCK_POLL"
+      waited=$((waited + LOCK_POLL))
+      continue
+    fi
+    seen_empty=0
+
+    if [ "$stolen" = 0 ] && [ -n "$pid" ] && [ "$host" = "$LOCK_HOST" ] \
+       && ! kill -0 "$pid" 2>/dev/null; then
+      stolen=1
+      printf 'note: the gate run lock was left behind by pid %s, which is gone. Taking it over.\n' "$pid" >&2
+      if mv "$LOCKDIR" "$LOCKDIR.stale.$$" 2>/dev/null; then rm -rf "$LOCKDIR.stale.$$"; fi
+      continue
+    fi
+
+    if [ "$announced" = 0 ]; then
+      announced=1
+      printf '\nAnother gate run is already in progress on this checkout:\n' >&2
+      printf '%s\n' "$owner" | sed 's/^/    /' >&2
+      printf 'They would share the build directory and both rewrite the story record.\n' >&2
+      if [ "$NOWAIT" = 1 ]; then
+        printf 'Refusing to start a second one (--no-wait). Re-run when it finishes.\n' >&2
+        exit 3
+      fi
+      printf 'Waiting for it to finish (up to %ss; set GATES_LOCK_WAIT to change).\n' "$LOCK_WAIT" >&2
+    fi
+
+    if [ "$waited" -ge "$LOCK_WAIT" ]; then
+      printf 'error: gave up waiting for the gate run lock after %ss.\n' "$LOCK_WAIT" >&2
+      printf 'Nothing ran, so this is neither a pass nor a failure. If that run is really\n' >&2
+      printf 'gone, remove .claude/state/gate-run.lock and try again.\n' >&2
+      exit 3
+    fi
+    sleep "$LOCK_POLL"
+    waited=$((waited + LOCK_POLL))
+    if [ $((waited % 60)) -eq 0 ]; then
+      printf '  ... still waiting (%ss)\n' "$waited" >&2
+    fi
+  done
+}
 
 # --- evidence, floor, waiver and slow tables --------------------------------
 # Read up front, so that --gate <id> still finds its own lines. Stored as
@@ -163,8 +295,32 @@ work_count() {
 # script wrote: the marker check-boundaries.sh looks for, the UTC time, the
 # commit, the tree hash of the code the gates saw, and the summary. If the
 # section is missing (an older story file) it is appended.
+#
+# The lock above already keeps two gates.sh runs from interleaving here. This
+# is the second half of the same guarantee, for the cases the lock cannot see:
+# a lock broken as stale while its owner was merely unresponsive, a run started
+# before the lock existed, a --story pointed at a file another checkout is also
+# recording into. A record whose `run:` is LATER than this run's start is newer
+# evidence than anything this run holds, so this run does not touch it.
+# Returns 1 without writing when it declines; the caller says so out loud.
+RECORD_SKIPPED=""
 record_in_story() { # <story-file> <result-text> <summary-lines>
-  local f="$1" res="$2" body="$3" commit dirty tree block
+  local f="$1" res="$2" body="$3" commit dirty tree block prev pn cn
+  prev="$(awk '
+    /^## Gate results/ { inblock = 1; next }
+    inblock && /^## / { exit }
+    inblock && $1 == "run:" { print $2; exit }
+  ' "$f")"
+  # Compared as digits, not as strings: both are the same fixed UTC format, so
+  # YYYYMMDDHHMMSS orders them exactly, and no locale's collation gets a vote.
+  # A `run:` of some other shape compares as nothing and is overwritten, which
+  # is right - it was not written by this script.
+  pn="$(printf '%s' "$prev" | tr -cd '0-9')"
+  cn="$(printf '%s' "$RUN_STARTED_AT" | tr -cd '0-9')"
+  if [ -n "$pn" ] && [ "${#pn}" = "${#cn}" ] && [ "$pn" -gt "$cn" ]; then
+    RECORD_SKIPPED="$prev"
+    return 1
+  fi
   commit="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || printf 'no commit')"
   dirty=""
   [ -z "$(git -C "$ROOT" status --porcelain -- . ':!docs' 2>/dev/null)" ] || dirty=" (working tree had uncommitted changes)"
@@ -172,7 +328,7 @@ record_in_story() { # <story-file> <result-text> <summary-lines>
   block="$(printf '%s\n' \
     "$GATE_MARKER" \
     "" \
-    "    run:    $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "    run:    $RUN_STARTED_AT" \
     "    commit: $commit$dirty" \
     "    tree:   $tree" \
     "    result: $res" \
@@ -202,6 +358,13 @@ STORY_FILE="$ROOT/docs/backlog/stories/$STORY.md"
 STORY_REQUIRES=""
 if [ -n "$STORY" ] && [ -f "$STORY_FILE" ]; then
   STORY_REQUIRES=" $(frontmatter_list "$STORY_FILE" required_gates) "
+fi
+
+# Nothing below this line runs a gate command until the lock is held. --list
+# and --audit walk the same loop but only read project.conf, so they are exempt
+# - an audit should never queue behind a twenty-minute coverage run.
+if [ "$LIST" = 0 ] && [ "$AUDIT" = 0 ]; then
+  acquire_lock
 fi
 
 fails=0; warns=0; known=0; unconfigured=0; ran=0; noevidence=0; skipped=""
@@ -558,8 +721,13 @@ else
   elif [ ! -f "$STORY_FILE" ]; then
     printf '\n(not recorded: no story file at docs/backlog/stories/%s.md)\n' "$STORY"
   else
-    record_in_story "$STORY_FILE" "$result" "$(printf '%b' "$results")"
-    printf '\nrecorded in docs/backlog/stories/%s.md (## Gate results)\n' "$STORY"
+    if record_in_story "$STORY_FILE" "$result" "$(printf '%b' "$results")"; then
+      printf '\nrecorded in docs/backlog/stories/%s.md (## Gate results)\n' "$STORY"
+    else
+      printf '\n(not recorded: docs/backlog/stories/%s.md already holds a record from a gate\n' "$STORY"
+      printf 'run that started at %s. This one started at %s, so its\n' "$RECORD_SKIPPED" "$RUN_STARTED_AT"
+      printf 'evidence is the older of the two and the record already there stands.)\n'
+    fi
   fi
 fi
 

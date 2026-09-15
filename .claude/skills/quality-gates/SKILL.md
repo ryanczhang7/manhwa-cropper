@@ -16,8 +16,35 @@ coverage gate"; the manifest knows whether that means `pytest --cov`,
     bash scripts/gates.sh --gate unit  # one gate
     bash scripts/gates.sh --required   # required only
     bash scripts/gates.sh --audit      # check the manifest itself, run nothing
+    bash scripts/gates.sh --no-wait    # refuse rather than queue behind another run
 
 Failures write their output to `.claude/state/gate-logs/<gate>.log`.
+
+## One run at a time
+
+Only one gate run per checkout. Anything that runs a gate command - a full run,
+`--gate`, `--required`, `--fast` - takes `.claude/state/gate-run.lock` first and
+waits for a run already in progress; `--list` and `--audit` execute nothing and
+take nothing. Exit **3** means the lock was not obtained, which is neither a
+pass nor a failure of any gate: nothing ran.
+
+This matters most when an orchestrator dispatches a subagent. Two runs share the
+build directory - `target/`, `node_modules/.vite` - and under coverage
+instrumentation they fight over the same profraw counters; then they both
+rewrite the story's `## Gate results` and the last writer wins, which is not the
+same as the right one winning. In MC-026 that recorded `result: fail` and
+`result: pass` against the *same* tree hash, with three runs' durations
+interleaved, while the coverage log on disk held a complete table at 99.71%
+against a floor of 95. Nothing had failed.
+
+The record carries a second guard for what the lock cannot see: `run:` is when
+the run **started**, and a run will not overwrite a record that a later-starting
+one already wrote. It says so and leaves the newer record alone.
+
+A hard-killed run leaves the lock behind. The next run notices the owner pid is
+gone and takes it over, saying so. A lock owned by another host is waited for,
+never broken. Waiting is the default, bounded by `GATES_LOCK_WAIT` (1800s);
+`--no-wait` fails immediately instead.
 
 `gates.sh` is not all of CI. The other half is `bash scripts/check-boundaries.sh`,
 and it is not a gate because it judges a different thing: the **commit** rather
