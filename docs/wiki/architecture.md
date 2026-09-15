@@ -36,6 +36,7 @@ view over a state machine that is itself testable without egui.
    |  trim.rs      uniform-border trim                              |
    |  edges.rs     row/column edge profiles, strong lines           |
    |  content.rs   largest edge-bounded content box                 |
+   |  flat.rs      page-margin locator by per-line flatness (MC-025)|
    |  margin.rs    outward expansion, clamp                         |
    |  decide.rs    pipeline + flag reasons -> CropDecision          |
    +---------------------------------------------------------------+
@@ -45,14 +46,38 @@ view over a state machine that is itself testable without egui.
 
 Pure functions over a `Luma` plane (8-bit luminance; the engine converts RGB
 to luma with the BT.601 weights so JPEG chroma noise does not reach the
-detector). Responsibilities, in pipeline order:
+detector).
+
+#### Two kinds of blank space, and the words for them
+
+"Gutter" was used here for both of the blank regions in a reader screenshot,
+which are different things with different detectors and different owners. They
+now have separate names and this file uses them consistently.
+
+- **Page margin** — the flat area to the **left and right of the page column**:
+  browser background beside the strip, running the full height of the reader
+  view. This is what stage 1's trim and MC-025's flatness locator address, and
+  it is the sense every earlier occurrence of "gutter" in this file carried.
+- **Panel gutter** — the white or black space **between panels**, running
+  horizontally across the strip. Speech bubbles routinely sit on top of one; it
+  is still a panel gutter and it is still not wanted in the crop. The user's
+  hand-marked rects in the corpus (`fixtures/corpus/manifest.json`) bound a
+  panel **between panel gutters**; everything outside them vertically is panel
+  gutter, not artwork.
+
+**The panel gutter is a v1 detection target that no current stage addresses.**
+Stages 1 to 4 below locate the page margin and the chrome; nothing locates a
+panel gutter, which is why the corpus scores what it does. MC-028 is the spike
+that decides whether a rule exists; its evidence is in MC-025 and MC-026.
+
+Responsibilities, in pipeline order:
 
 1. **Uniform-border trim** (`trim`): from each edge inward, drop rows/columns
    whose pixels — measured *within the current rect* — span at most
    `Tuning.uniform_tolerance` from darkest to lightest (`max - min <=
    tolerance`). Passes repeat until no side changes, which is what makes
-   full-width top/bottom bands and full-height left/right gutters both work
-   without the detector knowing which it has. Yields the inner rect, or
+   full-width top/bottom bands and full-height left/right **page margins**
+   both work without the detector knowing which it has. Yields the inner rect, or
    `None` when the whole image is one colour. (MC-003 settled this rule with
    the user. The earlier wording here — within tolerance of that edge's
    border colour, the median of the outermost row/column — lost because it
@@ -76,7 +101,8 @@ detector). Responsibilities, in pipeline order:
    is left in place and marks the result *ambiguous*. The box is what
    remains: everything that is not chrome, so a multi-panel page keeps all
    its panels instead of being cut to the largest one. Then a second uniform
-   trim inside it, because removing chrome often exposes a gutter.
+   trim inside it, because removing chrome often exposes a **page margin**
+   that was not an edge of the image a moment ago.
 4. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
    clamped to the image. "Never clip" is the property that the final rect
    contains the art rect on every fixture the generator can produce.
@@ -95,12 +121,16 @@ detector). Responsibilities, in pipeline order:
 | `chrome_flat_fraction` | 0.85 | MC-019 |
 | `chrome_max_extent` | 0.30 of the image's height (horizontal strips) or width (vertical strips) | MC-019 |
 | `ambiguity_band` | 0.05 (a strip with flat fraction in [0.80, 0.85) is ambiguous) | MC-019 |
-| `min_content_fraction` | 0.20 of the image area | MC-019 |
+| `min_content_fraction` | 0.20 of the image area | corpus story MC-026 |
 | `min_content_side` | 64 px | fixed |
 | `margin_px` | 3 | MC-019 |
+| `min_line_spread` | 8.0 (mean abs deviation of a line about its own mean) | MC-025 |
 
 These are **settled** for RED (read them out; do not calibrate) and the corpus
-story may change them under `## Amendments` with the corpus as the evidence.
+stories may change them with the corpus as the evidence. MC-019 owns that
+reservation, with one carve-out the user made after MC-026's measurements:
+`min_content_fraction` and `ambiguity_band` are re-settled by **MC-026**,
+because at their current values the corpus cannot judge any locator at all.
 
 ### cropper-engine (`crates/engine`)
 

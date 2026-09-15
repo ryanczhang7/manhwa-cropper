@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-025, MC-026, MC-019]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-019]
 ---
 
 ## Goal
@@ -33,8 +33,26 @@ if any corpus image is clipped by a single pixel.
 1. MC-017 - One hundred screenshots crop in under ten seconds
 2. MC-018 - Calibration corpus of real screenshots with expected crops (chore; the user supplies the files)
 3. MC-025 - Panel edges are found by flatness where the gradient goes blind
-4. MC-026 - The page is found as an interior flat-bounded band
-5. MC-019 - The detector meets the accuracy bar on the corpus
+4. MC-026 - The decision gates admit a real reader page (tuning; unblocks measurement)
+5. MC-027 - The page column is located by its flat page margins (the column axis, 19 of 21)
+6. MC-028 - Is a panel gutter locatable from pixels (spike; output is a document)
+7. MC-019 - The detector meets the accuracy bar on the corpus
+
+The order matters and was paid for. MC-026 must come first: until
+`min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
+locator crops 2 of 21 and no locator story can be measured at all - which is
+what MC-025 discovered the expensive way, by shipping a correct locator that
+moved the corpus by zero entries. MC-027 then lands the half of the problem
+that is solved. MC-028 asks, before anyone builds anything, whether the other
+half is solvable; **a reasoned "no" is a valid outcome** and sends MC-019's
+own numbers - the manifest, the 11 px tolerance, or the 90% - back to the user
+under `## Amendments`. MC-019 depends on all three and cannot start before
+MC-028 has answered.
+
+The two blank regions in a reader screenshot are different things and now have
+different names: **page margin** (left and right of the page column, MC-027)
+and **panel gutter** (between panels, MC-028). `docs/wiki/architecture.md`,
+"Two kinds of blank space", defines both.
 
 ## Deliberately not in this epic
 
