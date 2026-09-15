@@ -167,12 +167,37 @@ The number is read out of the evidence match, so a floor needs an evidence line
 whose regex covers the whole number; `--audit` refuses one that does not, or a
 floor that is not a number. Every full run prints `observed <n>` for any gate
 with an evidence line, so the count is visible before anyone commits to a
-floor.
+floor — except where there is no count to print, which is the next section.
 
 Raise a floor in the story that adds the tests. **Never lower one to make a
 gate pass** — that is the gate equivalent of deleting a failing test. A
 legitimate drop (a suite genuinely split in two) is a change to explain in the
 story, like any other.
+
+### The regex with no number under it
+
+Proving a gate ran and measuring how much it did are two different jobs, and
+one regex is asked to do both. Some regexes can only do the first, and the
+number printed under them is not a count of anything:
+
+    evidence | lint | Finished .* profile
+    no-count | lint | `Finished .* profile` is liveness-only; the digits are seconds
+
+Cargo's line is ``Finished `dev` profile [unoptimized + debuginfo] target(s) in
+0.29s``, so the digits `work_count` finds are the **elapsed time**. A floor of
+5 there passes or fails on how warm the build cache is, and in `project.conf`
+it looks exactly like the floor on `unit`. A `no-count` line says the regex
+measures nothing: the gate then reports `observed -` rather than a number, and
+any floor on it is refused, under `--audit` and on a real run alike. Liveness
+is untouched — the regex must still match, or the gate still fails with `ran
+but produced no evidence of work`.
+
+It is declared rather than detected because it cannot be detected. "The regex
+has no digit class" is the obvious test and it is wrong both ways:
+`Finished .* profile` has none and matches a stopwatch, while `TOTAL` has none
+and is followed by a genuine region count a floor may use. The reason is
+required, and `--audit` refuses a `no-count` naming a gate that does not exist
+— a typo there leaves the gate open to exactly the floor it meant to prevent.
 
 ### The directory nobody was testing
 
@@ -300,6 +325,12 @@ probe before moving on, and say in the story that you did.
    say so in the story. Removing the line is the gate equivalent of deleting a
    failing test. The same holds for lowering a `floor`, dropping a `discovery`
    line, or removing a gate from a story's `required_gates`.
+
+6. Adding a `no-count` line to silence a floor that is failing honestly is the
+   same move. The line is a statement about what the regex can measure, not an
+   escape hatch: if the gate really did less work, that is the floor doing its
+   job. Adding one is only correct where the number never meant anything, and
+   the story that adds it shows the output it read.
 
 `reference/triage.md` has the per-gate playbook, including what a coverage
 failure actually tells you and when a suppression is legitimate.

@@ -17,16 +17,18 @@ fail gets a waiver naming why:
 A waiver turns that gate's failure from `WARN` into `KNOWN` so that `WARN`
 always means something changed. It is refused on required gates.
 
-Three more kinds, each explained in the skill and in `project.conf`'s own
+Four more kinds, each explained in the skill and in `project.conf`'s own
 comments:
 
     floor     | <gate id> | <minimum count read out of the evidence match>
+    no-count  | <gate id> | <why its evidence regex measures nothing>
     slow      | <gate id> | <why it is too slow for gates.sh --fast>
     discovery | <id> | <cwd> | <command proving a runner can see a directory>
 
-`floor` catches a gate that quietly started doing much less; `slow` names what
-`--fast` leaves out, reason required; `discovery` lines are run by `doctor.sh`,
-never by the gates.
+`floor` catches a gate that quietly started doing much less; `no-count` says
+this gate has no count to floor, so it reports `observed -` and any floor on it
+is refused, reason required; `slow` names what `--fast` leaves out, reason
+required; `discovery` lines are run by `doctor.sh`, never by the gates.
 
 Once CI has run a gate for real, record how much slower one test is there:
 
@@ -72,17 +74,24 @@ than trusting it: tool output changes between versions.
 5. Make the gate vacuous on purpose - move the test directory aside - and
    confirm it now fails. Then put it back.
 
+6. Look at what sits immediately after the match. `gates.sh` reads the first
+   run of digits there as the gate's work count, and it cannot tell a count
+   from a stopwatch: ``Finished `dev` profile ... in 0.29s`` yields `0`. If
+   those digits are not a count of anything, add a `no-count` line - otherwise
+   the number looks exactly like one somebody may put a floor under.
+
 `|` inside the regex is fine; everything after field 2 is the pattern. ANSI
 colour and CRLF are stripped before matching, so write plain text. Where a tool
 prints nothing countable, `evidence | <id> | -` records that deliberately - use
-it rarely, and say why in the story.
+it rarely, and say why in the story. Where it proves it ran but counts nothing,
+that is `no-count`, not `-`: liveness still holds and must still be asserted.
 
     bash scripts/gates.sh --audit
 
-reports gates whose `cwd` does not exist, gates with no evidence line, a floor
-or slow line it cannot honour, and - once `BOOTSTRAPPED=yes` - required gates
-with no command, without running anything. Before the flag is flipped an
-unconfigured gate is reported as `ok (unconfigured)`.
+reports gates whose `cwd` does not exist, gates with no evidence line, a floor,
+no-count or slow line it cannot honour, and - once `BOOTSTRAPPED=yes` -
+required gates with no command, without running anything. Before the flag is
+flipped an unconfigured gate is reported as `ok (unconfigured)`.
 
 ## Multiple workspaces
 
