@@ -46,8 +46,8 @@ use eframe::egui::{
 
 use crate::shell::{FolderPicker, Shell, ThreadRunner};
 use crate::{
-    AppState, FOLDER_BUTTON, Model, ROW_SEPARATOR, dropzone_text, path_text, progress_text,
-    result_line, rows, window_title,
+    AppState, FOLDER_BUTTON, Model, ROW_SEPARATOR, dropzone_text, path_text, progress_fraction,
+    progress_text, result_line, rows, window_title,
 };
 
 // --- Spacing, sizes, radii and borders (tokens.md) ---------------------------
@@ -513,17 +513,12 @@ fn centred_line(ui: &mut Ui, text: &str, color: Color32) {
 /// second node with the count's name. The `progress.count` Label beneath it is
 /// the accessible surface (`components.md`, and the story's Model guidance).
 fn progress_bar(ui: &mut Ui, done: u32, total: u32, palette: Palette) {
-    let fraction = if total == 0 {
-        0.0
-    } else {
-        done as f32 / total as f32
-    };
     ui.scope(|ui| {
         // The bar draws its track with `extreme_bg_color`; the token for a
         // progress track is `border`, and only this widget may see it.
         ui.visuals_mut().extreme_bg_color = palette.border;
         ui.add(
-            egui::ProgressBar::new(fraction)
+            egui::ProgressBar::new(progress_fraction(done, total))
                 .desired_height(SIZE_PROGRESS)
                 .corner_radius(CornerRadius::same(RADIUS_CONTROL))
                 .fill(palette.primary)

@@ -19,8 +19,8 @@ use cropper_engine::batch::RunSummary;
 use cropper_engine::process::{FileResult, Flag, Outcome};
 use cropper_engine::settings::Settings;
 use manhwa_cropper::{
-    AppState, Command, Event, Model, dropzone_text, path_text, progress_text, result_line,
-    row_text, rows,
+    AppState, Command, Event, Model, dropzone_text, path_text, progress_fraction, progress_text,
+    result_line, row_text, rows,
 };
 
 // --- Fixtures ---------------------------------------------------------------
@@ -712,4 +712,116 @@ fn the_frozen_literals_in_this_file_carry_voices_codepoints() {
     assert_eq!(row.len(), 25);
     assert!(row.contains('\u{2014}'));
     assert!(!row.contains(" - "));
+}
+
+// --- MC-023: the fill fraction the progress bar paints ----------------------
+//
+// `progress_fraction` is `progress_text`'s twin - the same two numbers read as
+// a bar instead of as a count - and it lives here for the reason the audit's
+// Decided-3 gives: in `gui.rs` it was reachable only by a rendered image, and
+// three mutants of it survived (`gui.rs:516:29` `==`/`!=`, `gui.rs:519:21`
+// `/`/`%` and `/`/`*`).
+//
+// Every expected value below is a literal - `0.0`, `0.25`, `1.0` - and never
+// `done as f32 / total as f32` re-derived here. That is the file's standing
+// rule from the module header, and it bites hardest on arithmetic: a test that
+// recomputes the formula it is checking agrees with the code about a wrong
+// answer exactly as readily as a right one. All three literals are exactly
+// representable in binary32, so these are `assert_eq!` and not a tolerance.
+
+/// AC-1: the fraction is the share of the run that is finished.
+#[test]
+fn the_fill_fraction_is_the_share_of_the_run_that_is_done() {
+    assert_eq!(
+        progress_fraction(0, 4),
+        0.0,
+        "a run that has not started yet paints an empty bar"
+    );
+    assert_eq!(
+        progress_fraction(1, 4),
+        0.25,
+        "one file of four paints a quarter of the bar"
+    );
+    assert_eq!(
+        progress_fraction(4, 4),
+        1.0,
+        "the fourth file of four fills the bar"
+    );
+}
+
+/// AC-1: and it is a bar's fill, so it never leaves `0.0..=1.0` - whatever
+/// counts the runner reports, including the degenerate ones.
+#[test]
+fn the_fill_fraction_never_leaves_the_bar_for_any_count() {
+    let mut outside: Vec<String> = Vec::new();
+
+    for total in 0..=12u32 {
+        for done in 0..=12u32 {
+            let fraction = progress_fraction(done, total);
+            if !fraction.is_finite() || !(0.0..=1.0).contains(&fraction) {
+                outside.push(format!("{done} of {total} -> {fraction}"));
+            }
+        }
+    }
+
+    assert!(
+        outside.is_empty(),
+        "the bar's fill left 0.0..=1.0 for {} of 169 counts: {outside:?}",
+        outside.len()
+    );
+}
+
+/// AC-2: `total == 0` is the branch the painter's surviving `==`/`!=` mutant
+/// inverts, and `0 / 0` is not a length. A suite whose cases all had
+/// `total > 0` would pass against that mutant, so this is the case that makes
+/// the others mean something.
+#[test]
+fn a_run_of_no_files_leaves_the_bar_empty_rather_than_undefined() {
+    let empty = progress_fraction(0, 0);
+    assert!(
+        !empty.is_nan(),
+        "0 of 0 painted {empty}, which is not a number"
+    );
+    assert!(
+        empty.is_finite(),
+        "0 of 0 painted {empty}, which is not a length a bar can have"
+    );
+    assert_eq!(empty, 0.0, "a run of no files paints an empty bar");
+
+    // The same branch with a count on it. Under the painter's `!=` mutant this
+    // one is `+inf` rather than `NaN`, so both halves of "not NaN and not
+    // infinite" have a case that reaches them.
+    let stray = progress_fraction(3, 0);
+    assert!(
+        stray.is_finite(),
+        "3 of 0 painted {stray}, which is not a length a bar can have"
+    );
+    assert_eq!(
+        stray, 0.0,
+        "a count against no total still paints an empty bar"
+    );
+}
+
+/// AC-3: a late or duplicated `Progress` can carry `done > total`.
+/// `Model::handle` accepts it - whether it should is a question for the
+/// product owner and explicitly out of this story's scope - so the fraction is
+/// where the bar is kept inside its own end.
+#[test]
+fn a_late_progress_message_does_not_fill_the_bar_past_its_end() {
+    let over = progress_fraction(5, 4);
+    assert!(
+        over <= 1.0,
+        "5 of 4 painted {over}, which is past the end of the bar"
+    );
+    assert_eq!(
+        over, 1.0,
+        "5 of 4 paints a full bar; a bar that jumped backwards would be a second bug"
+    );
+
+    let far_over = progress_fraction(9, 4);
+    assert!(
+        far_over <= 1.0,
+        "9 of 4 painted {far_over}, which is past the end of the bar"
+    );
+    assert_eq!(far_over, 1.0, "9 of 4 paints a full bar");
 }

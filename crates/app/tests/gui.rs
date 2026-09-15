@@ -615,3 +615,121 @@ fn the_absence_queries_find_each_node_in_the_state_that_must_have_it() {
          `no list row` mean nothing"
     );
 }
+
+// --- MC-023 / AC-4: where the bar's fill fraction is computed ----------------
+//
+// The AccessKit tree cannot answer this one, and that is settled rather than
+// discovered: it carries roles and names, not colours and not a bar's fill,
+// and `progress_bar` is *deliberately* unnamed - its own doc comment and
+// `components.md` say the `{done} of {total}` Label beneath it is the
+// accessible surface. So no `By`/`Role` query in this file can see a fraction,
+// and the audit's Decided-2 settles that no story should invent one.
+//
+// The claim is therefore made against the painter's own source, read at
+// compile time. It is a coarse instrument and it is the right one here: what
+// AC-4 asks is precisely a question about *where the code is*, not about what
+// a rendered frame looks like.
+
+/// The painter's source, read at compile time. `include_str!` resolves
+/// relative to this file, so this is `crates/app/src/gui.rs`.
+const PAINTER_SOURCE: &str = include_str!("../src/gui.rs");
+
+/// The arithmetic `gui.rs` may not contain anywhere: the bar's fill fraction
+/// is the view-model's to compute (`lib.rs::progress_fraction`).
+///
+/// The patterns name `done` and `total` rather than division in general,
+/// because `gui.rs` has one legitimate f32 division - `step as f32 /
+/// SEGMENTS as f32` in the corner-arc helper - and a rule that banned that
+/// would have to be weakened the first time it fired.
+const FRACTION_ARITHMETIC: &[&str] = &[
+    "done as f32",
+    "total as f32",
+    "total == 0",
+    "total != 0",
+    "/ total",
+    "done /",
+];
+
+/// The body of a top-level `fn`, from its signature to the closing brace in
+/// column zero. Sound for rustfmt-formatted Rust, which is what the `format`
+/// gate keeps this file as. CRLF is normalised first so the test reads the
+/// same on a checkout that ignored `.gitattributes`.
+fn body_of(source: &str, signature_prefix: &str) -> String {
+    let source = source.replace("\r\n", "\n");
+    let start = source
+        .find(signature_prefix)
+        .unwrap_or_else(|| panic!("gui.rs has no `{signature_prefix}`"));
+    let rest = &source[start..];
+    let end = rest
+        .find("\n}\n")
+        .unwrap_or_else(|| panic!("`{signature_prefix}` has no closing brace in column zero"));
+    rest[..end].to_owned()
+}
+
+/// AC-4, first half: the fraction the painter hands `egui::ProgressBar` is the
+/// value the view-model returned.
+#[test]
+fn the_painter_takes_the_bars_fill_fraction_from_the_view_model() {
+    let body = body_of(PAINTER_SOURCE, "fn progress_bar(");
+
+    assert!(
+        body.contains("progress_fraction(done, total)"),
+        "`progress_bar` never calls the view-model's `progress_fraction(done, total)`:\n{body}"
+    );
+
+    let passed_straight_in = body.contains("ProgressBar::new(progress_fraction(done, total))");
+    let bound_then_passed = body.contains("let fraction = progress_fraction(done, total);")
+        && body.contains("ProgressBar::new(fraction)");
+    assert!(
+        passed_straight_in || bound_then_passed,
+        "the value `progress_bar` hands `egui::ProgressBar::new` is not the one \
+         `progress_fraction` returned:\n{body}"
+    );
+}
+
+/// AC-4, second half: and it is computed nowhere else in `gui.rs`.
+#[test]
+fn the_painter_computes_no_fill_fraction_of_its_own() {
+    let found: Vec<&str> = FRACTION_ARITHMETIC
+        .iter()
+        .copied()
+        .filter(|pattern| PAINTER_SOURCE.contains(pattern))
+        .collect();
+
+    assert!(
+        found.is_empty(),
+        "gui.rs still works the bar's fill out for itself; it contains {found:?}"
+    );
+}
+
+/// The negative control for the test above.
+///
+/// `the_painter_computes_no_fill_fraction_of_its_own` passes by finding
+/// nothing - which is also exactly what a list of patterns that can never
+/// match anything does. So the same list is run here against the two lines the
+/// audit found surviving, written out verbatim: `gui.rs:516`'s `if total == 0`
+/// and `gui.rs:519`'s `done as f32 / total as f32`. If someone reintroduced
+/// them, these are the four patterns that would catch them.
+#[test]
+fn the_fraction_arithmetic_patterns_catch_the_lines_they_forbid() {
+    let reintroduced = concat!(
+        "    let fraction = if total == 0 {\n",
+        "        0.0\n",
+        "    } else {\n",
+        "        done as f32 / total as f32\n",
+        "    };\n",
+    );
+
+    let caught: Vec<&str> = FRACTION_ARITHMETIC
+        .iter()
+        .copied()
+        .filter(|pattern| reintroduced.contains(pattern))
+        .collect();
+
+    assert_eq!(
+        caught,
+        ["done as f32", "total as f32", "total == 0", "/ total"],
+        "the forbidden-arithmetic list must catch the painter's own surviving mutants; \
+         against the lines it exists to forbid it caught {caught:?}"
+    );
+}
