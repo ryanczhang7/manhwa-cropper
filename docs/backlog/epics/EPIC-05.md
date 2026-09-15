@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-025, MC-019]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-019]
 ---
 
 ## Goal
@@ -32,7 +32,9 @@ if any corpus image is clipped by a single pixel.
 
 1. MC-017 - One hundred screenshots crop in under ten seconds
 2. MC-018 - Calibration corpus of real screenshots with expected crops (chore; the user supplies the files)
-3. MC-019 - The detector meets the accuracy bar on the corpus
+3. MC-025 - Panel edges are found by flatness where the gradient goes blind
+4. MC-026 - The page is found as an interior flat-bounded band
+5. MC-019 - The detector meets the accuracy bar on the corpus
 
 ## Deliberately not in this epic
 

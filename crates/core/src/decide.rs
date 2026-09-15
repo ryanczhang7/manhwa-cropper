@@ -19,7 +19,12 @@
 //!    edge of the image a moment ago, and the first trim has no way to see it.
 //!    MC-006 AC-2 is that scene exactly, and on it the first trim moves
 //!    nothing while the second moves both side edges by 70 px;
-//! 4. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image.
+//! 4. [`textured_box`] over what is left, which pulls the rect in to the
+//!    outermost textured line on whichever axis the gradient locator found no
+//!    strong line at all (MC-025). Everything about *when* that happens, and
+//!    why it stands outside [`content_box`] rather than inside it, is in
+//!    [`flat`](crate::flat)'s module documentation;
+//! 5. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image.
 //!
 //! [`decide`] is the other half of this module (MC-007): the same pixels and
 //! the same tuning in, and the one answer the engine acts on out - crop to
@@ -65,20 +70,28 @@
 //!
 //! # What `trimmed` means
 //!
-//! **Either uniform trim moved an edge.** The story names the field and not
-//! its reading, and MC-006's RED pinned this one, with
+//! **A blank border was removed from some edge**: either uniform trim moved
+//! an edge, or - since MC-025 - the flat-border stage did. The story names
+//! the field and not its reading, and MC-006's RED pinned this one, with
 //! `trimmed_is_true_when_only_the_second_trim_moved_an_edge` as the
 //! discriminator: on AC-2's scene the first trim does nothing and `trimmed`
 //! must still be true, because a gutter trimmed inside the content box is
 //! still a uniform border that was trimmed. The alternative reading - the
 //! first trim only - fails exactly that test and nothing else.
 //!
+//! MC-025 extends the reading rather than changing it. A gutter the flat
+//! stage pulls the rect in past is a blank border that was removed, told apart
+//! from the art by a different statistic; reading it as anything else would
+//! make [`decide`] answer [`NoBorderFound`](FlagReason::NoBorderFound) - "the
+//! screenshot is all art and the rect is the whole image" - for a page where
+//! neither half of that sentence is true.
+//!
 //! The field is mechanical rather than statistical, so it is compared rather
-//! than tracked: the first trim moved something iff it returned a rect other
-//! than the whole image, and the second iff it returned a rect other than the
-//! content box it started from.
+//! than tracked: each stage moved something iff it returned a rect other than
+//! the one it was given.
 
 use crate::content::{Side, content_box};
+use crate::flat::textured_box;
 use crate::margin;
 use crate::trim::{trim_uniform, trim_within};
 use crate::{Dimensions, Luma, Rect, Tuning};
@@ -125,17 +138,18 @@ pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     let first = trim_uniform(img, t)?;
     let found = content_box(img, first, t);
     let second = trim_within(img, found.rect, t)?;
+    let textured = textured_box(img, second, t);
 
     Some(Detection {
         rect: margin::expand(
-            second,
+            textured,
             t.margin_px,
             Dimensions {
                 width: img.width,
                 height: img.height,
             },
         ),
-        trimmed: first != whole || second != found.rect,
+        trimmed: first != whole || second != found.rect || textured != second,
         removed: found.removed,
         ambiguous: found.ambiguous,
     })

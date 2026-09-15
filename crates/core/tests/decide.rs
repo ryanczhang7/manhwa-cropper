@@ -67,6 +67,8 @@
 mod common;
 
 use common::{Border, Chrome, Layout, Recipe, flat_band};
+// MC-025 AC-3. The rest of this file is MC-007's.
+use common::{FADE_GUTTER, FADE_H, fade_core_rect, fade_to_gutter};
 use cropper_core::content::Side;
 use cropper_core::{CropDecision, FlagReason, Luma, Rect, Tuning, decide, detect};
 
@@ -1120,5 +1122,89 @@ fn no_border_found_beats_ambiguous_on_an_image_that_is_both() {
         decide(&img, &t),
         CropDecision::Flag(FlagReason::NoBorderFound),
         "AC-6: NoBorderFound is checked before Ambiguous, so it wins where both hold"
+    );
+}
+
+// --- MC-025 AC-3 ------------------------------------------------------------
+//
+// The one criterion of MC-025 that goes through `decide`, and it lives here
+// rather than in `tests/flatness.rs` on purpose. `flatness.rs` names
+// `edges::spread_profile`, which does not exist yet, so that whole target
+// fails to compile and **not one assertion in it runs** - which is no
+// observation of a failure at all. Everything this test needs (`decide`,
+// `Tuning`, `CropDecision`, and the fixture, which is a plain `Luma` built by
+// the generator) exists today, so this target still compiles and this
+// assertion genuinely goes red. The story's `## Handoff` carries its output.
+//
+// It asserts an **outcome**, never a route. Where in the pipeline the flatness
+// locator is called is GREEN's engineering problem, and a hard one: wiring it
+// naively into `content::strip_depth` would locate the 90%-flat band in
+// `tests/content.rs::the_edge_threshold_is_read_from_the_tuning` and peel it,
+// breaking a frozen assertion and with it MC-025 AC-4. Nothing here constrains
+// that choice.
+
+/// AC-3. Art that fades into the gutter over 50 px is cropped to the art.
+///
+/// Before this story the same fixture comes back `Flag`: the gradient locator
+/// finds no step anywhere in the fade (the fixture's peak adjacent-row
+/// difference is 1.8 against an `edge_threshold` of 24), the speckled gutter
+/// is not uniform so `trim_uniform` will not take it either, and nothing is
+/// peeled or trimmed at all.
+///
+/// The two halves of the criterion are checked as bounds rather than as an
+/// exact rect, because **where the art starts inside a fade is the question
+/// the story is about** and a test must not presume an answer to it:
+///
+/// * *contains the art the generator drew* - the full-amplitude core, full
+///   width. No reading of the fixture calls any of that gutter;
+/// * *excludes the flat gutter beyond it* - the crop reaches no further into
+///   either gutter than `margin_px`, which `detect` adds back on every side
+///   after the fact. The whole image misses this by 37 px at each end.
+#[test]
+fn art_that_fades_into_the_gutter_is_cropped_to_the_art_not_flagged() {
+    let t = Tuning::default();
+    let img = fade_to_gutter();
+    let core = fade_core_rect();
+
+    let CropDecision::Crop(rect) = decide(&img, &t) else {
+        panic!(
+            "AC-3: a page whose art fades into the gutter must be cropped, not flagged. \
+             decide returned {:?} and detect returned {:?}",
+            decide(&img, &t),
+            detect(&img, &t)
+        );
+    };
+
+    assert!(
+        rect.y <= core.y && rect.y + rect.h >= core.y + core.h,
+        "AC-3: the crop must contain the art the generator drew. The full-amplitude \
+         core is rows {}..{} and the crop covers rows {}..{}",
+        core.y,
+        core.y + core.h,
+        rect.y,
+        rect.y + rect.h
+    );
+    assert!(
+        rect.x == 0 && rect.w == img.width,
+        "AC-3: the fixture has no left or right gutter, so the crop spans the full \
+         width. Expected x 0 w {}, got x {} w {}",
+        img.width,
+        rect.x,
+        rect.w
+    );
+    assert!(
+        rect.y + t.margin_px >= FADE_GUTTER,
+        "AC-3: the crop must exclude the flat top gutter, which is rows 0..{FADE_GUTTER}. \
+         It starts at row {} and margin_px is {}",
+        rect.y,
+        t.margin_px
+    );
+    assert!(
+        rect.y + rect.h <= FADE_H - FADE_GUTTER + t.margin_px,
+        "AC-3: the crop must exclude the flat bottom gutter, which is rows {}..{FADE_H}. \
+         It ends at row {} and margin_px is {}",
+        FADE_H - FADE_GUTTER,
+        rect.y + rect.h,
+        t.margin_px
     );
 }

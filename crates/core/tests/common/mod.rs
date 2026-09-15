@@ -981,3 +981,256 @@ fn flat_share(data: &[u8], centre: u8, tolerance: u8) -> f64 {
         .count();
     flat as f64 / data.len() as f64
 }
+
+// --- MC-025: a page whose art fades into the gutter -------------------------
+
+/// The fade fixture's width. **Even**, and an exact multiple of
+/// [`SPECKLE_PERIOD`], so every quantity below is an exact integer over an
+/// exact count and the true per-row mean is exactly [`FADE_TONE`].
+pub const FADE_W: u32 = 200;
+
+/// How many rows of flat gutter sit above the fade and below it.
+pub const FADE_GUTTER: u32 = 40;
+
+/// How many rows the fade itself spans, which is the story's "over 50 px".
+pub const FADE_SPAN: u32 = 50;
+
+/// The art's amplitude at full strength, which is also the per-row spread of
+/// every art row at full strength.
+pub const FADE_PEAK: u32 = 50;
+
+/// Rows of full-strength art between the two fades.
+pub const FADE_CORE: u32 = 80;
+
+/// The fade fixture's height: gutter, fade, core, fade, gutter.
+pub const FADE_H: u32 = FADE_GUTTER * 2 + FADE_SPAN * 2 + FADE_CORE;
+
+/// The background every part of the fade fixture is written on: the gutter's
+/// colour, the art's mean, and the value the art fades to. `128` leaves
+/// headroom for [`FADE_PEAK`] and [`SPECKLE_DEVIATION`] on both sides of it.
+pub const FADE_TONE: u8 = 128;
+
+/// One gutter pixel in [`SPECKLE_PERIOD`] is moved off [`FADE_TONE`].
+///
+/// A **perfectly** flat gutter would be trimmed by `trim_uniform` before any
+/// locator saw it, and the story is not about that gutter. A real reader's
+/// gutter carries compression noise and stray marks: flat in the
+/// mean-absolute-deviation sense the flatness locator measures, and *not*
+/// uniform in the `max - min <= uniform_tolerance` sense stage 1 measures. The
+/// speckles are what put this fixture on the far side of that distinction, and
+/// they are the reason the fixture reaches the detector at all.
+pub const SPECKLE_PERIOD: u32 = 25;
+
+/// How far a speckle sits from [`FADE_TONE`]: twice `uniform_tolerance` (10),
+/// so one speckle alone makes its row and its column non-uniform.
+pub const SPECKLE_DEVIATION: u8 = 20;
+
+/// The art's amplitude at row `y`: `0` in the gutters, `1..=FADE_PEAK` through
+/// the fades, [`FADE_PEAK`] through the core.
+///
+/// The amplitude climbs by exactly one per row, so **no adjacent-row step
+/// anywhere in this fixture comes near `edge_threshold`** - that is the whole
+/// point of it, and `tests/flatness.rs` asserts it rather than assuming it.
+#[must_use]
+pub fn fade_amplitude(y: u32) -> u32 {
+    if !(FADE_GUTTER..FADE_H - FADE_GUTTER).contains(&y) {
+        return 0;
+    }
+    let up = y + 1 - FADE_GUTTER;
+    let down = FADE_H - FADE_GUTTER - y;
+    up.min(down).min(FADE_PEAK)
+}
+
+/// The mean absolute deviation of the fade fixture's row `y` about its own
+/// mean, **from the recipe** rather than from any profile the crate computes.
+///
+/// Both cases are exact, which is what lets `tests/flatness.rs` compare with
+/// `==` rather than with a tolerance:
+///
+/// * an **art** row is [`FADE_TONE`] `+ a` on even columns and `- a` on odd
+///   ones, over an even width, so its mean is exactly [`FADE_TONE`] and every
+///   pixel is exactly `a` away from it. Its spread is exactly `a`;
+/// * a **gutter** row carries exactly `FADE_W / SPECKLE_PERIOD` speckles, half
+///   above [`FADE_TONE`] and half below, so its mean is exactly [`FADE_TONE`]
+///   too and its spread is `speckles * SPECKLE_DEVIATION / FADE_W`.
+#[must_use]
+pub fn fade_row_spread(y: u32) -> f32 {
+    if !(FADE_GUTTER..FADE_H - FADE_GUTTER).contains(&y) {
+        fade_gutter_spread()
+    } else {
+        fade_amplitude(y) as f32
+    }
+}
+
+/// The spread of one gutter row: 0.8 at the constants above.
+#[must_use]
+pub fn fade_gutter_spread() -> f32 {
+    let speckles = FADE_W / SPECKLE_PERIOD;
+    (speckles * u32::from(SPECKLE_DEVIATION)) as f32 / FADE_W as f32
+}
+
+/// The first row of the fade fixture whose true spread reaches `threshold`,
+/// read out of the recipe above. This is the line AC-2 says the flatness
+/// locator must land within 4 px of.
+#[must_use]
+pub fn fade_first_textured_line(threshold: f32) -> Option<u32> {
+    (0..FADE_H).find(|&y| fade_row_spread(y) >= threshold)
+}
+
+/// The last such row: the mirror of [`fade_first_textured_line`].
+#[must_use]
+pub fn fade_last_textured_line(threshold: f32) -> Option<u32> {
+    (0..FADE_H).rev().find(|&y| fade_row_spread(y) >= threshold)
+}
+
+/// The rows of the fade fixture drawn at full amplitude, full width.
+///
+/// "The art the generator drew" in AC-3 is deliberately read as this rect and
+/// not as the fade: where the art *starts* is the question the story is about,
+/// so a test must not presume an answer to it. The core is the part no reading
+/// of the fixture can call gutter.
+#[must_use]
+pub fn fade_core_rect() -> Rect {
+    let first = (0..FADE_H)
+        .find(|&y| fade_amplitude(y) == FADE_PEAK)
+        .expect("the fade fixture has a full-amplitude core");
+    let last = (0..FADE_H)
+        .rev()
+        .find(|&y| fade_amplitude(y) == FADE_PEAK)
+        .expect("the fade fixture has a full-amplitude core");
+    Rect {
+        x: 0,
+        y: first,
+        w: FADE_W,
+        h: last - first + 1,
+    }
+}
+
+/// One pixel of the speckled gutter. See [`SPECKLE_PERIOD`].
+///
+/// The selector walks diagonally (`x + 3y`), so every row of [`FADE_W`] holds
+/// exactly `FADE_W / SPECKLE_PERIOD` speckles and every column of at least
+/// [`SPECKLE_PERIOD`] rows holds at least one. Signs alternate along the
+/// selector, and the count per row is even, so a gutter row's mean stays
+/// exactly on [`FADE_TONE`].
+fn gutter_pixel(x: u32, y: u32) -> u8 {
+    let t = x + 3 * y;
+    if !t.is_multiple_of(SPECKLE_PERIOD) {
+        return FADE_TONE;
+    }
+    if (t / SPECKLE_PERIOD).is_multiple_of(2) {
+        FADE_TONE + SPECKLE_DEVIATION
+    } else {
+        FADE_TONE - SPECKLE_DEVIATION
+    }
+}
+
+/// MC-025's fixture: art that fades into the gutter colour over
+/// [`FADE_SPAN`] px at the top and again at the bottom.
+///
+/// The art is a vertical-edge texture of constant phase - [`FADE_TONE`] plus
+/// the row's amplitude on even columns and minus it on odd ones - so **it has
+/// no horizontal edges at all**. That is what makes the gradient locator blind
+/// here and it is not a trick: a panel bleeding into a gutter has no
+/// row-to-row step anywhere in the bleed, which is exactly what the story's
+/// measurement table says about the seven marked edges (peak step 0.59 to 7.2
+/// against an `edge_threshold` of 24).
+///
+/// The columns are a different matter - adjacent columns differ by `2a`, so
+/// the column profile is full of strong lines and every column's spread is far
+/// above any flatness threshold. Nothing in this fixture invites a vertical
+/// cut, which is deliberate: the answer is about the top and bottom edges.
+#[must_use]
+pub fn fade_to_gutter() -> Luma {
+    let mut data = vec![0u8; (FADE_W * FADE_H) as usize];
+    for y in 0..FADE_H {
+        for x in 0..FADE_W {
+            let amplitude = fade_amplitude(y);
+            data[(y * FADE_W + x) as usize] = if amplitude == 0 {
+                gutter_pixel(x, y)
+            } else if x.is_multiple_of(2) {
+                FADE_TONE + amplitude as u8
+            } else {
+                FADE_TONE - amplitude as u8
+            };
+        }
+    }
+    Luma {
+        width: FADE_W,
+        height: FADE_H,
+        data,
+    }
+}
+
+// --- MC-025: the same art behind a hard edge --------------------------------
+
+/// The hard-edge fixture's width, and the depth of its two flat gutters.
+pub const HARD_W: u32 = 200;
+/// Rows of flat gutter above the art and below it.
+pub const HARD_GUTTER: u32 = 30;
+/// Rows of art between them.
+pub const HARD_ART: u32 = 100;
+/// The hard-edge fixture's height.
+pub const HARD_H: u32 = HARD_GUTTER * 2 + HARD_ART;
+/// The gutter's colour: far enough from the art that the seam is a strong line
+/// by a wide margin (the adjacent-row step there measures 98).
+pub const HARD_GUTTER_TONE: u8 = 30;
+
+/// AC-5's fixture: the same vertical-edge art as [`fade_to_gutter`], at full
+/// amplitude throughout, sitting on a **flat** gutter with no fade at all.
+///
+/// Both locators can see this one. The gradient sees the seam (a step of 98,
+/// four times `edge_threshold`); the flatness locator sees the gutter's spread
+/// of 0 give way to the art's spread of [`FADE_PEAK`]. AC-5 is that they agree
+/// on which row the art starts at.
+#[must_use]
+pub fn hard_edge_to_gutter() -> Luma {
+    let mut data = vec![0u8; (HARD_W * HARD_H) as usize];
+    for y in 0..HARD_H {
+        for x in 0..HARD_W {
+            data[(y * HARD_W + x) as usize] = if !(HARD_GUTTER..HARD_H - HARD_GUTTER).contains(&y) {
+                HARD_GUTTER_TONE
+            } else if x.is_multiple_of(2) {
+                FADE_TONE + FADE_PEAK as u8
+            } else {
+                FADE_TONE - FADE_PEAK as u8
+            };
+        }
+    }
+    Luma {
+        width: HARD_W,
+        height: HARD_H,
+        data,
+    }
+}
+
+/// The first and last row of [`hard_edge_to_gutter`]'s art, both inclusive:
+/// the answer both locators must give.
+#[must_use]
+pub fn hard_edge_art_rows() -> (u32, u32) {
+    (HARD_GUTTER, HARD_H - HARD_GUTTER - 1)
+}
+
+// --- MC-025: the negative control -------------------------------------------
+
+/// MC-025's negative control: [`fade_to_gutter`]'s gutter and nothing else.
+///
+/// Every row and every column of it is flat in the mean-absolute-deviation
+/// sense and **not** uniform in the `max - min <= uniform_tolerance` sense, so
+/// nothing in the image is art by any reading. A flatness locator that fires
+/// anywhere on this image is firing on noise, and every threshold in
+/// `tests/flatness.rs` would then mean nothing.
+#[must_use]
+pub fn flat_gutter_only(width: u32, height: u32) -> Luma {
+    let mut data = vec![0u8; (width * height) as usize];
+    for y in 0..height {
+        for x in 0..width {
+            data[(y * width + x) as usize] = gutter_pixel(x, y);
+        }
+    }
+    Luma {
+        width,
+        height,
+        data,
+    }
+}
