@@ -821,3 +821,341 @@ fn no_crop_clips_a_marked_page() {
         clips.join("\n")
     );
 }
+
+// ============================================================================
+// MC-027 AC-4 and AC-5: the corpus, on the column axis only
+// ============================================================================
+//
+// MC-027 locates the page's **left and right** edges by its flat page margins.
+// The rows are explicitly not this story's - after it lands most entries are
+// still cropped to something far too tall, and MC-028 owns that - so every
+// number below is a column number and the two tests here say so in their
+// names.
+//
+// # Reading MC-019's window off the produced rect
+//
+// AC-4 states the window as `[e.x - 8, e.x + 3]` on the low edge and
+// `[e.x + e.w - 1 - 3, e.x + e.w - 1 + 8]` on the high one, and asks it of the
+// rect `process_file` produced. Those two statements are in different
+// coordinates and MC-019 is what reconciles them. MC-019 AC-1 requires the
+// produced rect to **contain** the marked one and AC-2 requires it to lie
+// inside the marked one **expanded by `margin_px + 8`**, so in produced
+// coordinates the window is `[e.x - 11, e.x]` - and `detect` expands whatever
+// its last stage returns by `margin_px` on every side, so the located edge it
+// was computed from lies in `[e.x - 8, e.x + 3]`, which is AC-4's bracket
+// exactly and is the convention MC-026 finding 7's per-file table is printed
+// in.
+//
+// Both readings are the same arithmetic said twice, and the way to say it once
+// is to compare the produced rect against the marked rect **expanded by
+// `margin_px`** - which is what `expanded()` above already does for AC-1, and
+// what [`column_offsets`] does here. Applying AC-4's bracket to the *raw* mark
+// instead would be a window 3 px tighter on each side than MC-019's; RED
+// measured 11 of 21 under that reading and 20 of 21 under this one, and the
+// story's `## Handoff` records both so the choice is visible rather than
+// assumed.
+//
+// # What is settled and what is measured
+//
+// * **Settled elsewhere, read out here**: MC-019's window and `margin_px`,
+//   both above; `min_line_spread` (8.0) and `central_band_fraction` (0.6),
+//   read from the `Tuning` under test and derived in
+//   `crates/core/tests/flatness.rs`. Nothing is calibrated in this file.
+// * **Measured in RED, against the candidate implementation, outside the
+//   repository**: 20 of 21 entries hit at the settled fraction, the only miss
+//   being `Screenshot (93).jpg` at `-4,+17`; 21 of 21 entries fail the control;
+//   21 entries cropped and 0 of them clipping. The per-file tables below print
+//   the same numbers on every run.
+
+/// MC-019's window on the **low** (left) edge, in produced coordinates against
+/// the mark expanded by `margin_px`. See the module note above.
+const LOW_WINDOW: std::ops::RangeInclusive<i64> = -8..=3;
+
+/// The same on the **high** (right) edge.
+const HIGH_WINDOW: std::ops::RangeInclusive<i64> = -3..=8;
+
+/// AC-4's floor: how many of the twenty-one must land inside the window.
+const COLUMN_HITS_REQUIRED: usize = 19;
+
+/// AC-4's control on the metric: how far the expected left edge is shifted
+/// **inward** before the comparison is redone.
+///
+/// Far larger than the largest real offset - RED measured every one of the
+/// twenty-one inside 7 px - so a metric that still reports a hit after the
+/// shift is a metric that is not reading the left edge at all.
+const LEFT_SHIFT_INWARD: u32 = 40;
+
+/// AC-4's control floor: how many entries the shifted comparison must fail on.
+const CONTROL_FAILURES_REQUIRED: usize = 15;
+
+/// AC-5's control: how far in the left and right edges of a marked rect are
+/// pulled to build a rect that genuinely clips it on the column axis.
+const COLUMN_CLIP_INSET: u32 = 10;
+
+/// The produced rect's left and right offsets from `reference`'s, both in
+/// pixels and both signed: negative is outward (more page kept), positive is
+/// inward (page lost) on the low edge and the mirror on the high one.
+fn column_offsets(produced: Rect, reference: Rect) -> (i64, i64) {
+    let low = i64::from(produced.x) - i64::from(reference.x);
+    let high = (i64::from(produced.x) + i64::from(produced.w) - 1)
+        - (i64::from(reference.x) + i64::from(reference.w) - 1);
+    (low, high)
+}
+
+/// Whether a pair of offsets lands inside MC-019's window.
+fn inside_the_window((low, high): (i64, i64)) -> bool {
+    LOW_WINDOW.contains(&low) && HIGH_WINDOW.contains(&high)
+}
+
+/// The rect `process_file` produced for `entry`, or `None` where it was
+/// flagged or failed.
+fn produced(entry: &CorpusEntry, t: &Tuning, tmp: &tempfile::TempDir) -> Option<Rect> {
+    let output = tmp.path().join(entry.name());
+    match process_file(&entry.path, &output, t).outcome {
+        Outcome::Cropped { rect, .. } => Some(rect),
+        _ => None,
+    }
+}
+
+// --- AC-4: the left and right edges land inside MC-019's window -------------
+
+/// AC-4, with its control on the metric in the same test.
+///
+/// Every corpus entry that carries a marked rect, through `process_file` at
+/// `Tuning::default()`: the produced rect's left and right edges must land
+/// inside MC-019's window of the marked rect's, on at least
+/// [`COLUMN_HITS_REQUIRED`] of the twenty-one. The rows are not measured here
+/// at all.
+///
+/// On `main` before this story the column locator does not exist, so the
+/// produced rect spans whatever the chrome peel left - the story's `## Handoff`
+/// records the "before" count. The control is the second half: with the
+/// expected left edge shifted [`LEFT_SHIFT_INWARD`] px inward, the same check
+/// must **fail** on at least [`CONTROL_FAILURES_REQUIRED`] entries. Without it
+/// this test would be satisfied by a window wide enough to admit anything, and
+/// a metric that passes whatever the locator returns is the failure mode a
+/// corpus criterion has.
+#[test]
+#[ignore = "integration: decodes the whole corpus"]
+fn the_left_and_right_edges_of_every_marked_page_land_inside_the_window() {
+    let t = Tuning::default();
+    let tmp = scratch();
+    let mut rows = Vec::new();
+    let mut hits = Vec::new();
+    let mut misses = Vec::new();
+    let mut control_hits = Vec::new();
+
+    for (entry, mark) in marked() {
+        let img = luma(&entry.path);
+        let at = dims(&img);
+        let grown = expanded(mark, &t, at);
+        let Some(rect) = produced(&entry, &t, &tmp) else {
+            rows.push(format!(
+                "{:<30} {:>13} {:>13} {:>7} {:>7} {:>6}",
+                entry.name(),
+                "not cropped",
+                format!("{}..{}", grown.x, grown.x + grown.w - 1),
+                "-",
+                "-",
+                "MISS"
+            ));
+            misses.push(format!("{}: not cropped at all", entry.name()));
+            continue;
+        };
+        let offsets = column_offsets(rect, grown);
+        let ok = inside_the_window(offsets);
+        rows.push(format!(
+            "{:<30} {:>13} {:>13} {:>+7} {:>+7} {:>6}",
+            entry.name(),
+            format!("{}..{}", rect.x, rect.x + rect.w - 1),
+            format!("{}..{}", grown.x, grown.x + grown.w - 1),
+            offsets.0,
+            offsets.1,
+            if ok { "hit" } else { "MISS" }
+        ));
+        if ok {
+            hits.push(entry.name());
+        } else {
+            misses.push(format!(
+                "{}: produced {}..{} against expected {}..{}, offsets {:+},{:+}, \
+                 against the windows {LOW_WINDOW:?} and {HIGH_WINDOW:?}",
+                entry.name(),
+                rect.x,
+                rect.x + rect.w - 1,
+                grown.x,
+                grown.x + grown.w - 1,
+                offsets.0,
+                offsets.1
+            ));
+        }
+
+        // The control: the same comparison against an expected left edge
+        // shifted inward, which no correct locator can match.
+        let shifted = Rect {
+            x: grown.x + LEFT_SHIFT_INWARD,
+            w: grown.w - LEFT_SHIFT_INWARD,
+            ..grown
+        };
+        if inside_the_window(column_offsets(rect, shifted)) {
+            control_hits.push(entry.name());
+        }
+    }
+
+    let printed = table(
+        &format!(
+            "AC-4: left and right offsets from the marked rect expanded by margin_px \
+             ({}), at min_line_spread {}",
+            t.margin_px, t.min_line_spread
+        ),
+        &format!(
+            "{:<30} {:>13} {:>13} {:>7} {:>7} {:>6}",
+            "file", "produced", "expected", "low", "high", "window"
+        ),
+        &rows,
+    );
+
+    assert!(
+        !rows.is_empty(),
+        "AC-4 checked no entries at all; the corpus has no marked rect"
+    );
+    assert!(
+        rows.len() - control_hits.len() >= CONTROL_FAILURES_REQUIRED,
+        "AC-4's control: with the expected left edge shifted {LEFT_SHIFT_INWARD} px \
+         inward, the window must reject at least {CONTROL_FAILURES_REQUIRED} of the \
+         {} entries, or the window is wide enough to admit whatever the locator \
+         returns and the assertion below means nothing. It still accepted {} of \
+         them: {control_hits:?}\n\n{printed}",
+        rows.len(),
+        control_hits.len()
+    );
+    assert!(
+        hits.len() >= COLUMN_HITS_REQUIRED,
+        "AC-4: the page's left and right edges must land inside MC-019's window on \
+         at least {COLUMN_HITS_REQUIRED} of the {} marked entries; {} did. The \
+         misses are:\n{}\n\n{printed}",
+        rows.len(),
+        hits.len(),
+        misses.join("\n")
+    );
+}
+
+// --- AC-5: zero clips on the column axis ------------------------------------
+
+/// AC-5, on the axis this story moves, with its control in the same test.
+///
+/// MC-026's `no_crop_clips_a_marked_page` above is the whole-rect statement
+/// and it stays exactly as it is. This is the column-axis restatement, and it
+/// is here because MC-027 is the story that moves those two edges and because
+/// a clip is the worst defect this product has (MC-005 decision 13). It prints
+/// the **slack** on each side - how many pixels of margin the crop has over
+/// the mark - so a crop that is one pixel from clipping is visible before it
+/// clips.
+///
+/// One entry was known to be at risk when the story was written and it was two
+/// pixels: `2026-01-05 13_45_59.png`, located `1039..1505` against a manifest
+/// mark of `1040..1510`. The user was shown the image and the measurement and
+/// chose to **correct the manifest**: columns 1506..1510 are exactly 255 on
+/// every one of the 1167 marked rows, so the mark contained five columns of
+/// blank page margin against MC-018's own rule, and its `w` is now 466. The
+/// story's `## Handoff` carries the column table that decided it. There is no
+/// special case for that file here and no margin was widened.
+///
+/// The control is the second half: the same predicate, applied to each marked
+/// rect pulled in by [`COLUMN_CLIP_INSET`] px on the left and the right, must
+/// report a clip on every one of the twenty-one. Without it this test would
+/// pass against a predicate that always says no.
+#[test]
+#[ignore = "integration: decodes the whole corpus"]
+fn no_crop_clips_a_marked_page_on_the_column_axis() {
+    let t = Tuning::default();
+    let tmp = scratch();
+    let mut rows = Vec::new();
+    let mut clips = Vec::new();
+    let mut control_missed = Vec::new();
+    let mut cropped = 0usize;
+
+    for (entry, mark) in marked() {
+        let held = |rect: Rect| rect.x <= mark.x && rect.x + rect.w >= mark.x + mark.w;
+        match produced(&entry, &t, &tmp) {
+            Some(rect) => {
+                cropped += 1;
+                let ok = held(rect);
+                rows.push(format!(
+                    "{:<30} {:>13} {:>13} {:>7} {:>7} {:>7}",
+                    entry.name(),
+                    format!("{}..{}", rect.x, rect.x + rect.w - 1),
+                    format!("{}..{}", mark.x, mark.x + mark.w - 1),
+                    i64::from(mark.x) - i64::from(rect.x),
+                    (i64::from(rect.x) + i64::from(rect.w))
+                        - (i64::from(mark.x) + i64::from(mark.w)),
+                    if ok { "holds" } else { "CLIPS" }
+                ));
+                if !ok {
+                    clips.push(format!(
+                        "{}: cropped to columns {}..{}, which does not contain the \
+                         marked {}..{}",
+                        entry.name(),
+                        rect.x,
+                        rect.x + rect.w - 1,
+                        mark.x,
+                        mark.x + mark.w - 1
+                    ));
+                }
+            }
+            None => rows.push(format!(
+                "{:<30} {:>13} {:>13} {:>7} {:>7} {:>7}",
+                entry.name(),
+                "not cropped",
+                format!("{}..{}", mark.x, mark.x + mark.w - 1),
+                "-",
+                "-",
+                "n/a"
+            )),
+        }
+
+        let inset = Rect {
+            x: mark.x + COLUMN_CLIP_INSET,
+            w: mark.w - 2 * COLUMN_CLIP_INSET,
+            ..mark
+        };
+        if held(inset) {
+            control_missed.push(entry.name());
+        }
+    }
+
+    let printed = table(
+        &format!(
+            "AC-5: column-axis containment over the twenty-one marked entries \
+             ({cropped} cropped)"
+        ),
+        &format!(
+            "{:<30} {:>13} {:>13} {:>7} {:>7} {:>7}",
+            "file", "produced", "marked", "left", "right", "verdict"
+        ),
+        &rows,
+    );
+
+    assert!(
+        !rows.is_empty(),
+        "AC-5 checked no entries at all; the corpus has no marked rect"
+    );
+    assert!(
+        control_missed.is_empty(),
+        "AC-5's control: a marked rect pulled in by {COLUMN_CLIP_INSET} px on the \
+         left and the right clips the page by construction, so the containment \
+         predicate must say so for all {} entries. It did not for \
+         {control_missed:?}, which means the assertion below cannot detect a clip \
+         either",
+        rows.len()
+    );
+    assert!(
+        clips.is_empty(),
+        "AC-5: a crop whose left or right edge cuts into the page a person marked \
+         is the worst defect this product has, and locating those two edges is \
+         exactly what this story does. {} of {cropped} cropped entries clip; the \
+         first is {}.\n\n{printed}\nall clips:\n{}",
+        clips.len(),
+        clips[0],
+        clips.join("\n")
+    );
+}

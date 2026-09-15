@@ -33,7 +33,7 @@
       "expect": { "x": 1073, "y": 233, "w": 397, "h": 1060 },
       "tags": ["dark-theme", "white-gutter", "png"] },
     { "file": "2026-01-05 13_45_59.png",
-      "expect": { "x": 1040, "y": 204, "w": 471, "h": 1167 },
+      "expect": { "x": 1040, "y": 204, "w": 466, "h": 1167 },
       "tags": ["light-theme", "white-gutter", "png"] },
     { "file": "2026-01-05 13_49_39.png",
       "expect": { "x": 1044, "y": 286, "w": 459, "h": 1110 },

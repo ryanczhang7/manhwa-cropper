@@ -82,7 +82,10 @@ mod common;
 use common::{Border, Chrome, Layout, Recipe, flat_band};
 // MC-025 AC-3. The rest of this file is MC-007's.
 use common::{FADE_GUTTER, FADE_H, fade_core_rect, fade_to_gutter};
+// MC-027 AC-3.
+use common::{PAGE_MARGIN, PAGE_SEAM_W, PAGE_SEAM_X, PAGE_W, page_core_rect, page_in_margins};
 use cropper_core::content::Side;
+use cropper_core::edges::{col_profile, strong_lines};
 use cropper_core::{CropDecision, FlagReason, Luma, Rect, Tuning, decide, detect};
 
 // --- Fixture constants ------------------------------------------------------
@@ -1285,5 +1288,134 @@ fn art_that_fades_into_the_gutter_is_cropped_to_the_art_not_flagged() {
         FADE_H - FADE_GUTTER,
         rect.y + rect.h,
         t.margin_px
+    );
+}
+
+// --- MC-027 AC-3 ------------------------------------------------------------
+//
+// The one criterion of MC-027 that goes through `decide`, and it lives here
+// for the reason MC-025's AC-3 does: `tests/flatness.rs` names
+// `edges::widest_textured_run` and `flat::page_column`, neither of which
+// exists yet, so that whole target fails to compile and **not one assertion in
+// it runs** - which is no observation of a failure at all. Everything this test
+// needs exists today, so this target still compiles and the assertion below
+// genuinely goes red. The story's `## Handoff` carries its output.
+//
+// It asserts an **outcome**, never a route. Where in the pipeline the column
+// locator is called is GREEN's engineering problem and a hard one: MC-025's
+// flat stage stands down on any axis where `strong_lines` found anything, and
+// two assertions in this file - `no_border_found_beats_ambiguous_on_an_image_
+// that_is_both` and `a_detection_with_a_nearly_chrome_edge_strip_is_flagged_
+// ambiguous` - are what that guard exists for. Nothing here constrains the
+// choice; the story's `## Test plan` records the wiring RED expects and the
+// measurement that says the frozen suite permits it.
+
+/// AC-3. A page column sitting between two flat page margins is cropped to the
+/// page.
+///
+/// The fixture's three premises are asserted first, in this test rather than
+/// beside it, because each of them keeps a *different* stage out of the answer
+/// and a fixture that lost one would make the criterion below vacuous:
+///
+/// * the **gradient locator can see the column axis** - the panel seam inside
+///   the page is a strong line - so MC-025's `textured_box` stands down there
+///   exactly as it does on every real screenshot, and cannot be what locates
+///   the page. Without this the fixture would be answered by the stage MC-025
+///   already shipped and would prove nothing about this story;
+/// * every strong column line is that seam, deep inside the page, so
+///   `content_box` has no strong line near an edge to peel a strip at;
+/// * the detection is **not ambiguous** and nothing was removed, so `decide`
+///   answers by the rect rather than by MC-007 AC-6's flag order.
+///
+/// Before this story the same fixture comes back spanning the **whole image
+/// width**: the art fades into the page margins over 50 px so there is no
+/// adjacent-column step anywhere in the fade, and the speckled margins are not
+/// uniform, so neither `trim_uniform` nor `content_box` will take them either.
+/// RED measured that "before" state and the story's `## Handoff` records it.
+///
+/// The criterion is checked as bounds rather than as an exact rect, because
+/// **where the page starts inside a fade is the question the story is about**
+/// and a test must not presume an answer to it:
+///
+/// * *contains the full width of the page column* - the full-amplitude core,
+///   which no reading of the fixture calls page margin;
+/// * *excludes both page margins beyond `margin_px`* - the crop reaches no
+///   further into either margin than the margin `detect` adds back on every
+///   side after the fact. The whole image misses this by 37 px at each end.
+///
+/// The rows are **not** asserted beyond "they did not change". This story
+/// locates the page's left and right edges and nothing else; the row axis is
+/// MC-028's, and after this story most corpus entries are still cropped to
+/// something far too tall.
+#[test]
+fn a_page_column_between_flat_page_margins_is_cropped_to_the_page() {
+    let t = Tuning::default();
+    let img = page_in_margins();
+    let core = page_core_rect();
+    let found = detected(&img);
+    let seam = strong_lines(&col_profile(&img, whole(&img)), &t);
+
+    assert!(
+        !seam.is_empty(),
+        "the fixture's premise: the panel seam must be a strong column line, so \
+         MC-025's flat stage stands down on the column axis exactly as it does on \
+         a real screenshot"
+    );
+    assert!(
+        seam.iter().all(|line| {
+            line.start + 1 >= PAGE_SEAM_X as usize
+                && line.end < (PAGE_SEAM_X + PAGE_SEAM_W) as usize
+        }),
+        "and every strong column line must be the seam itself, deep inside the \
+         page: a strong line near an edge would let `content_box` peel a strip \
+         there instead. Lines: {seam:?}"
+    );
+    assert!(
+        found.removed.is_empty() && !found.ambiguous,
+        "the fixture's premise: nothing is peeled off this screenshot and no edge \
+         strip is a close call, so `decide` answers by the rect and not by the flag \
+         order. Removed {:?}, ambiguous {}",
+        found.removed,
+        found.ambiguous
+    );
+
+    let CropDecision::Crop(rect) = decide(&img, &t) else {
+        panic!(
+            "AC-3: a page column sitting inside flat page margins must be cropped, \
+             not flagged. decide returned {:?} and detect returned {:?}",
+            decide(&img, &t),
+            detect(&img, &t)
+        );
+    };
+
+    assert!(
+        rect.x <= core.x && rect.x + rect.w >= core.x + core.w,
+        "AC-3: the crop must contain the full width of the page column. The \
+         full-amplitude core is columns {}..{} and the crop covers columns {}..{}",
+        core.x,
+        core.x + core.w,
+        rect.x,
+        rect.x + rect.w
+    );
+    assert!(
+        rect.x + t.margin_px >= PAGE_MARGIN,
+        "AC-3: the crop must exclude the left page margin, which is columns \
+         0..{PAGE_MARGIN}. It starts at column {} and margin_px is {}",
+        rect.x,
+        t.margin_px
+    );
+    assert!(
+        rect.x + rect.w <= PAGE_W - PAGE_MARGIN + t.margin_px,
+        "AC-3: the crop must exclude the right page margin, which is columns \
+         {}..{PAGE_W}. It ends at column {} and margin_px is {}",
+        PAGE_W - PAGE_MARGIN,
+        rect.x + rect.w,
+        t.margin_px
+    );
+    assert_eq!(
+        (rect.y, rect.h),
+        (0, img.height),
+        "AC-3: and the rows are untouched, which is this story's `## Out of scope` \
+         in one pair of numbers - the row axis stays exactly where MC-025 left it"
     );
 }
