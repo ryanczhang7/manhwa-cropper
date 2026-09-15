@@ -24,6 +24,15 @@
 //! directory by construction, so a name is the whole address - and a manifest
 //! that could reach out of `fixtures/corpus/` would be a manifest that could
 //! point anywhere on the machine running the tests.
+//!
+//! MC-026 adds a second `#[path]`-including target, `tests/corpus.rs`, and
+//! Cargo compiles this file separately into each of them - so a helper used by
+//! one is dead code in the other (`has_tag` is `corpus_manifest.rs`'s alone).
+//! That is the same situation `crates/core/tests/common/mod.rs` documents at
+//! greater length, and it has the same answer: the lint stopped being a guard
+//! the moment the second target existed. Not an invitation to leave dead
+//! helpers behind - add one in the story that first uses it.
+#![allow(dead_code)]
 
 use std::fs;
 use std::path::{Path, PathBuf};

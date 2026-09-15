@@ -120,8 +120,8 @@ Responsibilities, in pipeline order:
 | `min_content_stddev` | 12 | MC-019 |
 | `chrome_flat_fraction` | 0.85 | MC-019 |
 | `chrome_max_extent` | 0.30 of the image's height (horizontal strips) or width (vertical strips) | MC-019 |
-| `ambiguity_band` | 0.05 (a strip with flat fraction in [0.80, 0.85) is ambiguous) | MC-019 |
-| `min_content_fraction` | 0.20 of the image area | corpus story MC-026 |
+| `ambiguity_band` | 0.0025 (a strip with flat fraction in [0.8475, 0.85) is ambiguous) | corpus story MC-026 |
+| `min_content_fraction` | 0.05 of the image area | corpus story MC-026 |
 | `min_content_side` | 64 px | fixed |
 | `margin_px` | 3 | MC-019 |
 | `min_line_spread` | 8.0 (mean abs deviation of a line about its own mean) | MC-025 |
