@@ -125,12 +125,21 @@ Responsibilities, in pipeline order:
 | `min_content_side` | 64 px | fixed |
 | `margin_px` | 3 | MC-019 |
 | `min_line_spread` | 8.0 (mean abs deviation of a line about its own mean) | MC-025 |
+| `central_band_fraction` | 0.6 (share of a rect's rows the column locator measures over, centred) | MC-027 |
 
 These are **settled** for RED (read them out; do not calibrate) and the corpus
 stories may change them with the corpus as the evidence. MC-019 owns that
 reservation, with one carve-out the user made after MC-026's measurements:
 `min_content_fraction` and `ambiguity_band` are re-settled by **MC-026**,
 because at their current values the corpus cannot judge any locator at all.
+
+`central_band_fraction` is new in MC-027 rather than re-settled, and it is the
+one constant in the table whose window is stated in two places: its floor and
+its ceiling are fixtures in `crates/core/tests/flatness.rs`, so the required
+`unit` gate fires when a later story leaves the window `(0.5, 2/3]`, while the
+*corpus* floor is 0.58 and a fixture will not say so. The derivation, the
+1 %-resolution sweep behind it and that warning are in MC-027's `## Test plan`
+and `## Notes`; read them before moving it.
 
 ### cropper-engine (`crates/engine`)
 

@@ -1234,3 +1234,268 @@ pub fn flat_gutter_only(width: u32, height: u32) -> Luma {
         data,
     }
 }
+
+// --- MC-027: a page column between two flat page margins --------------------
+//
+// The mirror of [`fade_to_gutter`] on the other axis, and the fixture MC-027
+// AC-3 is stated over. Three things have to be true of it at once, and each of
+// them is a premise some test asserts rather than assumes:
+//
+// 1. the **page margins** on the left and right are flat in the
+//    mean-absolute-deviation sense the column locator measures, and *not*
+//    uniform in the `max - min` sense stage 1 measures, so they reach the
+//    locator instead of being trimmed away first. They are [`gutter_pixel`],
+//    the same speckled gutter MC-025 built;
+// 2. the art **fades** into them over [`PAGE_FADE`] columns, so no
+//    adjacent-column step marks the boundary and `content_box` has no strong
+//    line at the edge to peel a strip at;
+// 3. there is a **panel seam** deep inside the page - two columns of much
+//    darker art - whose adjacent-column step is far above `edge_threshold`.
+//    That is what makes `strong_lines` non-empty on the column axis, which is
+//    what makes MC-025's `flat::textured_box` stand down there, which is why
+//    the column axis needs a stage of its own. Every real reader screenshot
+//    carries such a line; a fixture without one would let MC-025's locator
+//    answer AC-3 and prove nothing.
+//
+// The art is a **horizontal**-edge texture of constant phase - `FADE_TONE`
+// plus the column's amplitude on even rows and minus it on odd ones - so a
+// column's mean is exactly `FADE_TONE` over an even row count and its mean
+// absolute deviation is exactly its amplitude. The rows are the mirror image:
+// adjacent rows differ by `2a` everywhere, so the row profile is full of
+// strong lines, the row axis stands down, and nothing here invites a
+// horizontal cut. The rows are MC-028's and this story does not move them.
+
+/// How many columns of flat page margin sit to the left of the page and to the
+/// right of it.
+pub const PAGE_MARGIN: u32 = 40;
+
+/// How many columns the fade itself spans on each side.
+pub const PAGE_FADE: u32 = 50;
+
+/// Columns of full-strength art between the two fades.
+pub const PAGE_CORE: u32 = 120;
+
+/// The page fixture's width: margin, fade, core, fade, margin.
+pub const PAGE_W: u32 = PAGE_MARGIN * 2 + PAGE_FADE * 2 + PAGE_CORE;
+
+/// The page fixture's height. **Even**, so every column's mean is exactly
+/// [`FADE_TONE`], and a multiple of six, so "the outer sixths of the rect" is
+/// a whole number of rows.
+pub const PAGE_H: u32 = 240;
+
+/// A sixth of the fixture's height: the depth of the chrome band AC-1's
+/// variants carry at the top and at the bottom.
+pub const PAGE_SIXTH: u32 = PAGE_H / 6;
+
+/// The first column of the panel seam.
+pub const PAGE_SEAM_X: u32 = 149;
+
+/// How many columns the seam spans.
+pub const PAGE_SEAM_W: u32 = 2;
+
+/// The seam's amplitude: 108 either side of [`FADE_TONE`] is 20 and 236, so
+/// the adjacent-column step at each of its edges is 158 - over six times
+/// `edge_threshold` - while its own column spread, 108, is far above
+/// `min_line_spread`. It is a strong line the gradient can see and it is not a
+/// flat column, which is exactly what a panel border is.
+pub const PAGE_SEAM_AMPLITUDE: u32 = 108;
+
+/// Whether `x` is one of the seam's columns.
+#[must_use]
+pub fn is_seam(x: u32) -> bool {
+    (PAGE_SEAM_X..PAGE_SEAM_X + PAGE_SEAM_W).contains(&x)
+}
+
+/// The art's amplitude at column `x`: `0` in the page margins,
+/// `1..=FADE_PEAK` through the fades, [`FADE_PEAK`] through the core.
+///
+/// The mirror of [`fade_amplitude`], and it climbs by exactly one per column
+/// for the same reason: no adjacent-column step anywhere in the fade comes
+/// near `edge_threshold`.
+#[must_use]
+pub fn page_amplitude(x: u32) -> u32 {
+    if !(PAGE_MARGIN..PAGE_W - PAGE_MARGIN).contains(&x) {
+        return 0;
+    }
+    let left = x + 1 - PAGE_MARGIN;
+    let right = PAGE_W - PAGE_MARGIN - x;
+    left.min(right).min(FADE_PEAK)
+}
+
+/// One pixel of art at `amplitude`: above [`FADE_TONE`] on even rows and below
+/// it on odd ones, so the column's spread is exactly `amplitude`.
+fn art_pixel(amplitude: u32, y: u32) -> u8 {
+    if y.is_multiple_of(2) {
+        FADE_TONE + amplitude as u8
+    } else {
+        FADE_TONE - amplitude as u8
+    }
+}
+
+/// One pixel of the page: the seam, the art, or the speckled page margin.
+fn page_pixel(x: u32, y: u32) -> u8 {
+    if is_seam(x) {
+        return art_pixel(PAGE_SEAM_AMPLITUDE, y);
+    }
+    let amplitude = page_amplitude(x);
+    if amplitude == 0 {
+        gutter_pixel(x, y)
+    } else {
+        art_pixel(amplitude, y)
+    }
+}
+
+/// A [`PAGE_W`] x [`PAGE_H`] plane from a per-pixel rule.
+fn page_plane(pixel: impl Fn(u32, u32) -> u8) -> Luma {
+    let mut data = vec![0u8; (PAGE_W * PAGE_H) as usize];
+    for y in 0..PAGE_H {
+        for x in 0..PAGE_W {
+            data[(y * PAGE_W + x) as usize] = pixel(x, y);
+        }
+    }
+    Luma {
+        width: PAGE_W,
+        height: PAGE_H,
+        data,
+    }
+}
+
+/// MC-027's fixture: a page column whose art fades into a flat page margin
+/// over [`PAGE_FADE`] px on the left and again on the right.
+#[must_use]
+pub fn page_in_margins() -> Luma {
+    page_plane(page_pixel)
+}
+
+/// Whether `y` is in the top sixth of the fixture or the bottom sixth.
+fn outer_sixth(y: u32) -> bool {
+    !(PAGE_SIXTH..PAGE_H - PAGE_SIXTH).contains(&y)
+}
+
+/// [`page_in_margins`] with **full-width texture** in the top and bottom
+/// sixths: the browser chrome and the taskbar that survive inside the rect on
+/// a real screenshot and are textured out to column 0.
+///
+/// AC-1's fixture and the ceiling control on the central-band fraction in one.
+/// A locator that measured a column over all of the rect's rows reads every
+/// column of this as textured and gives the page back whole.
+#[must_use]
+pub fn page_in_margins_with_chrome_bands() -> Luma {
+    page_plane(|x, y| {
+        if outer_sixth(y) {
+            art_pixel(FADE_PEAK, y)
+        } else {
+            page_pixel(x, y)
+        }
+    })
+}
+
+/// [`page_in_margins_with_chrome_bands`] with those two sixths **blanked** to
+/// the page margin's own speckled gutter, and identical to it everywhere else.
+/// AC-1 is that the locator gives the same answer on both.
+#[must_use]
+pub fn page_in_margins_with_blank_bands() -> Luma {
+    page_plane(|x, y| {
+        if outer_sixth(y) {
+            gutter_pixel(x, y)
+        } else {
+            page_pixel(x, y)
+        }
+    })
+}
+
+/// The columns of the page fixture drawn at full amplitude, full height.
+///
+/// "The full width of the page column" in AC-3 is deliberately read as this
+/// rect and not as the fade: where the page *starts* inside a fade is the
+/// question the story is about, so a test must not presume an answer to it.
+#[must_use]
+pub fn page_core_rect() -> Rect {
+    let first = (0..PAGE_W)
+        .find(|&x| page_amplitude(x) == FADE_PEAK)
+        .expect("the page fixture has a full-amplitude core");
+    let last = (0..PAGE_W)
+        .rev()
+        .find(|&x| page_amplitude(x) == FADE_PEAK)
+        .expect("the page fixture has a full-amplitude core");
+    Rect {
+        x: first,
+        y: 0,
+        w: last - first + 1,
+        h: PAGE_H,
+    }
+}
+
+/// The first column of the page fixture whose true spread reaches `threshold`,
+/// read out of the recipe above.
+#[must_use]
+pub fn page_first_textured_column(threshold: f32) -> u32 {
+    (0..PAGE_W)
+        .find(|&x| page_amplitude(x) as f32 >= threshold)
+        .expect("the page fixture has textured columns")
+}
+
+/// The last such column: the mirror of [`page_first_textured_column`].
+#[must_use]
+pub fn page_last_textured_column(threshold: f32) -> u32 {
+    (0..PAGE_W)
+        .rev()
+        .find(|&x| page_amplitude(x) as f32 >= threshold)
+        .expect("the page fixture has textured columns")
+}
+
+// --- MC-027: the floor control, a page with a waist -------------------------
+//
+// `Screenshot (2708).jpg`, synthetically: a page whose outer panels do not
+// reach the vertical middle of the frame. MC-026 finding 7 records it located
+// at `+1` on the left with a central band of 0.6 and at `+85` with one of 0.5,
+// because at 0.5 the band lies inside the part of the page where the outer
+// panels are gutter. Real pages are full of panels that do not span the page's
+// whole height, and a band that is too small a sample of the rows misses the
+// page's true width - which is the defect the floor under the central-band
+// fraction exists to exclude.
+
+/// How far in from the page's own edges the waist reaches.
+pub const WAIST_INSET: u32 = 60;
+
+/// The first row of the waist. The waist is the **central half** of the
+/// fixture's rows exactly, so a central band at a fraction of 0.5 lies
+/// entirely inside it and one above 0.5 does not.
+pub const WAIST_TOP: u32 = PAGE_H / 4;
+
+/// One past the last row of the waist.
+pub const WAIST_BOTTOM: u32 = PAGE_H - PAGE_H / 4;
+
+/// The floor control: a page whose outer [`WAIST_INSET`] columns carry art
+/// only outside the central half of the rows.
+#[must_use]
+pub fn page_with_a_waist() -> Luma {
+    page_plane(|x, y| {
+        let margin = !(PAGE_MARGIN..PAGE_W - PAGE_MARGIN).contains(&x);
+        let outer = !(PAGE_MARGIN + WAIST_INSET..PAGE_W - PAGE_MARGIN - WAIST_INSET).contains(&x);
+        let waist = (WAIST_TOP..WAIST_BOTTOM).contains(&y);
+        if margin || (outer && waist) {
+            gutter_pixel(x, y)
+        } else {
+            art_pixel(FADE_PEAK, y)
+        }
+    })
+}
+
+/// The first and last column of [`page_with_a_waist`]'s page, both inclusive:
+/// the answer a band wide enough to see past the waist must give.
+#[must_use]
+pub fn waist_page_columns() -> (u32, u32) {
+    (PAGE_MARGIN, PAGE_W - PAGE_MARGIN - 1)
+}
+
+/// The first and last column of its **inner panel** alone: the answer a band
+/// that fits inside the waist gives instead, [`WAIST_INSET`] px in on each
+/// side of the truth.
+#[must_use]
+pub fn waist_inner_columns() -> (u32, u32) {
+    (
+        PAGE_MARGIN + WAIST_INSET,
+        PAGE_W - PAGE_MARGIN - WAIST_INSET - 1,
+    )
+}

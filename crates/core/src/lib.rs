@@ -206,6 +206,37 @@ pub struct Tuning {
     /// records that thresholding per-row spread at 8 locates the art boundary
     /// at 0 px offset for 15 of 19 marked edges.
     pub min_line_spread: f32,
+    /// Share of a rect's rows the column locator measures a column's spread
+    /// over, centred on the rect (MC-027): [`flat::central_band`] is that
+    /// restriction and [`flat::page_column`] is the only thing that reads it.
+    ///
+    /// The restriction is what makes the page margins visible at all. A
+    /// screenshot's rect still holds the browser chrome at the top and the
+    /// taskbar at the bottom after every earlier stage has spoken, and those
+    /// rows are textured out to the rect's own edges - so measured over *all*
+    /// of the rect's rows every column reads textured, there is no flat page
+    /// margin anywhere, and the locator finds nothing. Measured over the
+    /// middle share of the rows it sees the page between two flat margins.
+    ///
+    /// `f32` for the same reason
+    /// [`min_content_fraction`](Tuning::min_content_fraction) and
+    /// [`chrome_flat_fraction`](Tuning::chrome_flat_fraction), the other two
+    /// share-like fields in this table, are.
+    ///
+    /// **Above 0.5**, the floor: at or below it the band fits inside the waist
+    /// of a page whose outer panels do not reach the vertical middle of the
+    /// frame, reads those columns as gutter and locates the inner panel alone.
+    /// **At or below 2/3**, the ceiling: above it the band reaches the chrome
+    /// rows in the outer sixths of the rect, every column reads textured and
+    /// the page comes back whole. Both ends are fixtures in
+    /// `crates/core/tests/flatness.rs`, so the required `unit` gate is what
+    /// tells a later story it has left the window, and both fire.
+    ///
+    /// 0.6 is the smallest fraction inside that window reaching the corpus's
+    /// best score, 20 of 21. The derivation, the 1 %-resolution sweep behind
+    /// it and the warning that the *corpus* floor is 0.58 rather than 0.5 are
+    /// in MC-027's `## Test plan` and `## Notes`; read those before moving it.
+    pub central_band_fraction: f32,
 }
 
 impl Default for Tuning {
@@ -221,6 +252,7 @@ impl Default for Tuning {
             min_content_side: 64,
             margin_px: 3,
             min_line_spread: 8.0,
+            central_band_fraction: 0.6,
         }
     }
 }

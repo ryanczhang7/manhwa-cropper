@@ -50,6 +50,13 @@
 //! panel gutter and MC-005's decision 13 keeps the panels rather than cutting
 //! there.
 //!
+//! [`widest_textured_run`] (MC-027) is the *other* decision over the same
+//! profile: the widest single stretch of texture, which does stop at a flat
+//! run. It does not replace [`textured_span`] and neither is a better version
+//! of the other - they answer different questions, and the doc comment on each
+//! says which. The page-margin locator in [`crate::flat`] is the one caller of
+//! the new one.
+//!
 //! Where in the pipeline these are called is [`crate::flat`]'s business, not
 //! this module's - the same separation [`strong_lines`] and
 //! [`crate::content`] already have.
@@ -249,6 +256,67 @@ pub fn textured_span(spread: &[f32], t: &Tuning) -> Option<(usize, usize)> {
     let first = spread.iter().position(textured)?;
     let last = spread.iter().rposition(textured)?;
     Some((first, last))
+}
+
+/// The **widest** run of consecutive indices of `spread` at or above
+/// `t.min_line_spread`, both bounds **inclusive**, or `None` when no index
+/// reaches it.
+///
+/// The other decision over the same profile, and the contrast with
+/// [`textured_span`] is the whole of it: where the span reaches the outermost
+/// textured indices *across* any flat run between them, this stops at the flat
+/// run and returns the widest single stretch of texture. On the profile
+/// `[0, 20, 0, 0, 30, 30, 30, 0]` the span is `(1, 6)` and this is `(4, 6)`.
+///
+/// Both are right, for different questions. `textured_span` answers "where
+/// does the art in this rect begin and end", where a flat run between two
+/// textured ones is a panel gutter and MC-005's decision 13 keeps the panels.
+/// This answers "which stretch of texture is the page", where a second
+/// textured region beside the page - a sidebar, a second column of browser
+/// furniture - is not the page and must not be annexed. MC-026 measured the
+/// two on the corpus's column axis at 19 of 21 for this rule against 15 for
+/// the span, and identically on the row axis.
+///
+/// "At or above" is `>=`, read from the argument at the one comparison site,
+/// exactly as in [`strong_lines`] and [`textured_span`]. A **tie is broken by
+/// taking the first run**: nothing on the corpus turns on it, and it is fixed
+/// so the answer is the same on every machine.
+#[must_use]
+pub fn widest_textured_run(spread: &[f32], t: &Tuning) -> Option<(usize, usize)> {
+    // The only place the threshold is read, and it is read from the argument.
+    let threshold = t.min_line_spread;
+    let mut widest: Option<(usize, usize)> = None;
+    let mut open: Option<usize> = None;
+
+    for (i, &value) in spread.iter().enumerate() {
+        match (value >= threshold, open) {
+            (true, None) => open = Some(i),
+            (false, Some(start)) => {
+                widest = wider(widest, (start, i - 1));
+                open = None;
+            }
+            // Continuing a run, or continuing to be below the threshold.
+            (true, Some(_)) | (false, None) => {}
+        }
+    }
+    if let Some(start) = open {
+        // The profile ended mid-run: close it at the last index, as
+        // `strong_lines` does, rather than dropping it.
+        widest = wider(widest, (start, spread.len() - 1));
+    }
+
+    widest
+}
+
+/// `run` if it is **strictly** wider than `widest`, otherwise `widest`.
+///
+/// The strictness is the tie-break: runs are offered in ascending index order,
+/// so a later run of equal width leaves the earlier one in place.
+fn wider(widest: Option<(usize, usize)>, run: (usize, usize)) -> Option<(usize, usize)> {
+    match widest {
+        Some(best) if best.1 - best.0 >= run.1 - run.0 => Some(best),
+        _ => Some(run),
+    }
 }
 
 /// The mean absolute deviation of `count` samples about their own mean.

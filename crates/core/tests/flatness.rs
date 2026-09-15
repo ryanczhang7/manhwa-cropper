@@ -119,12 +119,18 @@
 mod common;
 
 use common::{
-    CHROME_DEVIATION, FADE_GUTTER, FADE_H, FADE_PEAK, FADE_W, HARD_GUTTER, HARD_H, HARD_W,
-    chrome_band, fade_amplitude, fade_first_textured_line, fade_gutter_spread,
-    fade_last_textured_line, fade_row_spread, fade_to_gutter, flat_gutter_only, hard_edge_art_rows,
-    hard_edge_to_gutter, soft_art,
+    CHROME_DEVIATION, FADE_GUTTER, FADE_H, FADE_PEAK, FADE_W, HARD_GUTTER, HARD_H, HARD_W, PAGE_H,
+    PAGE_SIXTH, PAGE_W, WAIST_BOTTOM, WAIST_INSET, WAIST_TOP, chrome_band, fade_amplitude,
+    fade_first_textured_line, fade_gutter_spread, fade_last_textured_line, fade_row_spread,
+    fade_to_gutter, flat_gutter_only, hard_edge_art_rows, hard_edge_to_gutter,
+    page_first_textured_column, page_in_margins, page_in_margins_with_blank_bands,
+    page_in_margins_with_chrome_bands, page_last_textured_column, page_with_a_waist, soft_art,
+    waist_inner_columns, waist_page_columns,
 };
-use cropper_core::edges::{Axis, Line, row_profile, spread_profile, strong_lines, textured_span};
+use cropper_core::edges::{
+    Axis, Line, row_profile, spread_profile, strong_lines, textured_span, widest_textured_run,
+};
+use cropper_core::flat::{central_band, page_column};
 use cropper_core::{Luma, Rect, Tuning};
 
 // --- Comparison discipline --------------------------------------------------
@@ -199,6 +205,32 @@ fn peak(profile: &[f32]) -> f32 {
 /// The smallest value in a profile.
 fn trough(profile: &[f32]) -> f32 {
     profile.iter().copied().fold(f32::MAX, f32::min)
+}
+
+/// Every column spread of `img` **inside `rect`**, through the public API.
+///
+/// `spread_profile` measures a whole plane, which is MC-025 AC-1 verbatim, and
+/// the rect-taking form of it is crate-private. Cropping the plane and asking
+/// for the whole of the crop is the same question, and it is a question a test
+/// can ask - so a test can compute the profile MC-027's locator works over
+/// without depending on an internal.
+fn column_spreads(img: &Luma, rect: Rect) -> Vec<f32> {
+    let stride = img.width as usize;
+    let (x, y) = (rect.x as usize, rect.y as usize);
+    let (w, h) = (rect.w as usize, rect.h as usize);
+    let mut data = vec![0u8; w * h];
+    for dy in 0..h {
+        let from = (y + dy) * stride + x;
+        data[dy * w..(dy + 1) * w].copy_from_slice(&img.data[from..from + w]);
+    }
+    spread_profile(
+        &Luma {
+            width: rect.w,
+            height: rect.h,
+            data,
+        },
+        Axis::Columns,
+    )
 }
 
 // --- The one number this story chooses --------------------------------------
@@ -767,5 +799,640 @@ fn axis_is_a_plain_comparable_copyable_value_type() {
     assert!(
         format!("{:?}", Axis::Columns).contains("Columns"),
         "Debug, so a failing assertion names the axis"
+    );
+}
+
+// ============================================================================
+// MC-027: the page column, located by its flat page margins
+// ============================================================================
+//
+// MC-025 added the other question - *is this line flat?* - and one rule over
+// the answer: the **outermost** textured pair, on whichever axis the gradient
+// locator is blind. MC-026 measured what that rule reaches on the corpus and
+// found the column half of the problem solved by a different rule and the row
+// half not solved at all. This story ships the column half. The row axis stays
+// exactly where MC-025 left it, and MC-028 owns it.
+//
+// Three additions, all of them additive, and `textured_span` is not one of
+// them - it keeps returning the outermost pair, which is how MC-005's decision
+// 13 is honoured and which AC-2 asserts in the same breath as the new rule:
+//
+// * `edges::widest_textured_run(&[f32], &Tuning) -> Option<(usize, usize)>`,
+//   the **widest** run of consecutive textured indices, both bounds inclusive.
+//   MC-026 finding 1 measured it at 19 of 21 against `textured_span`'s 15 on
+//   the column axis, and identical to it on the row axis;
+// * `Tuning::central_band_fraction`, defaulting to **0.6**, and
+//   `flat::central_band(Rect, &Tuning) -> Rect`, the middle share of a rect's
+//   rows;
+// * `flat::page_column(&Luma, Rect, &Tuning) -> Rect`, which is the two put
+//   together: measure each column's spread over the central band of the rect's
+//   rows, take the widest textured run, and narrow the rect to it.
+//
+// # What is settled, what is mechanical, what was measured
+//
+// * **Settled, read out, never calibrated here**: `min_line_spread` = 8.0 and
+//   both ends of MC-025's derivation of it, `uniform_tolerance` = 10,
+//   `edge_threshold` = 24, `margin_px` = 3. This story adds a row restriction
+//   and a selector; it retunes nothing.
+// * **Mechanical**: `central_band`'s geometry, the selector's contract against
+//   `textured_span`'s, and the counts. Pinned exactly.
+// * **Oracle-free, and the one number this story chooses**:
+//   `Tuning::central_band_fraction`. Its derivation is immediately below.
+//
+// # Deriving `central_band_fraction = 0.6`
+//
+// MC-025's derivation of `min_line_spread` is the standard: a floor from a
+// control that fires, a ceiling from a control that fires, and a value between
+// them with a corpus measurement behind it. Both ends of this one are fixtures
+// in this file, so the **`unit`** gate is what tells a later story it has left
+// the window - not a corpus score, and not the optional `integration` gate.
+//
+// 1. **Ceiling 2/3, from the chrome rows.** `common::page_in_margins_with_
+//    chrome_bands` puts full-width texture in the outer sixth of the rect at
+//    the top and at the bottom, which is the browser chrome and the taskbar
+//    that survive inside the rect on a real screenshot. A central band of a
+//    fraction at or below 2/3 misses both sixths entirely and locates the page
+//    at columns 47..252; a fraction above 2/3 reaches into them, every column
+//    of the band reads textured, and the locator gives the page back whole.
+//    Measured on the fixture: at 2/3 the band is rows 40..199 and the answer
+//    is 47..252, identical to the blanked variant; at 0.7 it is 46..253
+//    against the blanked variant's 48..251; at 0.8 the answer is the whole
+//    rect and the page is gone. The corpus agrees and is looser - MC-026
+//    finding 7 scores 20 of 21 at 0.8 and 2 of 21 at 1.0 - so the fixture is
+//    the binding end and that is deliberate.
+//    `a_band_that_reaches_the_chrome_rows_gives_the_page_back_whole` is that
+//    control.
+// 2. **Floor 0.5, from the waist.** `common::page_with_a_waist` is
+//    `Screenshot (2708).jpg` synthetically: a page whose outer 60 columns
+//    carry art only outside the central half of the rows. A band at a fraction
+//    of 0.5 lies exactly inside that waist, reads those columns as gutter and
+//    locates the inner panel alone - 100..199 against the page's true 40..259,
+//    a 60 px error on each side. A band above 0.5 sees rows where the outer
+//    panels are art and locates the page. Measured on the fixture: the outer
+//    panel column's spread over the band is 0.9917 at 0.5 and 9.1377 at 0.6,
+//    against a `min_line_spread` of 8.0. The corpus agrees: MC-026 finding 7
+//    records `Screenshot (2708).jpg` at `+1` on the left at 0.6 and at `+85`
+//    at 0.5, and the whole-corpus score falls from 20 of 21 to 19 there.
+//    `a_page_whose_outer_panels_miss_the_middle_needs_a_band_wider_than_half`
+//    is that control.
+// 3. **0.6, from the corpus.** Over the twenty-one marked corpus entries, the
+//    left and right edges land inside MC-019's window on 17 at a fraction of
+//    0.25, 19 at 0.4, 0.5 and 0.55, **20 at 0.6, 2/3, 0.7 and 0.8**, 6 at 0.9
+//    and 2 at 1.0. 0.6 is the smallest fraction that reaches the maximum, it
+//    sits 0.1 above the floor and 0.0667 below the ceiling, and it is within
+//    3% of the window's arithmetic centre (0.5833).
+//
+// So **0.6**, in the window `(0.5, 2/3]`.
+// `the_default_central_band_fraction_sits_inside_the_window_its_controls_measure`
+// states that as an inequality over the two fixture constants, so a later
+// story that moves the constant finds out here rather than in a corpus score.
+//
+// Two negative controls say what the locator must *not* do, because a locator
+// with no negative control means nothing:
+//
+// * `common::soft_art(100, 94, 7)` - the art every scene in `tests/content.rs`
+//   and `tests/edges.rs` builds - fills its rect edge to edge. Its flattest
+//   column over the central band measures 8.2526 against a `min_line_spread`
+//   of 8.0, so every column of it is textured, the widest run is the whole
+//   profile, and `page_column` must return the rect untouched. This is the
+//   same 0.26 of headroom MC-025 measured over the whole plane (8.2617), and
+//   it is still the thinnest margin in this file;
+// * `common::flat_gutter_only` - nothing but gutter - has no textured column
+//   at all, so there is no run to select and the rect is untouched again.
+//
+// # Why the rect is untouched where the widest run reaches an end
+//
+// `page_column` narrows the rect only where the widest run has a flat column
+// on **both** sides of it. That is not a tuning choice, it is what a page
+// *margin* is: the flat browser background to the left of the page and to the
+// right of it. Where the widest run reaches column 0 or the rect's last
+// column, the rect has no page margin on that side and there is nothing for
+// this stage to remove - it is looking at a bare artwork file, not at a
+// screenshot of a reader. That rule is what
+// `a_run_that_reaches_an_end_of_the_rect_is_not_a_page_column_and_is_left_alone`
+// pins here; MC-026's corpus controls in `crates/engine/tests/corpus.rs` are
+// what pin its consequence, and the story's `## Test plan` records that it
+// separates the twenty-one marked entries from the six flagged ones exactly.
+
+/// The one number this story chooses. See the derivation above.
+#[test]
+fn the_default_central_band_fraction_is_three_fifths() {
+    assert_eq!(
+        Tuning::default().central_band_fraction,
+        0.6,
+        "the central-band fraction is settled at 0.6 by the derivation in this \
+         file's header; moving it is a corpus story's decision and not an \
+         implementation detail"
+    );
+}
+
+/// The derivation, as an inequality over the two fixtures that measure its
+/// ends rather than as a comment.
+///
+/// A later story that raises the fraction past 2/3 breaks
+/// `a_band_that_reaches_the_chrome_rows_gives_the_page_back_whole`; one that
+/// lowers it to 0.5 or below breaks
+/// `a_page_whose_outer_panels_miss_the_middle_needs_a_band_wider_than_half`.
+/// This says so in one place, loudly, before either of those fails obscurely.
+#[test]
+fn the_default_central_band_fraction_sits_inside_the_window_its_controls_measure() {
+    let t = Tuning::default();
+
+    // The floor: the waist is exactly the central half of the fixture's rows,
+    // so a band at or below that fraction fits inside it.
+    let waist_fraction = (WAIST_BOTTOM - WAIST_TOP) as f32 / PAGE_H as f32;
+    assert_eq!(waist_fraction, 0.5, "the waist is the central half exactly");
+    assert!(
+        t.central_band_fraction > waist_fraction,
+        "central_band_fraction {} must be strictly above the waist's {waist_fraction}, \
+         or the band fits inside a waist and the page's outer panels are missed by \
+         {WAIST_INSET} px on each side",
+        t.central_band_fraction
+    );
+
+    // The ceiling: the chrome bands occupy the outer sixth at each end, so a
+    // band above two thirds of the rect reaches them.
+    let clear_of_the_chrome = (PAGE_H - 2 * PAGE_SIXTH) as f32 / PAGE_H as f32;
+    assert!(
+        t.central_band_fraction <= clear_of_the_chrome,
+        "central_band_fraction {} must be at or below {clear_of_the_chrome}, the share \
+         of the rect that clears the chrome rows in the outer sixths, or every column \
+         of the band reads textured and the page is given back whole",
+        t.central_band_fraction
+    );
+}
+
+// --- AC-1: the central band -------------------------------------------------
+
+/// AC-1's geometry, exactly: the middle `central_band_fraction` of the rect's
+/// rows, centred, with the columns untouched.
+///
+/// The arithmetic is pinned rather than described because it is not free.
+/// `0.6f32` is `0.60000002384185791015625`, so the product is taken in `f64`
+/// and truncated: at every height below the true product is never reached from
+/// beneath and the floor is the mathematical one. A rect one row tall keeps
+/// its row - a band of no rows would make every column's spread zero and the
+/// locator silently inert - and a rect of no rows keeps none.
+#[test]
+fn the_central_band_is_the_middle_share_of_the_rects_rows_and_nothing_else() {
+    let t = Tuning::default();
+    let at = |h: u32| {
+        central_band(
+            Rect {
+                x: 7,
+                y: 11,
+                w: 5,
+                h,
+            },
+            &t,
+        )
+    };
+
+    let wrong: Vec<(u32, u32, u32)> = [
+        (0u32, 11u32, 0u32),
+        (1, 11, 1),
+        (2, 11, 1),
+        (3, 12, 1),
+        (10, 13, 6),
+        (100, 31, 60),
+        (101, 31, 60),
+        (170, 45, 102),
+        (240, 59, 144),
+    ]
+    .into_iter()
+    .filter(|&(h, y, height)| at(h).y != y || at(h).h != height)
+    .map(|(h, _, _)| (h, at(h).y, at(h).h))
+    .collect();
+    assert!(
+        wrong.is_empty(),
+        "central_band at {} must be floor(h * fraction) rows starting at \
+         y + (h - that) / 2; (h, got y, got h) for each that is not: {wrong:?}",
+        t.central_band_fraction
+    );
+
+    let full = Rect {
+        x: 7,
+        y: 11,
+        w: 5,
+        h: 240,
+    };
+    assert_eq!(
+        (central_band(full, &t).x, central_band(full, &t).w),
+        (full.x, full.w),
+        "the band restricts rows and only rows: the columns are the rect's own"
+    );
+    assert_eq!(
+        central_band(
+            full,
+            &Tuning {
+                central_band_fraction: 1.0,
+                ..Tuning::default()
+            }
+        ),
+        full,
+        "and a fraction of 1.0 is the rect itself, which is what makes the \
+         restriction visible as a restriction"
+    );
+}
+
+/// AC-1, whole, and the reason the restriction exists.
+///
+/// Two fixtures identical inside the middle two thirds of the rect and
+/// different everywhere else: one with full-width texture in the outer sixths,
+/// one with those sixths blanked to gutter. At the settled fraction the band
+/// touches neither sixth, so the pixels that differ cannot reach the
+/// statistic, and the locator must give the same answer on both - the answer
+/// being the page, columns 47..252 at a `min_line_spread` of 8.0.
+///
+/// RED measured outside the test framework, on both fixtures: at 0.5, 0.6 and
+/// 2/3 both give 47..252; at 0.7 they give 46..253 and 48..251; at 0.8, 0..299
+/// and 49..250.
+#[test]
+fn a_row_outside_the_central_band_cannot_change_where_the_page_column_is() {
+    let t = Tuning::default();
+    let chrome = page_in_margins_with_chrome_bands();
+    let blank = page_in_margins_with_blank_bands();
+    let rect = whole(&chrome);
+
+    let first = page_first_textured_column(t.min_line_spread);
+    let last = page_last_textured_column(t.min_line_spread);
+    let expected = Rect {
+        x: first,
+        w: last - first + 1,
+        ..rect
+    };
+
+    assert_eq!(
+        page_column(&chrome, rect, &t),
+        expected,
+        "AC-1: the page is columns {first}..={last} at min_line_spread {}, and the \
+         chrome rows in the outer sixths of the rect must not reach the statistic",
+        t.min_line_spread
+    );
+    assert_eq!(
+        page_column(&blank, rect, &t),
+        page_column(&chrome, rect, &t),
+        "AC-1: the two fixtures differ only in rows the central band excludes, so \
+         the locator must not be able to tell them apart"
+    );
+
+    // The premise, so that a fixture that stopped differing outside the band
+    // could not make the assertion above vacuous.
+    let differing: Vec<u32> = (0..PAGE_H)
+        .filter(|&y| {
+            (0..PAGE_W).any(|x| {
+                chrome.data[(y * PAGE_W + x) as usize] != blank.data[(y * PAGE_W + x) as usize]
+            })
+        })
+        .collect();
+    assert_eq!(
+        (differing.first().copied(), differing.last().copied()),
+        (Some(0), Some(PAGE_H - 1)),
+        "the fixtures must differ in the outer sixths, or this test compares a \
+         fixture with itself"
+    );
+    assert!(
+        differing
+            .iter()
+            .all(|&y| !(PAGE_SIXTH..PAGE_H - PAGE_SIXTH).contains(&y)),
+        "and must differ nowhere else; rows that differ: {differing:?}"
+    );
+}
+
+// --- AC-2: the widest run, against the outermost pair -----------------------
+
+/// AC-2, whole. Both rules on one profile, in one test, because the difference
+/// between them is the entire reason this story exists: on the column axis of
+/// the corpus the widest run reaches 19 of 21 where the outermost pair reaches
+/// 15 (MC-026 finding 1).
+///
+/// `textured_span` is **required to keep returning the outermost pair**. A
+/// flat run between two textured ones is a panel gutter and MC-005's decision
+/// 13 keeps the panels rather than cutting there; changing what it means is
+/// this story's `## Out of scope`, and this assertion is what says so.
+#[test]
+fn the_widest_textured_run_is_not_the_outermost_textured_pair() {
+    let t = Tuning::default();
+    // One narrow run, a flat gap, one wide run. Every value is far from the
+    // threshold, so this is about the selection and not about the comparison.
+    let profile = [0.0, 20.0, 0.0, 0.0, 30.0, 30.0, 30.0, 0.0];
+
+    assert_eq!(
+        widest_textured_run(&profile, &t),
+        Some((4, 6)),
+        "AC-2: the widest run is indices 4..=6, three long, and not the one-long \
+         run at index 1"
+    );
+    assert_eq!(
+        textured_span(&profile, &t),
+        Some((1, 6)),
+        "AC-2: and `textured_span` still spans the outermost textured pair on the \
+         same profile - MC-005's decision 13, unchanged by this story"
+    );
+}
+
+/// Zero, one, many - and the tie, which is a decision rather than an accident.
+///
+/// A tie is broken by taking the **first** run. The corpus case that turns on
+/// the selection is `Screenshot (1661).png`, which carries a second textured
+/// region to the right of the page; there the page is strictly wider and no
+/// tie arises, so nothing is riding on which way this falls. It is pinned so
+/// that the answer is the same on every machine and in every later story.
+#[test]
+fn zero_one_and_many_runs_and_the_tie_between_two_of_the_same_width() {
+    let t = Tuning::default();
+    assert_eq!(
+        widest_textured_run(&[], &t),
+        None,
+        "an empty profile has no run"
+    );
+    assert_eq!(
+        widest_textured_run(&[0.0, 1.0, 2.0], &t),
+        None,
+        "and a profile with no textured index has none either"
+    );
+    assert_eq!(
+        widest_textured_run(&[0.0, 20.0, 0.0], &t),
+        Some((1, 1)),
+        "a single textured index is a run one long, both bounds inclusive"
+    );
+    assert_eq!(
+        widest_textured_run(&[20.0, 0.0, 30.0], &t),
+        Some((0, 0)),
+        "two runs of the same width: the first wins"
+    );
+    assert_eq!(
+        widest_textured_run(&[20.0, 20.0, 0.0, 30.0], &t),
+        Some((0, 1)),
+        "a run still open when the profile ends at its start is closed at its own end"
+    );
+    assert_eq!(
+        widest_textured_run(&[20.0, 0.0, 30.0, 30.0], &t),
+        Some((2, 3)),
+        "and a run still open when the profile ends is closed at the last index"
+    );
+}
+
+/// The threshold is read from the `Tuning` argument at the one comparison
+/// site, and "at or above" is `>=` - the same treatment `edge_threshold` gets
+/// in `strong_lines` and `min_line_spread` gets in `textured_span`.
+#[test]
+fn the_widest_run_reads_its_threshold_from_the_tuning_like_the_span_does() {
+    let t = Tuning::default();
+    assert_eq!(
+        widest_textured_run(&[t.min_line_spread], &t),
+        Some((0, 0)),
+        "at or above is >=, as it is for textured_span"
+    );
+    assert_eq!(
+        widest_textured_run(&[t.min_line_spread - 1.0], &t),
+        None,
+        "and strictly below is flat"
+    );
+
+    // Same profile, threshold moved, answer moves with it: at 8.0 the wide run
+    // is indices 3..=5 and the narrow one is index 1; at 25.0 only index 4
+    // survives at all.
+    let profile = [0.0, 20.0, 0.0, 10.0, 30.0, 10.0];
+    assert_eq!(widest_textured_run(&profile, &t), Some((3, 5)));
+    assert_eq!(
+        widest_textured_run(
+            &profile,
+            &Tuning {
+                min_line_spread: 25.0,
+                ..Tuning::default()
+            }
+        ),
+        Some((4, 4)),
+        "the threshold is the argument's, never a literal at the comparison"
+    );
+}
+
+// --- The derivation's two ends, as controls that fire -----------------------
+
+/// The **floor** under `central_band_fraction`, and a control that fires below
+/// it.
+///
+/// `page_with_a_waist` is a page whose outer `WAIST_INSET` columns carry art
+/// only outside the central half of the rows. At a fraction of 0.5 the band is
+/// exactly that waist: those columns read as gutter, the widest textured run
+/// is the inner panel alone, and the locator is `WAIST_INSET` px wrong on each
+/// side. At the settled fraction it sees rows where the outer panels are art
+/// and locates the page.
+///
+/// RED measured outside the test framework: the outer panel column's mean
+/// absolute deviation over the band is 0.991667 at 0.5 and 9.137731 at 0.6,
+/// against a `min_line_spread` of 8.0.
+#[test]
+fn a_page_whose_outer_panels_miss_the_middle_needs_a_band_wider_than_half() {
+    let t = Tuning::default();
+    let img = page_with_a_waist();
+    let rect = whole(&img);
+    let (page_first, page_last) = waist_page_columns();
+    let (inner_first, inner_last) = waist_inner_columns();
+
+    assert_eq!(
+        page_column(&img, rect, &t),
+        Rect {
+            x: page_first,
+            w: page_last - page_first + 1,
+            ..rect
+        },
+        "at the settled central_band_fraction {} the band reaches past the waist and \
+         the whole page is located",
+        t.central_band_fraction
+    );
+
+    let at_the_floor = Tuning {
+        central_band_fraction: 0.5,
+        ..Tuning::default()
+    };
+    assert_eq!(
+        page_column(&img, rect, &at_the_floor),
+        Rect {
+            x: inner_first,
+            w: inner_last - inner_first + 1,
+            ..rect
+        },
+        "and at a fraction of 0.5 the band fits inside the waist, so the locator \
+         finds the inner panel alone and is {WAIST_INSET} px wrong on each side. \
+         That is the floor, and it fires."
+    );
+}
+
+/// The **ceiling** on `central_band_fraction`, and a control that fires above
+/// it.
+///
+/// `page_in_margins_with_chrome_bands` carries full-width texture in the outer
+/// sixth of the rect at each end - the browser chrome and the taskbar that
+/// survive inside the rect on a real screenshot, and MC-025's own diagnosis of
+/// why the column axis scores 0 of 21 when the whole rect is measured. A band
+/// that reaches those rows reads every column as textured, so there is no page
+/// margin anywhere and the rect comes back whole.
+///
+/// RED measured outside the test framework: column 0's mean absolute deviation
+/// over the band is 0.75 at 2/3, 3.0887 at 0.7 and 8.9583 at 0.8, against a
+/// `min_line_spread` of 8.0.
+#[test]
+fn a_band_that_reaches_the_chrome_rows_gives_the_page_back_whole() {
+    let t = Tuning::default();
+    let img = page_in_margins_with_chrome_bands();
+    let rect = whole(&img);
+    let first = page_first_textured_column(t.min_line_spread);
+    let last = page_last_textured_column(t.min_line_spread);
+
+    assert_eq!(
+        page_column(&img, rect, &t),
+        Rect {
+            x: first,
+            w: last - first + 1,
+            ..rect
+        },
+        "at the settled central_band_fraction {} the band clears both chrome rows \
+         and the page is located at columns {first}..={last}",
+        t.central_band_fraction
+    );
+
+    let past_the_ceiling = Tuning {
+        central_band_fraction: 0.8,
+        ..Tuning::default()
+    };
+    assert_eq!(
+        page_column(&img, rect, &past_the_ceiling),
+        rect,
+        "and at a fraction of 0.8 the band reaches the chrome rows, every column of \
+         it reads textured, and the page is given back whole - which is MC-026 \
+         finding 7's 2 of 21 at a fraction of 1.0, on one fixture. That is the \
+         ceiling, and it fires."
+    );
+}
+
+// --- The negative controls --------------------------------------------------
+
+/// The first negative control: a rect that is art edge to edge has no page
+/// margin, so the locator must leave it exactly alone.
+///
+/// `common::soft_art(100, 94, 7)` is the art every scene in `tests/content.rs`
+/// and `tests/edges.rs` builds. RED measured its flattest column over the
+/// central band at **8.252551** against a `min_line_spread` of 8.0 - the same
+/// 0.26 of headroom MC-025 measured over the whole plane (8.261657), and still
+/// the thinnest margin in this file. If a later story raised `min_line_spread`
+/// above it, this locator would start reading that art as page margin and
+/// cutting into the scenes those suites pin.
+#[test]
+fn the_locator_leaves_a_rect_that_is_art_edge_to_edge_alone() {
+    let t = Tuning::default();
+    let art = soft_art(100, 94, 7);
+    let band = central_band(whole(&art), &t);
+    let spread = column_spreads(&art, band);
+
+    assert!(
+        trough(&spread) > t.min_line_spread,
+        "every column of the existing art fixture must stay textured over the \
+         central band at min_line_spread {}; the flattest measures {}, which is the \
+         ceiling on that threshold restated over the band",
+        t.min_line_spread,
+        trough(&spread)
+    );
+    assert_eq!(
+        widest_textured_run(&spread, &t),
+        Some((0, spread.len() - 1)),
+        "so the widest run is the whole profile"
+    );
+    assert_eq!(
+        page_column(&art, whole(&art), &t),
+        whole(&art),
+        "and the rect comes back untouched: there is no page margin to remove"
+    );
+}
+
+/// The second negative control: nothing but gutter has no textured column at
+/// all, so there is no run to select and the rect is untouched again.
+///
+/// `common::flat_gutter_only` is flat in the mean-absolute-deviation sense the
+/// locator measures and *not* uniform in the `max - min` sense stage 1
+/// measures, which is what makes it a control rather than a curiosity - it
+/// reaches the locator instead of being trimmed away first. RED measured its
+/// column spreads over the central band at 0.555556 to 1.095679.
+#[test]
+fn the_locator_finds_no_page_column_in_a_rect_that_is_all_gutter() {
+    let t = Tuning::default();
+    let img = flat_gutter_only(200, 120);
+    let band = central_band(whole(&img), &t);
+    let spread = column_spreads(&img, band);
+
+    assert!(
+        peak(&spread) < t.min_line_spread,
+        "a flat gutter must not read as art on the column axis at min_line_spread \
+         {}; the widest column measures {}",
+        t.min_line_spread,
+        peak(&spread)
+    );
+    assert_eq!(
+        widest_textured_run(&spread, &t),
+        None,
+        "so there is no textured run to select"
+    );
+    assert_eq!(
+        page_column(&img, whole(&img), &t),
+        whole(&img),
+        "and a rect with no page column in it is left exactly as it was"
+    );
+}
+
+/// The rule that makes the two controls above more than a coincidence: a page
+/// column is a textured run with a flat page margin on **both** sides of it.
+///
+/// Where the widest run reaches column 0 or the rect's last column, that side
+/// has no page margin, there is nothing for this stage to remove, and the rect
+/// is returned untouched. The same fixture answers both halves: given the
+/// whole plane the locator finds the page inside its margins; given a rect
+/// that starts and ends on the page itself, the run reaches both ends and the
+/// rect comes back as it went in.
+#[test]
+fn a_run_that_reaches_an_end_of_the_rect_is_not_a_page_column_and_is_left_alone() {
+    let t = Tuning::default();
+    let img = page_in_margins();
+    let first = page_first_textured_column(t.min_line_spread);
+    let last = page_last_textured_column(t.min_line_spread);
+
+    let inside_the_page = Rect {
+        x: first,
+        y: 0,
+        w: last - first + 1,
+        h: PAGE_H,
+    };
+    assert_eq!(
+        page_column(&img, inside_the_page, &t),
+        inside_the_page,
+        "a rect whose own outer columns are the page has no page margin on either \
+         side, so there is nothing to remove"
+    );
+
+    let one_margin_only = Rect {
+        x: 0,
+        y: 0,
+        w: last + 1,
+        h: PAGE_H,
+    };
+    assert_eq!(
+        page_column(&img, one_margin_only, &t),
+        one_margin_only,
+        "and a rect with a margin on the left but none on the right is the same \
+         answer: this stage removes page margins in pairs or not at all, which is \
+         what keeps it off a bare artwork file that happens to start with a \
+         blank column"
+    );
+
+    let both_margins = whole(&img);
+    assert_eq!(
+        page_column(&img, both_margins, &t),
+        Rect {
+            x: first,
+            w: last - first + 1,
+            ..both_margins
+        },
+        "while the same fixture with both its margins is located at columns \
+         {first}..={last}"
     );
 }

@@ -24,7 +24,15 @@
 //!    strong line at all (MC-025). Everything about *when* that happens, and
 //!    why it stands outside [`content_box`] rather than inside it, is in
 //!    [`flat`](crate::flat)'s module documentation;
-//! 5. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image.
+//! 5. [`page_column`] over what is left, on the **column axis only**, which
+//!    narrows the rect to the page column between its two flat page margins
+//!    (MC-027). It has no `strong_lines` guard - a reader page has panel
+//!    borders, so on the column axis that guard is unconditional and stage 4
+//!    never speaks there - and a rule of its own instead: it narrows only
+//!    where the widest textured run has a flat column on both sides of it.
+//!    [`flat`](crate::flat)'s "Stage 3c" section is where that is argued. The
+//!    row axis stays exactly where stage 4 left it;
+//! 6. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image.
 //!
 //! [`decide`] is the other half of this module (MC-007): the same pixels and
 //! the same tuning in, and the one answer the engine acts on out - crop to
@@ -89,12 +97,19 @@
 //! screenshot is all art and the rect is the whole image" - for a page where
 //! neither half of that sentence is true.
 //!
+//! MC-027 extends it once more, and for the identical reason: a page margin
+//! the column locator pulls the rect in past is a blank border that was
+//! removed. Without that clause the fixture in
+//! `tests/decide.rs::a_page_column_between_flat_page_margins_is_cropped_to_the_page`
+//! reaches [`decide`] with `!trimmed && removed.is_empty()` and is flagged
+//! `NoBorderFound` however well the page was located.
+//!
 //! The field is mechanical rather than statistical, so it is compared rather
 //! than tracked: each stage moved something iff it returned a rect other than
 //! the one it was given.
 
 use crate::content::{Side, content_box};
-use crate::flat::textured_box;
+use crate::flat::{page_column, textured_box};
 use crate::margin;
 use crate::trim::{trim_uniform, trim_within};
 use crate::{Dimensions, Luma, Rect, Tuning};
@@ -128,7 +143,7 @@ pub struct Detection {
 /// even one that is all art - in which case the margin clamps on all four
 /// sides and the answer is the image itself.
 ///
-/// The five steps are in the module documentation above.
+/// The six steps are in the module documentation above.
 #[must_use]
 pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     let whole = Rect {
@@ -142,17 +157,18 @@ pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     let found = content_box(img, first, t);
     let second = trim_within(img, found.rect, t)?;
     let textured = textured_box(img, second, t);
+    let column = page_column(img, textured, t);
 
     Some(Detection {
         rect: margin::expand(
-            textured,
+            column,
             t.margin_px,
             Dimensions {
                 width: img.width,
                 height: img.height,
             },
         ),
-        trimmed: first != whole || second != found.rect || textured != second,
+        trimmed: first != whole || second != found.rect || textured != second || column != textured,
         removed: found.removed,
         ambiguous: found.ambiguous,
     })
