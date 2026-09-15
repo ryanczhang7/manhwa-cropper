@@ -409,6 +409,22 @@ pub fn progress_text(done: u32, total: u32) -> String {
     format!("{done} of {total}")
 }
 
+/// The progress bar's fill: `components.md` gives its width as `done / total`.
+///
+/// `progress_text`'s twin - the same two numbers read as a length instead of
+/// as a count - and it lives here rather than in the painter so it can be
+/// compared as a value (the audit's Decided-3). Answers `0.0` for a run of no
+/// files, because `0 / 0` is not a length a bar can have, and never more than
+/// `1.0`, because a late or duplicated `Progress` may carry `done > total` and
+/// the window must not paint past its own end.
+#[must_use]
+pub fn progress_fraction(done: u32, total: u32) -> f32 {
+    if total == 0 {
+        return 0.0;
+    }
+    (done as f32 / total as f32).min(1.0)
+}
+
 /// The window title, and the one label the walking-skeleton window shows.
 #[must_use]
 pub fn window_title() -> &'static str {
