@@ -7,8 +7,9 @@
 # four of the five shipped profiles violating it, and three profiles had been
 # missing the `discovery` requirement since it was written. A profile is copied
 # verbatim into a real project's project.conf, so a `slow` line naming a gate
-# that does not exist, or a `floor` with nothing to measure, is not a
-# documentation nit - it is a manifest error that arrives pre-installed.
+# that does not exist, or a `floor` with nothing to measure - or nothing but a
+# stopwatch - is not a documentation nit. It is a manifest error that arrives
+# pre-installed.
 #
 # These are the same rules `gates.sh --audit` applies to a real project.conf,
 # applied to the examples that teach people how to write one.
@@ -42,6 +43,7 @@ profile_problems() {
     }
     /^[[:space:]]*evidence[[:space:]]*\|/  { ev[t($2)] = 1; next }
     /^[[:space:]]*floor[[:space:]]*\|/     { fl[t($2)] = 1; next }
+    /^[[:space:]]*no-count[[:space:]]*\|/  { id = t($2); nc[id] = 1; ncwhy[id] = rest(3); next }
     /^[[:space:]]*discovery[[:space:]]*\|/ { ndisc++; next }
     /^[[:space:]]*slow[[:space:]]*\|/      { id = t($2); slow[id] = 1; why[id] = rest(3); next }
     /What `--fast` should leave out/       { fastsec = 1 }
@@ -58,10 +60,21 @@ profile_problems() {
       for (id in ev)   if (!(id in gates)) print "orphan\tevidence names `" id "`, which this profile does not configure"
       for (id in fl)   if (!(id in gates)) print "orphan\tfloor names `"    id "`, which this profile does not configure"
       for (id in slow) if (!(id in gates)) print "orphan\tslow names `"     id "`, which this profile does not configure"
+      for (id in nc)   if (!(id in gates)) print "orphan\tno-count names `" id "`, which this profile does not configure"
 
       for (id in fl)
         if (!(id in ev))
           print "floor\tfloor on `" id "` has no evidence line to measure it out of"
+
+      # The same refusal gates.sh makes: a floor measured out of a regex that
+      # was declared to measure nothing compares against a stopwatch.
+      for (id in fl)
+        if (id in nc)
+          print "floor\tfloor on `" id "` is declared no-count, so there is no count to compare against"
+
+      for (id in nc)
+        if (ncwhy[id] == "")
+          print "no-count\t`" id "` is marked no-count with no reason"
 
       for (id in slow)
         if (why[id] == "")
@@ -115,8 +128,9 @@ for f in "$PROFILE_DIR"/*.md; do
   }
   check required-gates "configures every required gate"
   check evidence       "every required gate with a command has an evidence line"
-  check orphan         "no evidence, floor or slow line names an unconfigured gate"
-  check floor          "every floor has an evidence line to measure"
+  check orphan         "no evidence, floor, no-count or slow line names an unconfigured gate"
+  check floor          "every floor has an evidence line, and a count, to measure"
+  check no-count       "every no-count line carries a reason"
   check slow           "every slow line carries a reason"
   check fast-section   "says what --fast should leave out"
   check discovery      "has at least one discovery line"

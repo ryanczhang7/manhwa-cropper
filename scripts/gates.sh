@@ -18,10 +18,13 @@
 # `evidence` lines assert that work was OBSERVED, not that it succeeded.
 # `floor` lines go further and assert HOW MUCH: the number the evidence regex
 # matched must not fall below a recorded minimum, so a suite that quietly
-# shrinks from 47 tests to 3 fails instead of passing faster. `waiver` lines
-# name an optional gate that is known to fail, and why, so that WARN in the
-# summary always means something changed. All three are described in the
-# quality-gates skill.
+# shrinks from 47 tests to 3 fails instead of passing faster. `no-count` lines
+# say the opposite about a gate - that its evidence regex proves liveness but
+# measures nothing, so the digits sitting under it are not a count of work and
+# a floor on them would be nonsense. Such a gate reports `observed -`, and a
+# floor declared on it is refused. `waiver` lines name an optional gate that is
+# known to fail, and why, so that WARN in the summary always means something
+# changed. All four are described in the quality-gates skill.
 #
 # `slow` lines name the gates a --fast run leaves out. --fast exists so that RED
 # and GREEN can ask the gates whether the tests are even ADMISSIBLE - lint, types,
@@ -57,7 +60,7 @@ while [ $# -gt 0 ]; do
     --fast) FAST=1 ;;
     --audit) AUDIT=1 ;;
     --story) shift; STORY="${1:-}" ;;
-    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
     *) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
   esac
   shift
@@ -71,7 +74,7 @@ ESC=$(printf '\033')
 # --- evidence, floor, waiver and slow tables --------------------------------
 # Read up front, so that --gate <id> still finds its own lines. Stored as
 # "<id><TAB><value>" lines; no associative arrays, for bash 3.2.
-EVIDENCE=""; WAIVERS=""; FLOORS=""; SLOWS=""; CIFACTORS=""; GATE_IDS=""
+EVIDENCE=""; WAIVERS=""; FLOORS=""; SLOWS=""; CIFACTORS=""; NOCOUNTS=""; GATE_IDS=""
 while IFS= read -r line; do
   line="${line%%$'\r'}"
   case "$(trim "$line")" in ''|'#'*) continue ;; esac
@@ -84,7 +87,7 @@ while IFS= read -r line; do
   # line", and a misspelt `floor` id fails the audit outright, but a misspelt
   # `slow` id is silent - the gate it meant to exclude simply stays in --fast.
   [ "$kind" = "gate" ] && { GATE_IDS="$GATE_IDS $tid"; continue; }
-  case "$kind" in evidence|waiver|floor|slow|ci-factor) ;; *) continue ;; esac
+  case "$kind" in evidence|waiver|floor|slow|ci-factor|no-count) ;; *) continue ;; esac
   # -f3- so that a regex containing `|` (alternation) survives the split.
   tval=$(trim "$(printf '%s' "$line" | cut -d'|' -f3-)")
   [ -n "$tid" ] || continue
@@ -98,6 +101,8 @@ while IFS= read -r line; do
     slow)     SLOWS="$SLOWS$tid$TAB$tval
 " ;;
     ci-factor) CIFACTORS="$CIFACTORS$tid$TAB$tval
+" ;;
+    no-count) NOCOUNTS="$NOCOUNTS$tid$TAB$tval
 " ;;
   esac
 done < "$CONF"
@@ -137,6 +142,16 @@ clean_log() {
 # to cover the whole number if you want a floor on that gate.
 # Parenthesised, so that an evidence regex using top-level alternation
 # (`a|b`) does not bind the trailing `.*` to its last branch alone.
+#
+# The sharper consequence is that this function ALWAYS returns whatever digits
+# it finds, and cannot tell a count from a stopwatch. `Finished .* profile`
+# proves cargo ran and measures nothing: the digits after it are the elapsed
+# time, so a warm cache "observes 0" and a cold one "observes 2". That is not
+# detectable from the regex either - `TOTAL` has no digit class and is followed
+# by a real region count - so it is DECLARED, with a `no-count` line, and the
+# callers below consult that instead of guessing. Nothing here changes: this
+# function stays a dumb reader of digits, and its callers decide whether to
+# believe them.
 work_count() {
   clean_log "$1" \
     | grep -oE -m1 -- "($2).*" 2>/dev/null | head -1 \
@@ -232,12 +247,14 @@ while IFS= read -r line; do
   slowwhy=$(table_lookup "$SLOWS" "$id"); is_slow=$?
   floor=$(table_lookup "$FLOORS" "$id") || floor=""
   cifactor=$(table_lookup "$CIFACTORS" "$id") || cifactor=""
+  nocountwhy=$(table_lookup "$NOCOUNTS" "$id"); is_nocount=$?
   logrel=".claude/state/gate-logs/$id.log"
 
   if [ "$LIST" = 1 ]; then
     printf '%-12s %-9s %-6s %s\n' "$id" "$req" "$cwd" "${cmd:-<unconfigured>}"
     printf '%-12s %-9s %-6s evidence: %s\n' "" "" "" "$exp"
     [ -n "$floor" ]  && printf '%-12s %-9s %-6s floor:    %s\n' "" "" "" "$floor"
+    [ "$is_nocount" = 0 ] && printf '%-12s %-9s %-6s no-count: %s (no floor possible)\n' "" "" "" "${nocountwhy:-no reason given}"
     [ -n "$cifactor" ] && printf '%-12s %-9s %-6s ci-factor: %s\n' "" "" "" "$cifactor"
     [ -n "$waiver" ] && printf '%-12s %-9s %-6s waiver:   %s\n' "" "" "" "$waiver"
     [ "$is_slow" = 0 ] && printf '%-12s %-9s %-6s slow:     %s (left out of --fast)\n' "" "" "" "${slowwhy:-no reason given}"
@@ -256,9 +273,22 @@ while IFS= read -r line; do
     fails=$((fails+1)); continue
   fi
 
-  # A floor is measured out of the evidence match, so it needs one, and it has
-  # to be a number. Both are checked before anything runs: a floor that cannot
-  # be evaluated would otherwise sit in project.conf looking like protection.
+  # A `no-count` line with no reason is the same failure as a `slow` one: the
+  # next person needs to know WHY the regex measures nothing, or they will read
+  # the line as a shrug and delete it.
+  if [ "$is_nocount" = 0 ] && [ -z "$nocountwhy" ]; then
+    if [ "$AUDIT" = 1 ]; then
+      printf 'FAIL %-12s marked no-count with no reason; say what its evidence regex measures instead\n' "$id"
+    else
+      results="$results\nFAIL         $id (marked no-count with no reason in project.conf)"
+    fi
+    fails=$((fails+1)); continue
+  fi
+
+  # A floor is measured out of the evidence match, so it needs one, it has to
+  # be a number, and the match has to contain a count rather than a stopwatch.
+  # All three are checked before anything runs: a floor that cannot be
+  # evaluated would otherwise sit in project.conf looking like protection.
   floor_broken=""
   if [ -n "$floor" ]; then
     case "$floor" in
@@ -266,6 +296,13 @@ while IFS= read -r line; do
     esac
     if [ -z "$floor_broken" ] && { [ "$exp" = "<none>" ] || [ "$exp" = "-" ]; }; then
       floor_broken="floor needs an evidence regex to measure, and $id has none"
+    fi
+    # The dangerous case, and the quiet one: /$exp/ matches, a number is found,
+    # the floor compares cleanly against it, and the number means nothing. A
+    # floor on `Finished .* profile` passes or fails on how warm the build
+    # cache is. Refusing it is the whole point of the no-count declaration.
+    if [ -z "$floor_broken" ] && [ "$is_nocount" = 0 ]; then
+      floor_broken="floor cannot be measured: $id is declared no-count ($nocountwhy)"
     fi
   fi
   if [ -n "$floor_broken" ]; then
@@ -340,6 +377,7 @@ while IFS= read -r line; do
       printf 'ok   %-12s evidence: %s\n' "$id" "$exp"
     fi
     [ -n "$floor" ]  && printf '     %-12s floor:  %s\n' "" "$floor"
+    [ "$is_nocount" = 0 ] && printf '     %-12s no-count: %s (reports `observed -`; no floor possible)\n' "" "$nocountwhy"
     [ -n "$cifactor" ] && printf '     %-12s ci-factor: %s\n' "" "$cifactor"
     [ "$is_slow" = 0 ] && printf '     %-12s slow:   %s\n' "" "$slowwhy"
     [ -n "$waiver" ] && printf '     %-12s waiver: %s\n' "" "$waiver"
@@ -375,6 +413,11 @@ while IFS= read -r line; do
   elif [ "$exp" != "<none>" ] && [ "$exp" != "-" ] && ! clean_log "$log" | grep -Eq -- "$exp"; then
     outcome=noevidence
     why="ran but produced no evidence of work: expected /$exp/"
+  elif [ "$exp" != "<none>" ] && [ "$exp" != "-" ] && [ "$is_nocount" = 0 ]; then
+    # Live, but unmeasurable by declaration. Print the dash rather than the
+    # digits work_count would have found: a number nobody may act on is worse
+    # than no number, because it reads exactly like one somebody may.
+    observed="-"
   elif [ "$exp" != "<none>" ] && [ "$exp" != "-" ]; then
     # The gate did work. How much, and is that less than it used to be? A suite
     # that shrinks from 47 tests to 3 exits 0 and matches its evidence regex
@@ -443,6 +486,16 @@ if [ "$AUDIT" = 1 ]; then
       *) printf 'FAIL %-12s a `ci-factor` line names no configured gate\n' "$cid"; fails=$((fails+1)) ;;
     esac
   done <<< "$CIFACTORS"
+  # Same for a no-count: it is the thing standing between a real gate and a
+  # floor on a stopwatch, and a misspelt id leaves that gate undefended while
+  # looking, in project.conf, exactly as though it were covered.
+  while IFS="$TAB" read -r nid _; do
+    [ -n "$nid" ] || continue
+    case " $GATE_IDS " in
+      *" $nid "*) ;;
+      *) printf 'FAIL %-12s a `no-count` line names no configured gate\n' "$nid"; fails=$((fails+1)) ;;
+    esac
+  done <<< "$NOCOUNTS"
   if [ "$noevidence" -gt 0 ]; then
     printf '\n%d required gate(s) have no evidence line. Add one per gate:\n' "$noevidence"
     printf '  evidence | <id> | <regex proving the tool did work>\n'

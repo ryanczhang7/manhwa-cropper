@@ -239,8 +239,16 @@ the exit code's job. Gates without an `evidence` line behave exactly as before.
 
 A `floor` line goes one further: `evidence` catches a gate that did nothing, a
 floor catches one that started doing much less — a suite that went from 47
-tests to 3 exits 0 and matches its regex just as happily. And because a
-coverage threshold on a glob matching nothing is satisfied *silently*,
+tests to 3 exits 0 and matches its regex just as happily. The count a floor
+compares against is read out of the evidence match, which means some regexes
+have no count under them at all: ``Finished `dev` profile ... in 0.29s`` proves
+cargo ran and offers the *elapsed time*, so a floor there would turn on how warm
+the build cache is. A `no-count` line declares that, and `gates.sh` then reports
+`observed -` for the gate and refuses any floor on it. It is declared rather
+than detected because it cannot be detected — `TOTAL` has no digit in its regex
+either, and the number after it is real.
+
+And because a coverage threshold on a glob matching nothing is satisfied *silently*,
 `discovery` lines in the same file ask the runner what it can actually see, and
 `doctor.sh` runs them: a claim about what a runner discovers is verified by
 running the runner, never by reading its globs. A story whose evidence lives in
@@ -346,8 +354,8 @@ Two required jobs, and between them they run more than `gates.sh` does.
 
 - **`gates.yml`** runs the harness's own self-test (`selftest.sh`), prints the
   configured gates, audits the manifest (`gates.sh --audit` — which fails a
-  `floor` with no evidence line, or a `slow` line with no reason or naming no
-  gate), then runs the gates. Add your stack's toolchain setup step; the harness
+  `floor` with no evidence line or on a `no-count` gate, and a `slow` or
+  `no-count` line with no reason or naming no gate), then runs the gates. Add your stack's toolchain setup step; the harness
   itself needs nothing.
 - **`boundaries.yml`** re-checks on the diff what the hook could not see, either
   because it was never in the loop or because the invariant is about a story

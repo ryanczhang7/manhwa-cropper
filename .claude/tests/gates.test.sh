@@ -114,6 +114,87 @@ out="$(gates)"
 assert_contains "observed count in the summary" "observed 132" "$out"
 
 # ---------------------------------------------------------------------------
+describe "no-count: an evidence regex that proves liveness and measures nothing"
+
+# The field report: cargo's `Finished \`dev\` profile ... in 0.29s` proves the
+# tool ran and offers no count, so work_count reports the ELAPSED TIME. It read
+# 0, then 2, then 6 across runs of the same unchanged workspace. Harmless while
+# decorative; a coin-toss gate the moment somebody puts a floor under it.
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s\n'
+evidence | lint | Finished .* profile
+EOF
+out="$(gates)"
+assert_contains "undeclared, the stopwatch is reported as a count" "observed 0" "$out"
+
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s\n'
+evidence | lint | Finished .* profile
+no-count | lint | the digits after it are elapsed seconds, not a count
+EOF
+out="$(gates)"
+assert_contains "declared, the number is withheld" "observed -" "$out"
+assert_contains "and liveness still holds"         "PASS         lint" "$out"
+
+# The same gate with nothing to say still fails: `no-count` withholds the
+# measurement, it does not excuse the gate from proving it ran.
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'nothing to do\n'
+evidence | lint | Finished .* profile
+no-count | lint | the digits after it are elapsed seconds, not a count
+EOF
+out="$(gates)"
+assert_contains "no-count does not weaken the evidence assertion" "no evidence of work" "$out"
+
+describe "no-count: a floor on it is refused"
+
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.29s\n'
+evidence | lint | Finished .* profile
+no-count | lint | the digits after it are elapsed seconds, not a count
+floor    | lint | 5
+EOF
+out="$(gates --audit)"
+assert_contains "the audit refuses it" "declared no-count" "$out"
+assert_contains "and the audit fails"  "1 manifest problem" "$out"
+
+# Refused at run time too, not only under --audit: a floor that would otherwise
+# have PASSED here purely because the fixture's stopwatch read 5.29s.
+out="$(gates)"
+assert_contains "the run refuses it"  "FAIL         lint" "$out"
+assert_contains "rather than passing on the clock" "declared no-count" "$out"
+
+describe "no-count: a line that defends nothing is a manifest error"
+
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'Finished `dev` profile in 0.29s\n'
+evidence | lint | Finished .* profile
+no-count | lint |
+EOF
+out="$(gates --audit)"
+assert_contains "no-count without a reason fails the audit" "marked no-count with no reason" "$out"
+
+write_conf "$FIX" <<'EOF'
+gate     | lint | required | . | printf 'Finished `dev` profile in 0.29s\n'
+evidence | lint | Finished .* profile
+no-count | lnit | a typo, so lint is left open to a floor on its stopwatch
+floor    | lint | 5
+EOF
+out="$(gates --audit)"
+assert_contains "no-count naming no gate fails the audit" "names no configured gate" "$out"
+
+# A count-free regex is not detectable from the regex, which is why it is
+# declared. `TOTAL` has no digit class either, and the number after it is a
+# real one a floor may use.
+write_conf "$FIX" <<'EOF'
+gate     | coverage | required | . | printf 'TOTAL  1629  16  99.02%%\n'
+evidence | coverage | TOTAL
+floor    | coverage | 1000
+EOF
+out="$(gates)"
+assert_contains "a digit-class-free regex may still measure" "observed 1629, floor 1000" "$out"
+
+# ---------------------------------------------------------------------------
 describe "required_gates: a story can escalate an optional gate for itself"
 
 write_conf "$FIX" <<'EOF'

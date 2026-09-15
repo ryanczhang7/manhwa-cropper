@@ -37,6 +37,10 @@ work, not that it succeeded.
     evidence | typecheck| Finished .* profile
     evidence | build    | Finished .* profile
 
+    no-count | lint     | `Finished .* profile` is liveness-only; the digits after it are elapsed seconds
+    no-count | typecheck| `Finished .* profile` is liveness-only; the digits after it are elapsed seconds
+    no-count | build    | `Finished .* profile` is liveness-only; the digits after it are elapsed seconds
+
     # UNVERIFIED - cargo-llvm-cov was not installed when this was written.
     # The bootstrap story must run the coverage gate and correct this line.
     evidence | coverage | TOTAL
@@ -66,6 +70,19 @@ whenever the cache was warm. `Finished` proves cargo ran to completion rather
 than the command being a no-op or a broken alias; it cannot prove the crate set
 was right. For those gates the protection comes from `--workspace` being correct
 in the first place, and from the `unit` gate failing loudly if it is not.
+
+Which is why all three carry a `no-count` line. The count `gates.sh` reads is
+the first run of digits at or after the evidence match, and cargo's line is
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s
+
+so that number is the **elapsed time**. Read off a real cargo workspace:
+`typecheck` reported `observed 0`, `lint` `2` then `6` across runs of an
+unchanged tree, `build` `1` (from `in 1m 22s`). Harmless while it is only printed,
+and a coin-toss gate the moment somebody adds `floor | lint | 5` in good faith.
+The `no-count` lines make `gates.sh` print `observed -` instead and refuse that
+floor outright. There is no regex that fixes this — cargo prints no count on a
+warm cache, which is the same fact that makes the regexes weak to begin with.
 
 ## What `--fast` should leave out
 

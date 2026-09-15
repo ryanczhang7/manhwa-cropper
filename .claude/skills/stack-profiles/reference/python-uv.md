@@ -31,6 +31,7 @@ work, not that it succeeded.
     evidence | lint      | Checked [1-9][0-9]* files|All checks passed
     evidence | typecheck | Success: no issues found in [1-9][0-9]* source file
     evidence | build     | Successfully built
+    no-count | build     | `Successfully built foo-0.1.0.tar.gz` is liveness-only; the digits are a version
 
 `pytest` exits 5 when it collects no tests, so the bare vacuous case is already
 loud - **unless someone adds `--passWithNoTests` or an `addopts` that sets it**,
