@@ -426,14 +426,18 @@ fn folder_button(ui: &mut Ui, enabled: bool, palette: Palette) -> Response {
     let response = ui
         .scope(|ui| {
             if !enabled {
-                // A disabled widget paints from `noninteractive`; give that
-                // slot the three disabled tokens for as long as this button.
+                // A disabled `Button` keeps `Sense::click()` and is neither
+                // hovered nor focused, so `Widgets::style` (egui 0.36.2,
+                // `style.rs:1273`) hands it `inactive` - *not* `noninteractive`,
+                // which it only ever reaches with a non-interactive sense. Give
+                // that slot the three disabled tokens for as long as this
+                // button. `visuals.disabled_alpha` is 1.0 on purpose, so the
+                // fade `Ui::disable` would otherwise apply is not the cue here.
                 let visuals = ui.visuals_mut();
-                visuals.widgets.noninteractive.bg_fill = palette.control_disabled;
-                visuals.widgets.noninteractive.weak_bg_fill = palette.control_disabled;
-                visuals.widgets.noninteractive.bg_stroke =
-                    Stroke::new(STROKE_CONTROL, palette.border);
-                visuals.widgets.noninteractive.fg_stroke =
+                visuals.widgets.inactive.bg_fill = palette.control_disabled;
+                visuals.widgets.inactive.weak_bg_fill = palette.control_disabled;
+                visuals.widgets.inactive.bg_stroke = Stroke::new(STROKE_CONTROL, palette.border);
+                visuals.widgets.inactive.fg_stroke =
                     Stroke::new(STROKE_CONTROL, palette.text_disabled);
                 visuals.override_text_color = Some(palette.text_disabled);
             }
