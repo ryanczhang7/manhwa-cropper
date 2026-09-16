@@ -265,6 +265,10 @@ impl BatchRunner for ThreadRunner {
 /// this is where the two meet. Saturating rather than panicking, for the same
 /// reason [`Model`] saturates: a number the window only prints must never be
 /// able to end the process.
-fn count(files: usize) -> u32 {
+///
+/// Public so that the saturating branch can be exercised at all: no run can
+/// hand it a count past `u32::MAX` without a drop of four billion files, so
+/// calling it directly is the only way to reach it (MC-024 AC-3).
+pub fn count(files: usize) -> u32 {
     u32::try_from(files).unwrap_or(u32::MAX)
 }
