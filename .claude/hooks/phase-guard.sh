@@ -71,6 +71,12 @@ case "$TOOL" in
     # extractors below run against the masked text, and each candidate is
     # unmasked again before it is classified.
     MASKED="$(printf '%s' "$CMD" | mask_shell_quotes)"
+    # The same text with every redirection removed. Only the `>` scanner below
+    # wants to see a redirect; to every other extractor a redirect is noise
+    # sitting in the middle of the operand list, and reading it as an operand
+    # both invented a target (`2>/dev/null`, classified `source`) and hid the
+    # real one. See strip_redirects in lib.sh.
+    OPERANDS="$(printf '%s' "$MASKED" | strip_redirects)"
     # Candidate write targets. Deliberately conservative: we only look at
     # constructs that unambiguously name a destination file.
     #
@@ -84,11 +90,13 @@ case "$TOOL" in
     # Parentheses terminate a target like `;` does: `(cd src && echo x > a.ts)`
     # used to yield `a.ts)`, which the guard declined as unreadable - a hole
     # in the shape of a subshell. `>|` is a redirect too. And `<` ends the
-    # rm/touch operand list, because `xargs touch < list` reads `list`.
+    # rm/touch operand list, because `xargs touch < list` reads `list` - which
+    # strip_redirects now removes outright, leaving the character class there
+    # as a second lock on the same door.
     CANDIDATES="$(
       {
         printf '%s\n' "$MASKED" | grep -oE '>(>|\|)?[[:space:]]*[^|&;><()[:space:]]+'  | sed -E 's/^>(>|\|)?[[:space:]]*//'
-        printf '%s\n' "$MASKED" | grep -oE '\btee\b([[:space:]]+-a)?[[:space:]]+[^|&;><()[:space:]]+' | awk '{print $NF}'
+        printf '%s\n' "$OPERANDS" | grep -oE '\btee\b([[:space:]]+-a)?[[:space:]]+[^|&;><()[:space:]]+' | awk '{print $NF}'
         # An in-place `sed` writes EVERY operand, not just the last. `$NF`
         # took one of
         # them, so `sed -i s/a/b/ src/a.ts docs/notes.md` was judged on
@@ -98,7 +106,7 @@ case "$TOOL" in
         # which is a script or a script FILE and never a write target; and
         # with neither of those present the first bare operand is the script.
         # Everything after that is a file sed rewrites in place.
-        printf '%s\n' "$MASKED" | grep -oE '\bsed\b[^|&;()]*-i[^|&;()]*' | awk '
+        printf '%s\n' "$OPERANDS" | grep -oE '\bsed\b[^|&;()]*-i[^|&;()]*' | awk '
           {
             script = 0
             for (i = 2; i <= NF; i++) {
@@ -115,8 +123,8 @@ case "$TOOL" in
               print t
             }
           }'
-        printf '%s\n' "$MASKED" | grep -oE '\b(cp|mv)\b[[:space:]]+[^|&;()]+'         | awk '{print $NF}'
-        printf '%s\n' "$MASKED" | grep -oE '\b(rm|touch)\b[[:space:]]+[^|&;<>()]+'    | tr ' ' '\n' | grep -vE '^(rm|touch|-.*)$'
+        printf '%s\n' "$OPERANDS" | grep -oE '\b(cp|mv)\b[[:space:]]+[^|&;()]+'         | awk '{print $NF}'
+        printf '%s\n' "$OPERANDS" | grep -oE '\b(rm|touch)\b[[:space:]]+[^|&;<>()]+'    | tr ' ' '\n' | grep -vE '^(rm|touch|-.*)$'
       } 2>/dev/null | tr -d '"'"'" | grep -vE '^\s*$|^-|\$|\*|^/dev/' | sort -u
     )"
     # Where the shell will actually be when those targets are written. A

@@ -262,6 +262,78 @@ assert_allowed "$FIX" "sed -i 's/src/main.ts/x/' docs/notes.md" \
   'a script that looks like a path is not a target'
 
 # ---------------------------------------------------------------------------
+describe "RED: a file-descriptor redirect is not an operand"
+set_phase "$FIX" RED
+
+# `2>/dev/null` is a redirect, not a path, and the operand extractors were
+# reading it as one. `cp|mv`, `rm|touch` and `sed -i` all matched across the
+# `>`, so the LAST field of `cp a.txt b.txt 2>/dev/null` was `2>/dev/null` -
+# which has letters in it, so path_is_implausible believed it, and classify
+# fell back to `source`. Reported against MC-030: a plain `cp` with its stderr
+# silenced was refused as a write to production code.
+#
+# The `>` scanner itself was innocent throughout: it already reads `1>`, `2>`,
+# `2>>` and `&>` as redirects whose target is the word after them, and already
+# declines `>&2` and `2>&1`, where there is no word at all. The bug was that
+# everything downstream of it still saw the redirect text.
+#
+# Two failures in one, and the second is the serious one: while the guard was
+# blocking on `2>/dev/null`, the operand that command really wrote was never
+# examined.
+#
+# The command as reported is judged on `b.txt` - an unclassified path at the
+# root, which falls through to `source` and is a fair block in RED. That is the
+# point: the verdict has to be reached on the operand, not on the redirect. A
+# guard that says `2>/dev/null` is right by accident here and wrong the moment
+# the operand is a path the phase allows, which is the case underneath it.
+assert_blocked "$FIX" 'cp a.txt b.txt 2>/dev/null' \
+  b.txt 'the reported command: judged on the operand, not the redirect'
+assert_allowed "$FIX" 'cp docs/notes.md docs/n2.md 2>/dev/null' \
+  'cp onto docs with stderr silenced'
+assert_allowed "$FIX" 'mv docs/notes.md docs/n2.md 2>&1' \
+  'mv onto docs with stderr folded into stdout'
+assert_allowed "$FIX" 'rm docs/notes.md 2>/dev/null' \
+  'rm of docs with stderr silenced'
+assert_allowed "$FIX" 'touch docs/n2.md 2>/dev/null' \
+  'touch of docs with stderr silenced'
+assert_allowed "$FIX" "sed -i 's/a/b/' docs/notes.md 2>/dev/null" \
+  'sed -i over docs with stderr silenced'
+assert_allowed "$FIX" 'cp docs/notes.md docs/n2.md 1>/dev/null 2>&1' \
+  'cp with both streams redirected'
+assert_allowed "$FIX" 'cp docs/notes.md docs/n2.md &>/dev/null' \
+  'cp with the combined-redirect form'
+assert_allowed "$FIX" 'cat src/main.ts >&2' \
+  'a read whose stdout is duplicated onto stderr'
+assert_allowed "$FIX" 'cat src/main.ts 3>&-' \
+  'a read that closes a file descriptor'
+
+# The hole: the real operand is still judged, redirect or no redirect.
+assert_blocked "$FIX" 'cp docs/notes.md src/main.ts 2>/dev/null' \
+  src/main.ts 'cp onto source with stderr silenced'
+assert_blocked "$FIX" 'mv docs/notes.md src/main.ts 2>&1' \
+  src/main.ts 'mv onto source with stderr folded into stdout'
+assert_blocked "$FIX" 'rm src/main.ts 2>/dev/null' \
+  src/main.ts 'rm of source with stderr silenced'
+assert_blocked "$FIX" 'touch src/new.ts 2>/dev/null' \
+  src/new.ts 'touch of new source with stderr silenced'
+assert_blocked "$FIX" "sed -i 's/a/b/' src/main.ts 2>/dev/null" \
+  src/main.ts 'sed -i over source with stderr silenced'
+assert_blocked "$FIX" 'cp docs/notes.md src/main.ts 1>/dev/null 2>&1' \
+  src/main.ts 'cp onto source with both streams redirected'
+assert_blocked "$FIX" 'cp docs/notes.md 2>/dev/null src/main.ts' \
+  src/main.ts 'a redirect between the operands'
+
+# And a redirect that really does name a frozen file is still a write. `n>` is
+# a write to `n`, and the file it opens is judged exactly like `>` would be.
+assert_blocked "$FIX" 'ls src 1> src/out.log'    src/out.log 'stdout named by fd 1'
+assert_blocked "$FIX" 'ls src 2> src/err.log'    src/err.log 'stderr into source'
+assert_blocked "$FIX" 'ls src 2>src/err.log'     src/err.log 'stderr into source, unspaced'
+assert_blocked "$FIX" 'ls src 2>> src/err.log'   src/err.log 'stderr appended to source'
+assert_blocked "$FIX" 'ls src &> src/all.log'    src/all.log 'both streams into source'
+assert_blocked "$FIX" 'ls src 3> src/three.log'  src/three.log 'an arbitrary fd into source'
+assert_blocked "$FIX" 'ls src 2>&1 > src/out.log' src/out.log 'a real target beside an fd duplication'
+
+# ---------------------------------------------------------------------------
 describe "RED: a parse the guard cannot believe declines rather than denies"
 set_phase "$FIX" RED
 

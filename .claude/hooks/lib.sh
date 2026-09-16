@@ -227,6 +227,41 @@ unmask_shell_quotes() {
   tr '\001\002\003\004\005\006\007\010\016\017' '|&;>< \t\n()'
 }
 
+# strip_redirects   Reads MASKED text on stdin and removes every redirection -
+# the operator, any file-descriptor number in front of it, and the word or fd
+# duplication behind it - replacing each with a single space.
+#
+# A redirection is not an operand, and the operand extractors in the phase
+# guard have no way to know that on their own: they match a run of characters
+# after a command name and take a field out of it. `cp a.txt b.txt 2>/dev/null`
+# is a two-operand cp, but the run they matched ended `... b.txt 2>/dev/null`,
+# so `$NF` was `2>/dev/null` - a token with letters in it, which
+# path_is_implausible therefore believes, and which classify() then falls
+# through to `source`. A `cp` with its stderr silenced was refused as a write
+# to production code. The same parse gave `2` for `rm f 2>/dev/null` and `2>`
+# for `mv a b 2>&1`, because those extractors already stopped at `>` or `&` and
+# kept the file descriptor.
+#
+# The second half of that bug is the one that matters more: while the guard was
+# denying on `2>/dev/null`, the operand the command actually wrote was never
+# looked at. Removing the redirect restores it - including when the redirect
+# sits BETWEEN two operands, which truncating at the first `>` would not.
+#
+# What is removed, and what the phase guard's own `>` scanner still sees: the
+# scanner runs on the unstripped text and is the one thing that judges a
+# redirect TARGET, so `ls src 2> src/err.log` is still a write to src/err.log.
+# The forms without a target - `2>&1`, `>&2`, `3>&-` - name no file, and the
+# scanner already declines them because nothing but `&` follows the operator.
+#
+# Two rules, because a leading file descriptor is only a file descriptor when
+# it starts a word: in `out2>log` bash writes `log` and passes `out2`, so the
+# digits may not be eaten out of the middle of a name.
+strip_redirects() {
+  sed -E \
+    -e 's/(^|[[:space:]])[0-9]+(>{1,2}\|?|<{1,2})[[:space:]]*(&[0-9]*-?|[^|&;><()[:space:]]+)?/ /g' \
+    -e 's/[[:space:]]*(&?>{1,2}\|?|<{1,2})[[:space:]]*(&[0-9]*-?|[^|&;><()[:space:]]+)?/ /g'
+}
+
 # --- Paths ------------------------------------------------------------------
 
 # lower <text>   Lower-cased with tr, not with the bash 4 case-conversion
