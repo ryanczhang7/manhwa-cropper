@@ -79,6 +79,7 @@ Set once at startup through `ctx.set_style` / `style.text_styles`.
 | `space-window` | 16 | padding inside the window on all four sides (`Frame::inner_margin`) |
 | `space-stack` | 8 | vertical gap between the four stacked regions (`spacing.item_spacing.y`) |
 | `space-inline` | 8 | horizontal gap between the path label and the button (`spacing.item_spacing.x`) |
+| `space-tight` | 4 | vertical gap *within* one region, between two things that read as a unit: the progress bar and the count beneath it (`layout.md`, the status slot) |
 | `space-control-x` | 12 | button horizontal padding (`spacing.button_padding.x`) |
 | `space-control-y` | 6 | button vertical padding (`spacing.button_padding.y`); with 14 pt text this yields a 32 px tall button |
 | `size-control` | 32 | height of every interactive control and of the folder row |
