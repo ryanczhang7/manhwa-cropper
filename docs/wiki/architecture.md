@@ -327,3 +327,37 @@ this file and the stories that depend on it.
     it clips small panels silently and the flag threshold is a number nobody
     could defend. The user may overturn this by editing this decision and
     MC-005.
+14. **v1 crops the column axis accurately and leaves the row axis loose but
+    safe.** The user's decision of 2026-09-17, taken after every measurement
+    below had been run. On the **column** axis the detector places the page's
+    left and right edges inside MC-019's 11 px window on **20 of 21** corpus
+    entries. On the **row** axis it places **0 of 21** and overshoots every top
+    and bottom edge outward by **97 to 310 px**, *never clipping* (MC-031's
+    baseline, reproduced by MC-034's `base` binary). That overshoot is accepted
+    as v1's behaviour: a leftover border is the brief's accepted cost
+    (decision 5), and a clip is the defect decision 13 ranks above every other.
+
+    Two alternatives, both lost to measurement rather than to argument:
+
+    - **Tune a row rule to the 90% bar.** The stories that measured this axis
+      are listed in MC-032 `## Context`, with MC-034 and MC-035 after them.
+      Across two rule families and 780 parameterisations the best single rule
+      places **8 of 21 and clips 9**, and **no member of either family is
+      clip-free at all** — 0 of 780. That holds after admitting the
+      gutter-crossing band `corpus.md` records, and again at twice its width
+      (`docs/wiki/gutter-band-rescore.md`).
+    - **Split the bar by edge**, asserting accuracy on the top edge only, where
+      MC-034 reports 20 of 21 *reachable*. Lost because reachability is a
+      per-file cherry-pick across the whole sweep that no single rule can make.
+      Measured over the same 780 parameterisations: the best single rule places
+      **14 of 21** top edges *and clips*; **0 of 780** members avoid clipping a
+      top edge; and forgiving `Screenshot (103).jpg`, whose top all 780 clip,
+      leaves **9 members placing at most 7 of 20**. There is no top-edge bar
+      that is both met and worth having. The numbers are in MC-032
+      `## Closed`; they are the only place they are written down.
+
+    Reopening this needs a **signal class v1 excludes**, not a tuning change:
+    EPIC-05 rules out learning-based detection by name, and MC-025
+    `## Context` ruled out colour and chroma. The user has deferred both to
+    **v2**, together with growing the corpus. MC-032 is closed rather than
+    parked, and carries the evidence.
