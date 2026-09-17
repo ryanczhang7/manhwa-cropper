@@ -88,6 +88,16 @@ question is the **clip count** and the **clip-free best**, which stands at 0 of
 21 and is the number MC-005 decision 13 makes matter most. The derivation is in
 MC-035's `## Context`; if it is wrong, the story is too.
 
+**That measurement was run on 2026-09-17 and the epic's row-axis debt is now
+closed on measurement rather than on argument**
+(`docs/wiki/gutter-band-rescore.md`). Admitting the band retires 387 of 8 659
+clipped scorings and moves the spread family's best member from 6 of 21 to 8 of
+21 at the same four clips, but the best **clip-free** rule stays at **0 of 21**
+in both families — no member of either family is clip-free at all, at the ruled
+band width or at twice it. The derivation in MC-035's `## Context` held: the
+per-file ceiling and the per-edge reachability were read out, not re-measured,
+and the headline moved by 0 against its +2 bound. MC-032 stays parked.
+
 ## Stories
 
 1. MC-017 - One hundred screenshots crop in under ten seconds
