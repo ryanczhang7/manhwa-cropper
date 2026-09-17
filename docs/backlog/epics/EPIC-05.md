@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032]
 ---
 
 ## Goal
@@ -28,6 +28,20 @@ mode and both pass; the corpus manifest names at least twenty screenshots
 covering the cases in the brief's open question 1; the accuracy test fails
 if any corpus image is clipped by a single pixel.
 
+**Amended 2026-09-17: the nine-in-ten measurement is split by axis, and this
+epic can close with only half of it met.** MC-019 carries the **column** axis,
+which measures 20 of 21 inside the 11 px window, plus zero clips and
+`failed() == 0`. MC-032 carries the **row** axis, which measures 0 of 21, and it
+is **parked**: MC-028 and MC-031 closed both pixel-level directions on it
+(`docs/wiki/panel-gutter-search.md`, `docs/wiki/chrome-row-search.md`), and the
+corpus itself offers only 5 of 21 entries whose marked panel is bounded by a
+flat gutter on both sides. Unparking MC-032 needs a signal class outside v1 or a
+product decision about what the marks mean - not a tuning change. The brief's
+"nine in ten needing no manual fix" is therefore **not** met on the row axis at
+the close of this epic, and MC-032 is where that debt is recorded rather than
+forgotten. The decision and the orchestrator's own reproduction of the evidence
+are in MC-019 `## Amendments`.
+
 ## Stories
 
 1. MC-017 - One hundred screenshots crop in under ten seconds
@@ -37,7 +51,8 @@ if any corpus image is clipped by a single pixel.
 5. MC-027 - The page column is located by its flat page margins (the column axis, 19 of 21)
 6. MC-028 - Is a panel gutter locatable from pixels (spike; output is a document)
 7. MC-031 - Are the page row edges locatable from full-width chrome (spike; output is a document)
-8. MC-019 - The detector meets the accuracy bar on the corpus
+8. MC-019 - The detector meets the accuracy bar on the corpus column axis
+9. MC-032 - The detector meets the accuracy bar on the corpus row axis (parked; both pixel-level directions closed by MC-028 and MC-031)
 
 The order matters and was paid for. MC-026 must come first: until
 `min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
