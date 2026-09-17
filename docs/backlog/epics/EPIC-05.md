@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032, MC-033, MC-034]
 ---
 
 ## Goal
@@ -54,6 +54,7 @@ are in MC-019 `## Amendments`.
 8. MC-019 - The detector meets the accuracy bar on the corpus column axis
 9. MC-032 - The detector meets the accuracy bar on the corpus row axis (parked; both pixel-level directions closed by MC-028 and MC-031)
 10. MC-033 - The corpus records its marking rule, its diagonal gutters and their tolerance (chore; SCAFFOLD, no production source)
+11. MC-034 - Are the page row edges locatable from the panel's own art edge (spike; output is a document, and a reasoned negative is expected)
 
 The order matters and was paid for. MC-026 must come first: until
 `min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
