@@ -1,7 +1,7 @@
 ---
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
-status: todo
+status: done
 stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032, MC-033, MC-034]
 ---
 
@@ -41,6 +41,36 @@ product decision about what the marks mean - not a tuning change. The brief's
 the close of this epic, and MC-032 is where that debt is recorded rather than
 forgotten. The decision and the orchestrator's own reproduction of the evidence
 are in MC-019 `## Amendments`.
+
+**Closed 2026-09-17, by the user's decision, with the row axis unmet.** Ten of
+the eleven stories are DONE; MC-032 is parked and carries the debt, and its
+`## Context` records what would have to change to unpark it.
+
+Two corrections this epic's own amendment above needs, both from MC-034
+(`docs/wiki/panel-edge-search.md`), and both left in place rather than edited
+into the paragraph so the sequence stays readable:
+
+- **"MC-028 and MC-031 closed both pixel-level directions" is too strong.** What
+  is closed is the **bottom** edge. The top edge is reachable on **20 of 21**
+  across MC-034's 780 parameterisations, and a single rule places 13 of 21; the
+  bottom is reachable on **11 of 21**, and ten of the eleven entries nothing
+  places fail on the bottom alone.
+- **"only 5 of 21 entries whose marked panel is bounded by a flat gutter on both
+  sides" should not be leaned on.** MC-034 section 2d re-implemented MC-032's
+  flatness instrument from its own description and got 14 of 21 and 14 of 21
+  where MC-032 records 16 and 13. That is MC-032's own warning - "the partition
+  is not robust to the flatness definition, and no argument should rest on it" -
+  confirmed on a second implementation. The 5 of 21 is a real observation about
+  a real instrument; it is not a property of the corpus.
+
+**One question is outstanding and is the cheapest thing left.** MC-034 section 7
+put three entries to the user with images on 2026-09-17 - `Screenshot (2708).jpg`,
+`Screenshot (3538).png` and `Screenshot (2698).jpg` - where the rule stops at a
+gutter that is plainly there and the bottom mark sits below it. Whether a mark
+may span more than one panel decides whether every family tried so far is
+mis-specified rather than merely weak. The answer belongs on
+`docs/wiki/corpus.md`, which settles whose overhang counts and is silent on
+this. Closing the epic does not close that question; MC-032 carries it.
 
 ## Stories
 
