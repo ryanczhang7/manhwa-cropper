@@ -7,6 +7,16 @@
 //! only confirm the detector does what its author thought; these twenty-eight
 //! are the first thing in the project that can contradict it.
 //!
+//! # The rule the rectangles were drawn to lives on one page
+//!
+//! **`docs/wiki/corpus.md`** (MC-033) — the marking rule, the diagonal-gutter
+//! tolerance, and the tag vocabulary. It is cited here rather than restated,
+//! because this comment used to restate it and the restatement drifted: it
+//! said "including any non-flat overhang into the gutter", which reads two
+//! marks the user has confirmed as correct (`Screenshot (2744).jpg`,
+//! `Screenshot (2630).jpg`) as manifest bugs. Two copies of a rule is one copy
+//! more than anybody keeps up to date. Add to the page, not to this comment.
+//!
 //! # The manifest is the oracle, and it can be wrong
 //!
 //! `fixtures/corpus/manifest.json` carries one entry per file: either a
@@ -46,9 +56,9 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 /// What a corpus entry claims the right answer is.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expect {
-    /// The tightest axis-aligned rectangle containing all the artwork,
-    /// including any non-flat overhang into the gutter (MC-018's geometric
-    /// marking rule).
+    /// The tightest axis-aligned rectangle containing one page's own artwork.
+    /// The marking rule is on `docs/wiki/corpus.md`, including whose overhang
+    /// counts and whose does not.
     Rect(Rect),
     /// The screenshot should be left alone: all art, or too blank to call.
     Flag,
@@ -61,9 +71,11 @@ pub struct CorpusEntry {
     pub path: PathBuf,
     /// What the detector is expected to do with it.
     pub expect: Expect,
-    /// Free-form tags. The nine MC-018 AC-3 lists must be covered across the
-    /// corpus; extras (`diagonal-gutter`, `overhang-text`) are valid and exist
-    /// so MC-019 can report on those cases separately.
+    /// Tags from the vocabulary on `docs/wiki/corpus.md`, which
+    /// `tests/corpus_manifest.rs` parses off that page and checks every entry
+    /// against. The nine MC-018 AC-3 lists must additionally be *covered*
+    /// across the corpus; `overhang-text` is documented and deliberately
+    /// carried by nothing.
     pub tags: Vec<String>,
 }
 
