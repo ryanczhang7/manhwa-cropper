@@ -82,6 +82,44 @@ its *bottom* edge, which the same instrument calls flat. Art texture dominates
 the gradient. Do not re-run it, and do not add a third tag on an agent's own
 judgement: a third entry is a person's call.
 
+## The gutter-crossing tolerance
+
+MC-033 settled whose *overhang* counts. It was silent on a different question
+MC-034 ran into: may a mark sit **below a gutter**, so that the rectangle spans
+one? Three entries turn on it — in each, an outward scan stops at the top of a
+gutter that is plainly there, and the recorded mark is some way below it.
+
+> **Both are acceptable.** Where a gutter separates the page's content from what
+> follows and the recorded mark sits below that gutter, a rect ending at the
+> **top of the gutter** and one ending at the **recorded mark** are equally
+> right.
+
+The user's ruling of 2026-09-17, given on these three with the images open:
+
+| Entry | top of the gutter | recorded mark | the band |
+|---|---|---|---|
+| `Screenshot (2708).jpg` | 1305 | 1322 | 17 px |
+| `Screenshot (3538).png` | 1314 | 1330 | 16 px |
+| `Screenshot (2698).jpg` | 1080 | 1085 | 5 px |
+
+This is the same *kind* of thing as the diagonal-gutter tolerance above: the
+manifest stores one exact rectangle and has nowhere to put a range, so the
+recorded number reads as precise when a band was intended.
+
+**It is a ruling on three entries, not yet a rule about the corpus.** The
+general form — that any mark with a gutter above it carries a band back to that
+gutter — is *plausible and unconfirmed*; only these three were put to the user.
+Treat a fourth the way `diagonal-gutter` is treated: a person's call, not an
+agent's. The three are deliberately **not tagged** in `manifest.json`, because a
+tag needs a vocabulary entry and a test, and that is a story of its own rather
+than something to slip in beside a ruling.
+
+**What it changes for anything scoring the row axis.** MC-034's bottom-edge
+numbers (`panel-edge-search.md`) are a **lower bound**: entries it scored as
+misses or clips because the rule stopped at the gutter were, on these three,
+producing an acceptable answer. Its document is left as the record of what was
+measured; the correction lives here, and MC-032 carries what it implies.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from

@@ -1,7 +1,7 @@
 ---
 id: EPIC-06
 title: The window's look and its numbers are pinned by tests
-status: todo
+status: done
 stories: [MC-021, MC-022, MC-023, MC-024, MC-029, MC-030]
 ---
 

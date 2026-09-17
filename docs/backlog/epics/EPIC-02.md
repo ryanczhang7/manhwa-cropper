@@ -1,7 +1,7 @@
 ---
 id: EPIC-02
 title: One screenshot is cropped to its artwork, or honestly refused
-status: todo
+status: done
 stories: [MC-003, MC-004, MC-005, MC-006, MC-007]
 ---
 

@@ -1,7 +1,7 @@
 ---
 id: EPIC-04
 title: One small window: drop, pick a folder, watch it finish
-status: todo
+status: done
 stories: [MC-014, MC-015, MC-016]
 ---
 

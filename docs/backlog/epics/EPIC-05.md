@@ -63,14 +63,20 @@ into the paragraph so the sequence stays readable:
   confirmed on a second implementation. The 5 of 21 is a real observation about
   a real instrument; it is not a property of the corpus.
 
-**One question is outstanding and is the cheapest thing left.** MC-034 section 7
-put three entries to the user with images on 2026-09-17 - `Screenshot (2708).jpg`,
-`Screenshot (3538).png` and `Screenshot (2698).jpg` - where the rule stops at a
-gutter that is plainly there and the bottom mark sits below it. Whether a mark
-may span more than one panel decides whether every family tried so far is
-mis-specified rather than merely weak. The answer belongs on
-`docs/wiki/corpus.md`, which settles whose overhang counts and is silent on
-this. Closing the epic does not close that question; MC-032 carries it.
+**The last open question was answered on the day the epic closed, and it leaves
+work behind.** MC-034 section 7 put three entries to the user with images -
+`Screenshot (2708).jpg`, `Screenshot (3538).png` and `Screenshot (2698).jpg` -
+where the rule stops at a gutter that is plainly there and the bottom mark sits
+below it. The ruling: **either the top of the gutter or the recorded mark is
+acceptable**, on all three. It is recorded on `docs/wiki/corpus.md` under "The
+gutter-crossing tolerance", which is where MC-033 put the corpus's other rules.
+
+That is neither outcome MC-034 anticipated - the families are not mis-specified
+and the three are not mis-marked. The marks carry a **band**, as the
+`diagonal-gutter` entries do. **So MC-034's bottom-edge numbers are a lower
+bound**, and this epic closes with one measurement outstanding rather than none:
+re-scoring MC-034's harness with the band admitted, which needs no new rule and
+no new signal. MC-032 carries it and says what the two cautions are.
 
 ## Stories
 

@@ -1,7 +1,7 @@
 ---
 id: EPIC-01
 title: The toolchain stands and one file goes in and comes out
-status: todo
+status: done
 stories: [MC-001, MC-002]
 ---
 

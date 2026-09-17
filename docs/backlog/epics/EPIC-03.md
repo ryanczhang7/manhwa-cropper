@@ -1,7 +1,7 @@
 ---
 id: EPIC-03
 title: Files go in from Explorer and come out cropped in the chosen folder
-status: todo
+status: done
 stories: [MC-008, MC-009, MC-010, MC-020, MC-011, MC-012, MC-013]
 ---
 
