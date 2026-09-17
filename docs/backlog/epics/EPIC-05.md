@@ -53,6 +53,7 @@ are in MC-019 `## Amendments`.
 7. MC-031 - Are the page row edges locatable from full-width chrome (spike; output is a document)
 8. MC-019 - The detector meets the accuracy bar on the corpus column axis
 9. MC-032 - The detector meets the accuracy bar on the corpus row axis (parked; both pixel-level directions closed by MC-028 and MC-031)
+10. MC-033 - The corpus records its marking rule, its diagonal gutters and their tolerance (chore; SCAFFOLD, no production source)
 
 The order matters and was paid for. MC-026 must come first: until
 `min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
