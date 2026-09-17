@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: todo
-stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-019]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019]
 ---
 
 ## Goal
@@ -36,7 +36,8 @@ if any corpus image is clipped by a single pixel.
 4. MC-026 - The decision gates admit a real reader page (tuning; unblocks measurement)
 5. MC-027 - The page column is located by its flat page margins (the column axis, 19 of 21)
 6. MC-028 - Is a panel gutter locatable from pixels (spike; output is a document)
-7. MC-019 - The detector meets the accuracy bar on the corpus
+7. MC-031 - Are the page row edges locatable from full-width chrome (spike; output is a document)
+8. MC-019 - The detector meets the accuracy bar on the corpus
 
 The order matters and was paid for. MC-026 must come first: until
 `min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
