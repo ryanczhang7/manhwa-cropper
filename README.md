@@ -58,7 +58,8 @@ and names that differ only by letter case are treated as colliding.
 
 ## What the crop looks like today
 
-**Left and right edges are accurate. Top and bottom are deliberately loose.**
+**The left and right edges are accurate. The top and bottom are barely cropped
+at all — read this before you judge the output.**
 
 Measured against a 28-screenshot calibration corpus (`fixtures/corpus/`) — 21
 with hand-marked rectangles, 7 expected to be flagged rather than cropped:
@@ -68,15 +69,24 @@ with hand-marked rectangles, 7 expected to be flagged rather than cropped:
 | columns (left, right) | **20 of 21** inside an 11 px window |
 | rows (top, bottom) | **0 of 21** inside that window; overshoots by **97–310 px**, *never clipping* |
 
-So a cropped image has the side gutters and browser chrome gone and the page
-tightly framed horizontally, with some extra margin left above and below the
-art. That is a decision, not a bug: a leftover border is an accepted cost,
-while clipping artwork is the one defect the whole design is arranged against.
-Six separate investigations failed to find a row rule that is accurate *and*
-never clips, and the reasoning is in
-[`docs/wiki/architecture.md`](docs/wiki/architecture.md) decision 14, with the
-measurements indexed from
+Horizontally the crop is tight: side gutters and the browser's left and right
+furniture are gone. **Vertically it is not.** That 97–310 px is not whitespace
+— on a typical screenshot it is the browser's tab bar, the bookmarks bar, the
+site's own navigation menu and the **Windows taskbar**, all of which survive
+into the output. The app does not currently deliver the vertical half of
+"removes browser chrome".
+
+What it *does* guarantee is that it never cuts into artwork: zero clips across
+every corpus entry. That is the deliberate trade — clipping is the one defect
+the whole design is arranged against, so where the detector cannot be sure it
+keeps too much rather than too little. Six investigations failed to find a row
+rule that is both accurate and clip-free; the reasoning is in
+[`docs/wiki/architecture.md`](docs/wiki/architecture.md) decision 14, and the
+measurements are indexed from
 [`docs/wiki/v2-candidates.md`](docs/wiki/v2-candidates.md).
+
+**Fixing this is v2's whole purpose** — see
+[`docs/backlog/epics/EPIC-07.md`](docs/backlog/epics/EPIC-07.md).
 
 Formats: PNG is cropped losslessly at original resolution; JPEG and WebP are
 re-encoded at maximum quality (JPEG q100 4:4:4, WebP lossless). A flagged file

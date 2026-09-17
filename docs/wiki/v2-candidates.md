@@ -3,6 +3,13 @@
 What v1 gave up, what it would take to get it back, and — the part that saves
 the most time — **what has already been measured and must not be re-run**.
 
+> **v2 has since been planned: [`EPIC-07`](../backlog/epics/EPIC-07.md).** Read
+> this file for what is already answered, then that epic for what is being
+> done about it. Two things it settles that this file predates: the corpus
+> marks stay **tight** (MC-031's Option C is not taken), and chrome removal is
+> **not** shippable as its own criterion (Option B was put to the user and
+> declined, because the site's own navigation must go too).
+
 This file exists because six stories measured one question and all six answered
 it the same way. Their documents are scattered across the wiki under names that
 do not obviously belong together, and someone opening v2 cold would re-run them.
