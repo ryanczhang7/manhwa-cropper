@@ -9,6 +9,7 @@ read by everyone.
 | `stack.md` | `/plan-product` | pinned technology choices, each tied to a constraint |
 | `environment.md` | `/setup-environment` | what to install on a fresh machine, and how to verify it |
 | `architecture.md` | `/plan-product` | components, data model, decisions and their alternatives |
+| `corpus.md` | MC-033 | the calibration corpus's marking rule, its diagonal-gutter tolerance and its tag vocabulary — the one written source of truth for `fixtures/corpus/` |
 | `design/` | Lead Designer | tokens, components, layout, accessibility floor, voice |
 | `audits/` | Mutation Tester, or anyone auditing the harness | test-quality and harness audits. Structure from `audits/TEMPLATE.md`, which keeps what was **decided** apart from what was **measured** |
 

@@ -422,3 +422,162 @@ fn cropping_a_lossy_webp_reproduces_the_decoded_source_pixels_exactly() {
         entry.name()
     );
 }
+
+// --- MC-033: the corpus's own rules are written down, and the manifest agrees
+
+/// MC-033 AC-1. The entries a person confirmed have a **diagonal gutter**, on
+/// 2026-09-17, by opening every marked entry and ruling on the marks they
+/// drew (MC-032's `## Notes`).
+///
+/// This is a settled list read out here, never re-derived. MC-032 records the
+/// instrument that would re-derive it - per column, the row of strongest
+/// vertical gradient near the mark, then the slope and fit of those rows
+/// against x - and records that it finds `2025-10-20 15_37_25`'s *top* edge
+/// and nothing else: `Screenshot (93).jpg`, identified instantly by eye,
+/// scores 14.9 rows per 100 columns at r2 0.12, and the user's diagonal on
+/// `15_37_25` is its *bottom* edge, which the same instrument calls flat. Art
+/// texture dominates the gradient. A third entry joins this list when a person
+/// confirms one, and not before.
+const DIAGONAL_GUTTER_ENTRIES: [&str; 2] = ["Screenshot (93).jpg", "2025-10-20 15_37_25.png"];
+
+/// The tag under test above.
+const DIAGONAL_GUTTER: &str = "diagonal-gutter";
+
+/// MC-033 AC-3. The corpus's one written source of truth, relative to the
+/// repository root: the marking rule, the diagonal-gutter tolerance, and the
+/// tag vocabulary AC-2 checks against.
+const CORPUS_PAGE: [&str; 3] = ["docs", "wiki", "corpus.md"];
+
+/// The line that introduces the vocabulary table on that page.
+const VOCABULARY_MARKER: &str = "<!-- tag-vocabulary -->";
+
+/// The tag vocabulary, **read out of the page** rather than repeated here.
+///
+/// A `const KNOWN_TAGS` in this file would be a second copy of the list, and
+/// two copies of the marking rule in two places going out of step with each
+/// other is exactly the defect MC-033 exists to remove. So the page is the
+/// source and this is the parser.
+///
+/// The vocabulary is the markdown table following [`VOCABULARY_MARKER`], and a
+/// vocabulary entry is a row whose **first cell is a backticked tag**. The
+/// header row (`| Tag |`) and the `|---|` separator are therefore excluded by
+/// their shape, not by counting lines.
+///
+/// # Panics
+///
+/// If the page is missing or carries no marker. Both mean this test has
+/// nothing to check against, which is a broken checkout rather than a failure
+/// to report politely.
+fn documented_tag_vocabulary() -> BTreeSet<String> {
+    let mut path = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+    for part in CORPUS_PAGE {
+        path.push(part);
+    }
+    let text = fs::read_to_string(&path).unwrap_or_else(|err| {
+        panic!(
+            "AC-2: reading {}: {err}. The tag vocabulary lives on that page and \
+             nowhere else, so without it this test has nothing to check against",
+            path.display()
+        )
+    });
+    let after = text
+        .split_once(VOCABULARY_MARKER)
+        .unwrap_or_else(|| {
+            panic!(
+                "AC-2: {} carries no {VOCABULARY_MARKER} line, so the vocabulary \
+                 table cannot be located on it",
+                path.display()
+            )
+        })
+        .1;
+
+    let tags: BTreeSet<String> = after
+        .lines()
+        .skip_while(|line| line.trim().is_empty())
+        .take_while(|line| line.trim_start().starts_with('|'))
+        .filter_map(|row| {
+            let first = row.trim().trim_start_matches('|').split('|').next()?.trim();
+            first
+                .strip_prefix('`')?
+                .strip_suffix('`')
+                .map(str::to_owned)
+        })
+        .collect();
+
+    assert!(
+        !tags.is_empty(),
+        "AC-2: the table after {VOCABULARY_MARKER} in {} yielded no tags. A \
+         vocabulary this test reads as empty would reject every tag in the \
+         manifest, so the parse is wrong rather than the corpus: a vocabulary \
+         row is a table row whose first cell is a backticked tag",
+        path.display()
+    );
+    tags
+}
+
+#[test]
+fn exactly_the_two_confirmed_entries_carry_the_diagonal_gutter_tag() {
+    let entries = corpus::load();
+    let mut problems: Vec<String> = Vec::new();
+
+    for name in DIAGONAL_GUTTER_ENTRIES {
+        if !entries
+            .iter()
+            .any(|e| e.name() == name && e.has_tag(DIAGONAL_GUTTER))
+        {
+            problems.push(format!(
+                "{name}: a person confirmed this gutter is diagonal on \
+                 2026-09-17, but its manifest entry does not carry \
+                 `{DIAGONAL_GUTTER}`"
+            ));
+        }
+    }
+    for entry in &entries {
+        let name = entry.name();
+        if entry.has_tag(DIAGONAL_GUTTER) && !DIAGONAL_GUTTER_ENTRIES.contains(&name.as_str()) {
+            problems.push(format!(
+                "{name}: carries `{DIAGONAL_GUTTER}`, which is not one of the \
+                 entries a person confirmed. The instrument that would find a \
+                 third cannot (MC-032's `## Notes`), so a third is a person's \
+                 call and arrives with this list"
+            ));
+        }
+    }
+
+    assert_eq!(
+        problems,
+        Vec::<String>::new(),
+        "AC-1: the entries tagged `{DIAGONAL_GUTTER}` must be exactly \
+         {DIAGONAL_GUTTER_ENTRIES:?}. `Screenshot (93).jpg` is MC-019's sole \
+         column miss, at +20 px on the right, and the diagonal is why: when the \
+         gutter runs diagonally the page's left and right edges are \
+         row-dependent, so no single pair of columns is right for the whole page"
+    );
+}
+
+#[test]
+fn every_tag_in_the_manifest_is_in_the_documented_vocabulary() {
+    let vocabulary = documented_tag_vocabulary();
+    let entries = corpus::load();
+
+    // One direction only. A documented tag nothing carries is deliberate -
+    // `overhang-text` is defined and unapplied, because the survey that would
+    // settle which entries deserve it has not been done and a guessed tag is
+    // worse than an absent one (MC-033, ## Out of scope).
+    let strays: Vec<String> = entries
+        .iter()
+        .flat_map(|e| e.tags.iter().map(move |t| (e.name(), t.clone())))
+        .filter(|(_, tag)| !vocabulary.contains(tag))
+        .map(|(name, tag)| format!("{name}: tag {tag:?}"))
+        .collect();
+
+    assert_eq!(
+        strays,
+        Vec::<String>::new(),
+        "AC-2: every tag in the manifest must appear in the vocabulary table on \
+         docs/wiki/corpus.md. A misspelt tag - `diagonal-gutters` for \
+         `{DIAGONAL_GUTTER}` - is invisible today: it belongs to no category, \
+         nothing reads it, and the entry it was meant to classify is silently \
+         untagged. Documented vocabulary: {vocabulary:?}"
+    );
+}
