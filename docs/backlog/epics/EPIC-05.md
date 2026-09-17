@@ -96,7 +96,27 @@ clipped scorings and moves the spread family's best member from 6 of 21 to 8 of
 in both families — no member of either family is clip-free at all, at the ruled
 band width or at twice it. The derivation in MC-035's `## Context` held: the
 per-file ceiling and the per-edge reachability were read out, not re-measured,
-and the headline moved by 0 against its +2 bound. MC-032 stays parked.
+and the headline moved by 0 against its +2 bound.
+
+**The row debt is closed, not carried — the user's decision of 2026-09-17,
+taken the same day and after one more measurement.** This epic previously
+closed "with the row axis unmet" and handed the debt to MC-032, which was
+parked awaiting a product decision. That decision has now been made: **v1
+crops the column axis accurately and leaves the row axis loose but safe**,
+recorded as `docs/wiki/architecture.md` **decision 14**. The last live
+alternative — MC-034 section 7's suggestion of splitting MC-019's bar by
+**edge**, since the top edge is reachable on 20 of 21 — was measured before
+being decided and **does not help**: reachability is a per-file cherry-pick,
+the best single rule places 14 of 21 top edges *and clips*, and **0 of 780
+parameterisations avoid clipping a top edge**. The numbers are in MC-032
+`## Closed`, which is the only place they are written down.
+
+So **MC-032 is closed rather than parked**, this epic carries no outstanding
+work, and the row axis is closed on measurement rather than on argument.
+Improving it needs a signal class this epic excludes by name — learning-based
+detection — or one MC-025 ruled out — colour and chroma. Both are deferred to
+**v2**, with growing the corpus. "Deliberately not in this epic" below already
+named all three; they are now deliberately not in **v1**.
 
 ## Stories
 
