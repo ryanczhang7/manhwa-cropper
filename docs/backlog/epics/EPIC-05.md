@@ -2,7 +2,7 @@
 id: EPIC-05
 title: Proven on the user's real screenshots, at speed
 status: done
-stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032, MC-033, MC-034]
+stories: [MC-017, MC-018, MC-025, MC-026, MC-027, MC-028, MC-031, MC-019, MC-032, MC-033, MC-034, MC-035]
 ---
 
 ## Goal
@@ -78,6 +78,16 @@ bound**, and this epic closes with one measurement outstanding rather than none:
 re-scoring MC-034's harness with the band admitted, which needs no new rule and
 no new signal. MC-032 carries it and says what the two cautions are.
 
+**That outstanding measurement now has a story: MC-035**, added to the list below
+on 2026-09-17 without reopening this epic, whose status stays `done`. It is
+**narrower than the debt as first written**, and deliberately: drafting it
+turned up that all three banded entries are already reachable in MC-034 section
+2c, so the per-file ceiling and the per-edge reachability **cannot move** and
+were settled by derivation rather than left to measure. What survives as a
+question is the **clip count** and the **clip-free best**, which stands at 0 of
+21 and is the number MC-005 decision 13 makes matter most. The derivation is in
+MC-035's `## Context`; if it is wrong, the story is too.
+
 ## Stories
 
 1. MC-017 - One hundred screenshots crop in under ten seconds
@@ -91,6 +101,7 @@ no new signal. MC-032 carries it and says what the two cautions are.
 9. MC-032 - The detector meets the accuracy bar on the corpus row axis (parked; both pixel-level directions closed by MC-028 and MC-031)
 10. MC-033 - The corpus records its marking rule, its diagonal gutters and their tolerance (chore; SCAFFOLD, no production source)
 11. MC-034 - Are the page row edges locatable from the panel's own art edge (spike; output is a document, and a reasoned negative is expected)
+12. MC-035 - Does the gutter-crossing tolerance retire any row-axis clips (spike; a re-score of MC-034's harness, not a new search - narrowed to the clip count, the one number the tolerance can move that no table already settles)
 
 The order matters and was paid for. MC-026 must come first: until
 `min_content_fraction` and `ambiguity_band` admit a real reader page, a perfect
