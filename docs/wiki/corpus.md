@@ -153,6 +153,58 @@ The first nine are MC-018's AC-3 list and the union of every entry's tags must
 still cover all nine — `the_tags_across_the_corpus_cover_every_required_case`
 checks that, and it is a different question from this one.
 
+## The tuning / held-out split
+
+Every manifest entry carries a `split`, and the two permitted values are the
+two rows of the table below — parsed from this page by
+`every_split_in_the_manifest_is_in_the_documented_vocabulary` in
+`crates/engine/tests/corpus_manifest.rs`, the same way the tag vocabulary above
+is. The table is the source; the test is the reader.
+
+<!-- split-vocabulary -->
+| Split | Meaning |
+|---|---|
+| `tuning` | the entry may be looked at, measured against, and fitted to, as often as anyone likes. Every threshold in the detector was chosen against this set |
+| `held-out` | the entry is scored **once**, at the end, and never tuned against. Nobody reads its per-file result before the rule that produced it is frozen |
+
+### Why the split exists
+
+Every rule v1 ever tried — MC-025, MC-028, MC-031, MC-032, MC-034, MC-035 —
+was tuned *and* scored on the same marked entries. There was no held-out set,
+so every v1 accuracy number is optimistic by an unknown amount. The size of
+that optimism cannot be recovered after the fact; the only repair is to score
+the next rule against screenshots that no tuning has seen.
+
+### The rule, stated so it cannot be read two ways
+
+A held-out entry is scored once and never tuned against. In practice that
+means: no threshold is chosen, adjusted or rejected on the strength of a
+held-out result; no per-file table of held-out results is read while a rule is
+still being changed; and an entry that has been used to make any such decision
+is no longer held out, whatever its `split` says. Moving an entry from
+`held-out` to `tuning` is permitted and irreversible — contamination only runs
+one way, and pretending otherwise is the failure this whole section exists to
+prevent.
+
+### All twenty-eight original entries are `tuning`, permanently
+
+The corpus as it stood at commit `a453aaa` — the twenty-eight entries that
+existed before EPIC-07 — is `tuning` in its entirety and cannot become held
+out. Six investigations fitted thresholds against those entries, and their
+per-file tables have been read by the people and agents planning v2. They are
+contaminated. Assigning some of them to a held-out set would produce a number
+that *looks* rigorous and is not.
+
+That list is pinned by name in `PRE_EPIC_07_ENTRIES` in
+`crates/engine/tests/corpus_manifest.rs`, read out of `a453aaa` rather than
+re-derived, and
+`every_pre_epic_07_entry_is_in_the_tuning_split` fails if any of them is ever
+flipped.
+
+The held-out set is therefore **empty** as of MC-036, and that is correct
+rather than a defect: there is nothing legitimate to put in it yet. MC-037
+adds new screenshots and is the only story that can put a floor under its size.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
