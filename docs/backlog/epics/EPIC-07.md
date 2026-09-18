@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: []
+stories: [MC-036, MC-037]
 ---
 
 ## Goal
@@ -72,6 +72,21 @@ only one that can start.
    split recorded in the manifest. The user supplies and marks the files; an
    agent cannot. Everything else in this epic depends on it, and the split is
    the half that is easy to skip and expensive to add afterwards.
+
+   **Written as two stories**, because the two halves block on different people
+   and joining them holds the schema hostage to a data-collection session:
+
+   - **[MC-036](../stories/MC-036.md)** — the manifest gains a validated `split`
+     field, applied to the 28 entries that exist. Agent-completable today. The
+     load-bearing part is that **all 28 are `"tuning"`**: they are contaminated,
+     six investigations fitted thresholds against them, so none of them can be
+     held out. The held-out set is legitimately empty when it is done.
+   - **[MC-037](../stories/MC-037.md)** — the user adds and marks new
+     screenshots, and the held-out set becomes real, with floors under both
+     sets. `depends_on: [MC-036]`. Its counts and its split ratio are proposals
+     awaiting the user's confirmation, and it carries two questions only the
+     user can answer: stratified or site-disjoint, and whether every entry
+     gains a `site:` tag.
 2. **Spike: does 2D structure locate the panel edge where 1D projections
    cannot?** Connected components or panel-rectangle detection, scored against
    the same corpus and the same MC-019 predicate, with the bubble entries
