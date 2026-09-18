@@ -40,7 +40,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use corpus::{CorpusEntry, Expect};
+use corpus::{CorpusEntry, Expect, Split};
 use cropper_core::{Rect, Tuning};
 use cropper_engine::{Outcome, process_file};
 
@@ -469,29 +469,54 @@ const VOCABULARY_MARKER: &str = "<!-- tag-vocabulary -->";
 /// nothing to check against, which is a broken checkout rather than a failure
 /// to report politely.
 fn documented_tag_vocabulary() -> BTreeSet<String> {
+    documented_vocabulary(VOCABULARY_MARKER, "AC-2")
+}
+
+/// The backticked first cells of the markdown table following `marker` on the
+/// corpus page.
+///
+/// Extracted from `documented_tag_vocabulary` by MC-036, which needs the same
+/// parse against a second marker. One parser, two callers: two copies of *this*
+/// would be the same drift at one remove, and the point of reading a vocabulary
+/// off the page is that there is exactly one copy of it anywhere.
+///
+/// A vocabulary entry is a row whose **first cell is a backticked value**. The
+/// header row (`| Tag |`) and the `|---|` separator are therefore excluded by
+/// their shape, not by counting lines.
+///
+/// `ac` is the criterion quoted in the failure messages, since the two callers
+/// answer to different ones.
+///
+/// # Panics
+///
+/// If the page is missing, carries no `marker`, or the table after it yields
+/// nothing. All three mean the caller has nothing to check against, which is a
+/// broken checkout rather than a failure to report politely - and, crucially,
+/// not a pass.
+fn documented_vocabulary(marker: &str, ac: &str) -> BTreeSet<String> {
     let mut path = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
     for part in CORPUS_PAGE {
         path.push(part);
     }
     let text = fs::read_to_string(&path).unwrap_or_else(|err| {
         panic!(
-            "AC-2: reading {}: {err}. The tag vocabulary lives on that page and \
+            "{ac}: reading {}: {err}. The vocabulary lives on that page and \
              nowhere else, so without it this test has nothing to check against",
             path.display()
         )
     });
     let after = text
-        .split_once(VOCABULARY_MARKER)
+        .split_once(marker)
         .unwrap_or_else(|| {
             panic!(
-                "AC-2: {} carries no {VOCABULARY_MARKER} line, so the vocabulary \
-                 table cannot be located on it",
+                "{ac}: {} carries no {marker} line, so the vocabulary table \
+                 cannot be located on it",
                 path.display()
             )
         })
         .1;
 
-    let tags: BTreeSet<String> = after
+    let values: BTreeSet<String> = after
         .lines()
         .skip_while(|line| line.trim().is_empty())
         .take_while(|line| line.trim_start().starts_with('|'))
@@ -505,14 +530,14 @@ fn documented_tag_vocabulary() -> BTreeSet<String> {
         .collect();
 
     assert!(
-        !tags.is_empty(),
-        "AC-2: the table after {VOCABULARY_MARKER} in {} yielded no tags. A \
-         vocabulary this test reads as empty would reject every tag in the \
-         manifest, so the parse is wrong rather than the corpus: a vocabulary \
-         row is a table row whose first cell is a backticked tag",
+        !values.is_empty(),
+        "{ac}: the table after {marker} in {} yielded nothing. A vocabulary \
+         this test reads as empty would reject every value in the manifest, so \
+         the parse is wrong rather than the corpus: a vocabulary row is a table \
+         row whose first cell is a backticked value",
         path.display()
     );
-    tags
+    values
 }
 
 #[test]
@@ -579,5 +604,287 @@ fn every_tag_in_the_manifest_is_in_the_documented_vocabulary() {
          `{DIAGONAL_GUTTER}` - is invisible today: it belongs to no category, \
          nothing reads it, and the entry it was meant to classify is silently \
          untagged. Documented vocabulary: {vocabulary:?}"
+    );
+}
+
+// --- MC-036: the tuning / held-out split ------------------------------------
+
+/// MC-036 AC-2. The corpus as it stood at commit `a453aaa`, immediately before
+/// EPIC-07 - the twenty-eight entries every v1 investigation was tuned against.
+///
+/// **This is a settled list, read out and never re-derived.** It is not
+/// "whatever is in the manifest minus the new ones", because that definition
+/// would silently absorb a future entry and quietly launder it into the tuning
+/// set. It is the literal output of
+/// `git show a453aaa:fixtures/corpus/manifest.json`, in manifest order.
+///
+/// Every one of these is `tuning` permanently and cannot become held out.
+/// MC-025, MC-028, MC-031, MC-032, MC-034 and MC-035 all fitted thresholds
+/// against them and their per-file tables have been read by the people and
+/// agents planning v2; they are contaminated, and no later decision can
+/// un-contaminate them. `docs/wiki/corpus.md` carries the reasoning.
+const PRE_EPIC_07_ENTRIES: [&str; 28] = [
+    "2025-02-27 22_46_15.png",
+    "2025-03-03 11_06_04.png",
+    "2025-03-03 11_24_19.png",
+    "2025-05-12 22_55_40.png",
+    "2025-05-12 22_58_53.png",
+    "2025-08-05 00_11_13.webp",
+    "2025-08-05 00_11_27.webp",
+    "2025-10-14 23_29_06.png",
+    "2025-10-14 23_30_20.png",
+    "2025-10-20 15_37_25.png",
+    "2026-01-05 13_33_41.png",
+    "2026-01-05 13_45_59.png",
+    "2026-01-05 13_49_39.png",
+    "Screenshot (67).png",
+    "Screenshot (70).jpg",
+    "Screenshot (75).png",
+    "Screenshot (93).jpg",
+    "Screenshot (103).jpg",
+    "Screenshot (1661).png",
+    "Screenshot (2582).jpg",
+    "Screenshot (2630).jpg",
+    "Screenshot (2698).jpg",
+    "Screenshot (2708).jpg",
+    "Screenshot (2744).jpg",
+    "Screenshot (3187).png",
+    "Screenshot (3455).png",
+    "Screenshot (3465).png",
+    "Screenshot (3538).png",
+];
+
+/// The line that introduces the split table on the corpus page.
+const SPLIT_VOCABULARY_MARKER: &str = "<!-- split-vocabulary -->";
+
+/// The permitted `split` values, **read out of `docs/wiki/corpus.md`** rather
+/// than repeated here - the same arrangement, and the same reason, as
+/// [`documented_tag_vocabulary`].
+///
+/// # Panics
+///
+/// If the page is missing or carries no [`SPLIT_VOCABULARY_MARKER`]. Either
+/// means this test has nothing to check against, which is a broken checkout
+/// rather than a failure to report politely - and specifically *not* a pass.
+fn documented_split_vocabulary() -> BTreeSet<String> {
+    documented_vocabulary(SPLIT_VOCABULARY_MARKER, "AC-3")
+}
+
+/// The manifest's raw `"split"` strings, in manifest order, read out of the
+/// file's own text.
+///
+/// Read from the JSON rather than from `load()` on purpose: these tests need to
+/// compare what the manifest *says* against what the loader *reports*, and a
+/// loader bug that mapped every value to `Tuning` would be invisible to any
+/// check that asked the loader both times.
+fn raw_splits() -> Vec<(String, String)> {
+    let text = fs::read_to_string(corpus::dir().join(corpus::MANIFEST_FILE))
+        .expect("the manifest is readable");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&text).expect("the manifest is valid JSON");
+    parsed["entries"]
+        .as_array()
+        .expect("the manifest has an `entries` array")
+        .iter()
+        .map(|e| {
+            let file = e["file"]
+                .as_str()
+                .expect("an entry names a file")
+                .to_owned();
+            let split = e["split"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{file}: the manifest entry carries no `split` string"))
+                .to_owned();
+            (file, split)
+        })
+        .collect()
+}
+
+// --- AC-1: every entry carries a split, and it is the one the manifest says --
+
+#[test]
+fn every_entry_carries_the_split_its_manifest_entry_states() {
+    // Reaching this line is already part of the criterion: `load()` panics on
+    // an entry with no `split`, and on any value but the two documented ones.
+    // That half of AC-1 is discharged by the probes in the story rather than
+    // by an assertion here, because no assertion in this process can observe a
+    // panic the loader raises before it returns.
+    let entries = corpus::load();
+    let raw = raw_splits();
+
+    assert!(
+        !entries.is_empty(),
+        "AC-1: the loader returned no entries at all, so this test is checking \
+         nothing"
+    );
+
+    let reported: Vec<(String, String)> = entries
+        .iter()
+        .map(|e| (e.name(), e.split.as_str().to_owned()))
+        .collect();
+
+    assert_eq!(
+        reported, raw,
+        "AC-1: every entry's `split` on `CorpusEntry` must be exactly the \
+         string its manifest entry carries. Comparing the loader's answer \
+         against a second, independent parse of the same file is what makes \
+         this falsifiable: a loader that mapped every value to one variant \
+         would satisfy any check that asked the loader twice. Each row is \
+         (file, split)"
+    );
+}
+
+// --- AC-2: the contamination guard ------------------------------------------
+
+#[test]
+fn every_pre_epic_07_entry_is_in_the_tuning_split() {
+    let entries = corpus::load();
+
+    assert!(
+        !PRE_EPIC_07_ENTRIES.is_empty(),
+        "AC-2: the settled list of pre-EPIC-07 entries is empty, so this test \
+         measures nothing"
+    );
+
+    // An entry in the list that is not in the manifest would make this test
+    // pass by checking fewer things than it claims to - the classic way a
+    // guard stops guarding without anybody noticing.
+    let absent: Vec<&str> = PRE_EPIC_07_ENTRIES
+        .into_iter()
+        .filter(|name| !entries.iter().any(|e| e.name() == *name))
+        .collect();
+    assert_eq!(
+        absent,
+        Vec::<&str>::new(),
+        "AC-2: every name in PRE_EPIC_07_ENTRIES must still be present in the \
+         manifest. A name that has been renamed or removed is one this guard \
+         silently stops covering, and the corpus is the same twenty-eight \
+         files before and after MC-036"
+    );
+
+    let contaminated_but_held_out: Vec<String> = entries
+        .iter()
+        .filter(|e| PRE_EPIC_07_ENTRIES.contains(&e.name().as_str()))
+        .filter(|e| e.split != Split::Tuning)
+        .map(|e| format!("{}: split {:?}", e.name(), e.split.as_str()))
+        .collect();
+
+    assert_eq!(
+        contaminated_but_held_out,
+        Vec::<String>::new(),
+        "AC-2: all {} entries that existed at commit a453aaa are `tuning`, \
+         permanently. Six v1 investigations fitted thresholds against them and \
+         their per-file tables have been read, so they are contaminated and no \
+         later decision can un-contaminate them. Moving one into the held-out \
+         set would produce an accuracy number that looks rigorous and is not - \
+         which is the exact failure MC-036 exists to prevent. New screenshots \
+         are the only legitimate held-out set; MC-037 adds them",
+        PRE_EPIC_07_ENTRIES.len()
+    );
+}
+
+// --- AC-3: the two values are read off the page, not repeated in Rust -------
+
+#[test]
+fn every_split_in_the_manifest_is_in_the_documented_vocabulary() {
+    let vocabulary = documented_split_vocabulary();
+
+    let strays: Vec<String> = raw_splits()
+        .into_iter()
+        .filter(|(_, split)| !vocabulary.contains(split))
+        .map(|(name, split)| format!("{name}: split {split:?}"))
+        .collect();
+
+    assert_eq!(
+        strays,
+        Vec::<String>::new(),
+        "AC-3: every `split` in the manifest must appear in the table after \
+         {SPLIT_VOCABULARY_MARKER} on docs/wiki/corpus.md. The page is the \
+         source and this is the reader, deliberately: a second copy of the \
+         vocabulary in Rust is the drift MC-033 removed for tags, and there is \
+         no reason to reintroduce it here. Documented vocabulary: {vocabulary:?}"
+    );
+
+    // The other direction, which the tag vocabulary deliberately does not
+    // assert. It is safe here and not there because this vocabulary is closed:
+    // `Split` has exactly two variants, so a row on the page the loader cannot
+    // produce is a page that documents a value no manifest can ever carry.
+    let undeliverable: Vec<&String> = vocabulary
+        .iter()
+        .filter(|v| ![Split::Tuning.as_str(), Split::HeldOut.as_str()].contains(&v.as_str()))
+        .collect();
+    assert_eq!(
+        undeliverable,
+        Vec::<&String>::new(),
+        "AC-3: the page documents a split value the loader cannot produce. \
+         Unlike the tag vocabulary, this one is closed - `Split` has two \
+         variants - so a third row is a promise to readers that nothing can keep"
+    );
+}
+
+// --- AC-4: the split is additive --------------------------------------------
+
+#[test]
+fn the_loader_still_reports_path_expect_and_tags_exactly_as_the_manifest_gives_them() {
+    let text = fs::read_to_string(corpus::dir().join(corpus::MANIFEST_FILE))
+        .expect("the manifest is readable");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&text).expect("the manifest is valid JSON");
+    let raw = parsed["entries"]
+        .as_array()
+        .expect("the manifest has an `entries` array");
+    let entries = corpus::load();
+
+    assert_eq!(
+        entries.len(),
+        raw.len(),
+        "AC-4: the loader must return one entry per manifest entry. Adding \
+         `split` is additive: it does not drop, merge or reorder anything"
+    );
+
+    // Rendered as strings and compared in one shot so a failure prints the
+    // whole picture - which entry, which field, and in which position - rather
+    // than stopping at the first difference.
+    let reported: Vec<String> = entries
+        .iter()
+        .map(|e| {
+            let expect = match e.expect {
+                Expect::Flag => "flag".to_owned(),
+                Expect::Rect(r) => format!("{} {} {} {}", r.x, r.y, r.w, r.h),
+            };
+            format!("{} | {} | {}", e.name(), expect, e.tags.join(","))
+        })
+        .collect();
+    let from_json: Vec<String> = raw
+        .iter()
+        .map(|e| {
+            let file = e["file"].as_str().expect("an entry names a file");
+            let expect = match &e["expect"] {
+                serde_json::Value::String(s) => s.clone(),
+                r => format!(
+                    "{} {} {} {}",
+                    r["x"].as_u64().expect("x"),
+                    r["y"].as_u64().expect("y"),
+                    r["w"].as_u64().expect("w"),
+                    r["h"].as_u64().expect("h")
+                ),
+            };
+            let tags: Vec<&str> = e["tags"]
+                .as_array()
+                .expect("an entry has tags")
+                .iter()
+                .map(|t| t.as_str().expect("a tag is a string"))
+                .collect();
+            format!("{file} | {expect} | {}", tags.join(","))
+        })
+        .collect();
+
+    assert_eq!(
+        reported, from_json,
+        "AC-4: `load()` must still return every entry in manifest order with \
+         `path`, `expect` and `tags` unchanged in shape and value. The twelve \
+         MC-018 and MC-033 tests in this file are the other half of this \
+         control: if any of them goes red alongside this, the split was not \
+         added additively. Each row is `file | expect | tags`"
     );
 }

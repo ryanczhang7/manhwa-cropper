@@ -64,6 +64,38 @@ pub enum Expect {
     Flag,
 }
 
+/// Which half of the corpus an entry belongs to (MC-036).
+///
+/// The two values and the rule that gives them meaning are on
+/// `docs/wiki/corpus.md`, under `## The tuning / held-out split`, and
+/// `tests/corpus_manifest.rs` parses them off that page rather than repeating
+/// them - the same arrangement the tag vocabulary has, for the same reason.
+///
+/// The distinction is methodological, not mechanical: nothing here can enforce
+/// that a held-out entry was really scored once. What it can do is make the
+/// claim explicit per entry, so that flipping one is a visible edit to a
+/// tracked file rather than a decision nobody wrote down.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Split {
+    /// May be looked at, measured against and fitted to without limit. Every
+    /// v1 threshold was chosen against these.
+    Tuning,
+    /// Scored once, at the end, and never tuned against.
+    HeldOut,
+}
+
+impl Split {
+    /// The string a manifest entry carries, which is also what the
+    /// `<!-- split-vocabulary -->` table on `docs/wiki/corpus.md` lists.
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Split::Tuning => "tuning",
+            Split::HeldOut => "held-out",
+        }
+    }
+}
+
 /// One corpus screenshot and the answer a person recorded for it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CorpusEntry {
@@ -71,6 +103,10 @@ pub struct CorpusEntry {
     pub path: PathBuf,
     /// What the detector is expected to do with it.
     pub expect: Expect,
+    /// Which half of the corpus this entry is in (MC-036). Required on every
+    /// manifest entry: an entry with no `split` is an entry whose contamination
+    /// status nobody has stated, and a default would state it silently.
+    pub split: Split,
     /// Tags from the vocabulary on `docs/wiki/corpus.md`, which
     /// `tests/corpus_manifest.rs` parses off that page and checks every entry
     /// against. The nine MC-018 AC-3 lists must additionally be *covered*
@@ -118,8 +154,9 @@ pub fn dir() -> PathBuf {
 ///
 /// # Panics
 ///
-/// If the manifest is missing, unparseable, or an `expect` string is anything
-/// but `"flag"`. A corpus that cannot be read is a broken checkout, not a test
+/// If the manifest is missing, unparseable, an `expect` string is anything but
+/// `"flag"`, or a `split` is absent or not one of the two documented values
+/// (MC-036). A corpus that cannot be read is a broken checkout, not a test
 /// failure to be reported politely - every message below says which file and
 /// what was wrong with it.
 #[must_use]
@@ -144,9 +181,36 @@ pub fn load() -> Vec<CorpusEntry> {
                 ),
                 RawExpect::Rect { x, y, w, h } => Expect::Rect(Rect { x, y, w, h }),
             };
+            let raw_split = raw.split.as_deref().unwrap_or_else(|| {
+                panic!(
+                    "{}: entry {:?} has no \"split\". Every entry must say which \
+                     half of the corpus it is in - {:?} or {:?} - because an \
+                     entry whose contamination status nobody stated is one no \
+                     accuracy number can be trusted against. See \
+                     docs/wiki/corpus.md, \"The tuning / held-out split\"",
+                    path.display(),
+                    raw.file,
+                    Split::Tuning.as_str(),
+                    Split::HeldOut.as_str(),
+                )
+            });
+            let split = match raw_split {
+                "tuning" => Split::Tuning,
+                "held-out" => Split::HeldOut,
+                other => panic!(
+                    "{}: entry {:?} has split {other:?}; the only values are \
+                     {:?} and {:?}, documented on docs/wiki/corpus.md under \
+                     \"The tuning / held-out split\"",
+                    path.display(),
+                    raw.file,
+                    Split::Tuning.as_str(),
+                    Split::HeldOut.as_str(),
+                ),
+            };
             CorpusEntry {
                 path: root.join(&raw.file),
                 expect,
+                split,
                 tags: raw.tags,
             }
         })
@@ -165,6 +229,17 @@ struct RawEntry {
     file: String,
     expect: RawExpect,
     tags: Vec<String>,
+    /// Required in practice - [`load`] panics on `None`. Modelled as an
+    /// `Option` rather than a bare `String` so that the panic can name the
+    /// *entry*: serde's own missing-field error names the manifest and a byte
+    /// offset, and "missing field `split` at line 61 column 7" is a worse
+    /// message than "Screenshot (93).jpg has no split" for the person who has
+    /// just added a screenshot and forgotten one.
+    ///
+    /// There is deliberately no `#[serde(default)]`. A default would decide an
+    /// entry's contamination status silently, which is the one thing this
+    /// field exists to stop.
+    split: Option<String>,
 }
 
 /// `"flag"` or `{ x, y, w, h }`. Untagged because that is the shape a person
