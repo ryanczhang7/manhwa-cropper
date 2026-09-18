@@ -1,0 +1,111 @@
+---
+id: EPIC-07
+title: The crop reaches the artwork on the row axis
+status: planned
+stories: []
+---
+
+## Goal
+
+A cropped screenshot contains the artwork and nothing else: no browser tab bar,
+no bookmarks bar, no site navigation menu, no Windows taskbar, and no wide band
+of page gutter above or below the panel. Today the horizontal crop achieves
+this and the vertical crop does not — the app keeps 97 to 310 px beyond the
+artwork on the row axis, and on a typical screenshot that band *is* the browser
+and OS furniture the product exists to remove. The user still never sees a
+clipped panel: zero clips is not traded away for any of this.
+
+## Why now
+
+**v1 shipped the vertical half of its headline promise unmet, and the numbers
+hid it.** `architecture.md` decision 14 recorded the row axis as "loose but
+safe" on the strength of an overshoot measured in pixels. Looking at the actual
+output on 2026-09-17 showed what those pixels are: tab bars, bookmarks, site
+navigation and the taskbar. The decision's amendment records the correction.
+
+**The weaker criterion was offered and declined.** MC-031 section 9 Option B
+proposed asserting "no output contains browser or OS chrome" instead of an
+accuracy bar, backed by a chrome oracle that never clips and lies outside the
+mark on 19 of 19 entries where it speaks. Shown the crop it produces for
+`Screenshot (67).png`, the user's answer was **no — the site's own navigation
+is also unacceptable**. So the target is the artwork itself, the corpus marks
+stay **tight**, and this epic inherits the bar six investigations failed.
+
+**There is a structural reason they failed, and it was not in any of their
+conclusions.** MC-025, MC-028, MC-031, MC-032, MC-034 and MC-035 each reduced
+the image to a **1D row statistic** — `row_spread`, `row_cover`, row flatness —
+and so does the shipped detector: `crates/core/src/` has `trim`, `content`,
+`flat`, `edges` and `margin`, and no connected-component, contour or region
+analysis anywhere. A speech bubble is a *small 2D object*; projected onto a
+row it contaminates the whole row, so a gutter containing one arc reads as
+content. Two of the four documented failure causes — "bubble / overhang" and
+"diagonal gutter" — are artefacts of that projection rather than properties of
+the image. Each spike concluded "flatness does not work"; the sharper statement
+is that **no row statistic can work when the thing that distinguishes gutter
+from art is spatial extent**. That is the opening this epic is built on, and
+it costs nothing to test: it needs no learning, no colour and no per-site
+knowledge.
+
+**And every number so far is optimistic by an unknown amount.** 21 marked
+entries, with every rule tuned *and* scored on all 21 and no held-out set. Any
+v2 claim made the same way would repeat the overfit, which is why the corpus
+story comes first and blocks the rest.
+
+## Done when
+
+The user can drop a folder of reader screenshots on the window and the outputs
+are ones they would post or keep without opening an editor: the artwork, with
+no browser or OS furniture and no more than a thin margin of page gutter. That
+is measured on a corpus **grown well past v1's 21 entries and split into a
+tuning set and a held-out set**, with the accuracy bar reported on the held-out
+set — the number v1 never had. Zero clips remains absolute, on both sets. Where
+the detector cannot reach the artwork safely it still flags and copies the file
+unchanged rather than guessing.
+
+## Stories
+
+To be written; the order below is the dependency order and the first is the
+only one that can start.
+
+1. **Grow the corpus, and split it.** More screenshots, hand-marked to the
+   existing tight convention in `docs/wiki/corpus.md`, plus a tuning / held-out
+   split recorded in the manifest. The user supplies and marks the files; an
+   agent cannot. Everything else in this epic depends on it, and the split is
+   the half that is easy to skip and expensive to add afterwards.
+2. **Spike: does 2D structure locate the panel edge where 1D projections
+   cannot?** Connected components or panel-rectangle detection, scored against
+   the same corpus and the same MC-019 predicate, with the bubble entries
+   (`2708`, `2630`, `1661`, `13_33_41`, `23_30_20`, `13_45_59`, `70`) as the
+   cases that decide it. Output is a document, as MC-028's, MC-031's, MC-034's
+   and MC-035's were.
+3. **Spike or feature, depending on 2: known site furniture.** A site's
+   navigation bar is pixel-identical across every screenshot from that site,
+   and matching known furniture is far more reliable than inferring it. v1's
+   brief excludes per-reader special cases; adopting this is a product decision
+   and needs an amendment there, not an agent's judgement.
+4. **The row accuracy story**, once a signal exists that earns one. Its bar and
+   its evidence are written when it is unparked, not now — MC-032's `## Closed`
+   is the record of what happens when a story's criteria are written before a
+   rule exists.
+
+## Deliberately not in this epic
+
+- **Re-marking the corpus.** The marks stay tight, by the user's decision of
+  2026-09-17. MC-031 section 9 Option C — re-marking rows to the page's
+  vertical extent, under which a rule provably exists — was considered and not
+  taken. Reopening it is a product decision and an MC-019 amendment.
+- **Shipping chrome removal as its own criterion.** MC-031's Option B,
+  declined above. It may still return as an *internal stage* of a rule that
+  goes further; it may not return as the product's bar.
+- **Learned or model-based detection**, until stories 2 and 3 have reported.
+  It is no longer excluded — EPIC-05 excluded it and `architecture.md`
+  decision 14 defers it to v2 — but it is the most expensive option, it needs
+  the grown corpus most of all, and two cheaper ideas are untested.
+- **Colour and chroma**, ruled out in MC-025 `## Context` and not revisited
+  here.
+- **The column axis**, settled at 20 of 21 and not reopened.
+- **Any change to the flag-and-copy behaviour**, the output naming rules, the
+  window, or the formats. This epic changes where the crop rectangle's top and
+  bottom edges land, and nothing else.
+- **Re-running v1's six investigations.** `docs/wiki/v2-candidates.md` indexes
+  them and says what each answered.

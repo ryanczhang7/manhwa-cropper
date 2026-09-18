@@ -361,3 +361,31 @@ this file and the stories that depend on it.
     `## Context` ruled out colour and chroma. The user has deferred both to
     **v2**, together with growing the corpus. MC-032 is closed rather than
     parked, and carries the evidence.
+
+    **Amended 2026-09-17, the same day, after the decision's output was looked
+    at rather than read about.** Two things this decision said were wrong in a
+    way the numbers concealed, and both change what v2 is for.
+
+    - **"Loose but safe" understated it.** The 97–310 px overshoot is not
+      whitespace. On a typical entry it is the browser tab bar, the bookmarks
+      bar, the site's own navigation menu and the **Windows taskbar**, all
+      surviving into the output. The brief's headline promise is "removing
+      browser chrome"; vertically it is not delivered. The *safe* half stands
+      — zero clips, every entry — and that is why this is a defect to fix in
+      v2 rather than a reason to ship something riskier now.
+    - **MC-031's Option B was put to the user and rejected.** Its section 9
+      offered a weaker but *achievable* criterion — "no output contains
+      browser or OS chrome" instead of "within 11 px" — backed by a chrome
+      oracle that never clips and lies outside the mark on 19 of 19 entries
+      where it speaks. Shown the crop it produces for `Screenshot (67).png`,
+      the user's answer was **no: the site's own navigation is also
+      unacceptable.** So chrome removal is not a shippable criterion on its
+      own, and the target stays the artwork itself. The corpus marks stay
+      **tight**, by the same decision.
+
+    This decision therefore stands as the record of what v1 ships and why, and
+    **not** as a closure of the row axis. **EPIC-07 reopens it**, under this
+    paragraph rather than around it, with the tight marks kept and the corpus
+    grown. The structural finding that motivates it — every rule ever tried,
+    and the shipped detector, reduce the image to 1D row statistics, which is
+    why a single speech bubble defeats them — is in that epic's `## Why now`.
