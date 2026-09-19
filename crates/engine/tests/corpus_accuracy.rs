@@ -97,7 +97,7 @@ mod corpus;
 use std::fmt::Write as _;
 use std::path::Path;
 
-use corpus::{CorpusEntry, Expect};
+use corpus::{CorpusEntry, Expect, Split};
 use cropper_core::{Rect, Tuning};
 use cropper_engine::{Outcome, process_file};
 use tempfile::TempDir;
@@ -150,9 +150,18 @@ struct Run {
 /// Each output goes to its own name inside `out`, because `process_file` takes
 /// the whole output path rather than a directory (MC-010 plans the name; this
 /// test is not the planner and only needs somewhere writable).
+/// **Runs over the `tuning` half of the corpus only**, never `corpus::load()`.
+///
+/// MC-037 added thirty-one `held-out` entries, and `docs/wiki/corpus.md` rules
+/// that a held-out entry is scored once, at the end of a v2 attempt, and never
+/// before. This is v1's recorded accuracy, not that attempt: scoring held-out
+/// entries here would spend the set every time the `integration` gate runs, and
+/// would silently change the denominator of the AC-2 bar below from
+/// twenty-eight entries to fifty-nine.
 fn run_corpus(out: &Path, tuning: &Tuning) -> Vec<Run> {
     corpus::load()
         .into_iter()
+        .filter(|entry| entry.split == Split::Tuning)
         .map(|entry| {
             let dest = out.join(entry.name());
             let dims = dimensions(&entry.path);
