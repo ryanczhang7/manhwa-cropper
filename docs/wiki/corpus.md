@@ -4,9 +4,11 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 28 real screenshots in `fixtures/corpus/` with one
+The corpus is 59 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. It is the oracle for every
+`"flag"` for a screenshot that should be left alone. 28 are `tuning` and 31 are
+`held-out` — see "The tuning / held-out split" below, which is the section to
+read before using any of them for anything. It is the oracle for every
 accuracy claim this project makes — MC-019's column-axis bar, MC-026's decision
 gates, MC-027's page column. Nothing in the repository can check that a
 rectangle is the *right* rectangle. Only the person who drew it can, and this
@@ -148,10 +150,47 @@ untagged.
 | `webp` | the file is a WebP |
 | `diagonal-gutter` | a page edge runs diagonally, so the recorded rectangle is one answer out of a band (see above). Applied only by a person |
 | `overhang-text` | a speech bubble or caption crosses a page edge. **Defined and deliberately unapplied**: the survey that would settle which entries deserve it has not been done, and a guessed tag is worse than an absent one |
+| `site:toongod` | reader page captured from ToonGod |
+| `site:rolia-scans` | reader page captured from Rolia Scans |
+| `site:xbato` | reader page captured from xBato |
+| `site:manhwaclan` | reader page captured from ManhwaClan |
+| `site:kunmanga` | reader page captured from KunManga |
+| `site:demonicrevolution` | reader page captured from Demonic Revolution |
+| `site:w-network` | reader pages served on rotating `wNN.<series>.com` subdomains — one reader template across many per-series domains. See "Why this is one slug and not two" below |
 
 The first nine are MC-018's AC-3 list and the union of every entry's tags must
 still cover all nine — `the_tags_across_the_corpus_cover_every_required_case`
 checks that, and it is a different question from this one.
+
+### The `site:` tags
+
+Added by MC-037. Each held-out entry carries **exactly one**, naming the reader
+it was captured from. **Pre-EPIC-07 entries carry none and are not required
+to** — see "Why the old twenty-eight have no `site:` tag" below.
+
+They exist for one reason. A reader's furniture — navigation bar, header,
+page margins — is pixel-identical across every screenshot from that reader, so
+a rule tuned on one site can score well by learning *that site's* geometry
+rather than learning what a page is. More screenshots from the same site will
+not expose it; a screenshot from a reader the rule has never seen will. The tag
+is what lets a test ask that question.
+
+#### Why `w-network` is one slug and not two
+
+Two held-out entries were first tagged `site:w16` and `site:w18`, read off the
+subdomain. They are the same reader: the domain rotates its number, and the
+same reader template is served across per-series domains — the user was on
+`w18.pickmeupgacha.com` when this was settled on 2026-09-18.
+
+Splitting one reader across two slugs is not a cosmetic error. It inflates the
+distinct-site count, and it can make a reader look **unseen** while its twin
+sits in the tuning set — an optimistic answer to the exact question the
+held-out set exists to answer honestly. The slug names the *template*, because
+the template is what the furniture belongs to. Five entries carry it.
+
+A sixth entry from a `wNN` domain is a person's call, on the same footing as
+`diagonal-gutter`: whether it is the same reader is a judgement about what the
+page looks like, and nothing in this repository can make it.
 
 ## The tuning / held-out split
 
@@ -201,9 +240,111 @@ re-derived, and
 `every_pre_epic_07_entry_is_in_the_tuning_split` fails if any of them is ever
 flipped.
 
-The held-out set is therefore **empty** as of MC-036, and that is correct
-rather than a defect: there is nothing legitimate to put in it yet. MC-037
-adds new screenshots and is the only story that can put a floor under its size.
+The held-out set was therefore **empty** as of MC-036, and that was correct
+rather than a defect: there was nothing legitimate to put in it yet. MC-037
+filled it.
+
+### How the split was assigned — MC-037, 2026-09-18
+
+**Stratified, plus whole readers held out.** The user's ruling, made before any
+screenshot was marked. Every reader in the held-out set except three also
+appears in the tuning set, so the corpus answers *"does this rule generalise to
+an unseen page?"*; three readers appear **only** in held-out, so it also
+answers, at lower resolution, *"does it generalise to an unseen reader?"* The
+gap between those two numbers is itself a finding, and getting both out of one
+corpus is why the split was drawn this way.
+
+The **31 new entries are held out in their entirety** and the tuning set was
+deliberately **not** grown. The proposal was to give tuning 8 more marked
+entries; the user declined, on the grounds that held-out is what new files are
+for. So the marked ratio is 21 tuning : 24 held-out, and that is a decision
+rather than an accident — do not "rebalance" it.
+
+**The held-out set is scored once, at the end of a v2 attempt, and is never
+tuned against.** Not once, not "just to see". The rule above under "The rule,
+stated so it cannot be read two ways" governs, and it governs these entries
+from the moment they landed.
+
+#### Every accuracy suite runs over `tuning` only, and that is enforced in code
+
+`crates/engine/tests/corpus.rs` and `crates/engine/tests/corpus_accuracy.rs`
+both filter to `Split::Tuning` before measuring anything —
+`corpus.rs::tuning_only()` and the filter inside `corpus_accuracy.rs::run_corpus()`.
+Neither calls `corpus::load()` directly any more, and a new accuracy suite must
+not either.
+
+This does two jobs, and the second is easy to miss. It stops the `integration`
+gate spending the held-out set on a measurement nobody asked for. It also keeps
+**MC-019's, MC-026's and MC-032's recorded numbers meaning what they meant**:
+those were measured against the twenty-eight pre-EPIC-07 entries, and without
+the filter their denominator would silently have become fifty-nine, so every v1
+claim would quietly describe a corpus it was never written about.
+
+Whichever EPIC-07 story earns the first held-out score selects `Split::HeldOut`
+deliberately, once, and says so in its own file.
+
+##### The incident that produced this rule, recorded because it will recur
+
+On 2026-09-18, the moment MC-037's screenshots landed, the `integration` gate
+ran the v1 detector across all fifty-nine entries — the suites predated the
+split and knew nothing about it — and four tests that had passed under MC-036
+failed. `integration` is optional, so `All required gates passed` printed over
+it.
+
+**Ruling: the held-out set is still held out.** The rule above is that
+contamination is *using* a held-out result to choose, adjust or reject a
+threshold, or reading a per-file table while a rule is still being changed.
+Neither happened: v1 is frozen and closed, no v2 rule exists yet to be
+influenced, and the per-file tables in the gate log were deliberately not
+opened. What was observed is one aggregate fact — that v1 does worse on the new
+screenshots than on the old — which is not a per-file result and not a decision.
+The user's ruling of 2026-09-18.
+
+The lesson worth keeping is the shape of it: **the split was enforced in one
+test file and assumed everywhere else.** MC-036 added `split` and validated it
+in `corpus_manifest.rs`; nothing made the suites that actually *score* the
+corpus respect it, because held-out was empty and the omission could not bite.
+It bit the first day it could.
+
+#### `PRE_EPIC_07_SITES` — the readers the original 28 came from
+
+Parsed from the table below by `documented_pre_epic_07_readers()` in
+`crates/engine/tests/corpus_manifest.rs`, the same way the tag and split
+vocabularies above are. The table is the source; the test is the reader. A
+second copy of this list in Rust is exactly the drift MC-033 exists to remove.
+
+<!-- pre-epic-07-readers -->
+| Reader | Note |
+|---|---|
+| `toongod` | |
+| `rolia-scans` | |
+| `w-network` | |
+| `xbato` | |
+
+The user's ruling of 2026-09-18, given as a **set** rather than per file. The
+28 pre-EPIC-07 entries carry no `site:` tag and are not required to: attributing
+a reader to a screenshot captured a year earlier is exactly the situation that
+manufactures guesses, and this page already rules that a guessed tag is worse
+than an absent one. Naming the handful of readers in use is a different and far
+safer act of recall than attributing 28 files one by one.
+
+A held-out reader counts as **unseen** when its slug is outside that set. Three
+are: `manhwaclan`, `kunmanga` and `demonicrevolution`.
+
+**Read this with the confidence it was given.** The user's words were that these
+three are *likely* not in the old set. It is a recall claim, not a derivation,
+and nothing in this repository can check it — the same footing as every
+rectangle in the corpus. What would falsify it is someone going through the 28
+and finding one of those three; if that ever happens, the unseen count drops and
+the entries stay where they are. Contamination runs one way, and so does this.
+
+**The unseen-reader number rests on five entries** — `manhwaclan` 2,
+`kunmanga` 2, `demonicrevolution` 1 — across three readers. That satisfies the
+floor and it is *thin*: one entry decides twenty percent of it, and a
+single-entry reader measures almost nothing on its own. Treat a v2 unseen-reader
+result as a direction, not a percentage, and say so wherever it is reported.
+The unseen-**page** number, resting on all 31 held-out entries, is the one with
+resolution.
 
 ## What the tests can and cannot say
 

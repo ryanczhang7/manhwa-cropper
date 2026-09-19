@@ -888,3 +888,259 @@ fn the_loader_still_reports_path_expect_and_tags_exactly_as_the_manifest_gives_t
          added additively. Each row is `file | expect | tags`"
     );
 }
+
+// --- MC-037: the held-out set is filled, and its shape is pinned ------------
+
+/// MC-037 AC-1. Twenty is [`MIN_ENTRIES`]'s own reasoning applied to the half
+/// of the corpus that now carries the accuracy claim: below this the held-out
+/// set cannot support a "nine in ten" number with any resolution, because one
+/// miss moves it by five percent.
+const MIN_HELD_OUT_MARKED: usize = 20;
+
+/// MC-037 AC-2. The detector has two jobs - crop the croppable and decline the
+/// rest - and a held-out set of rectangles alone measures one of them.
+const MIN_HELD_OUT_FLAGS: usize = 4;
+
+/// MC-037 AC-4. Twenty held-out entries from a single reader would measure
+/// almost nothing: a reader's furniture is pixel-identical across every
+/// screenshot from it, so a rule can score well by learning that geometry
+/// rather than learning what a page is.
+const MIN_HELD_OUT_SITES: usize = 4;
+
+/// MC-037 AC-4. The readers appearing *only* in the held-out set are the only
+/// entries that can answer "does this generalise to an unseen reader?".
+const MIN_UNSEEN_SITES: usize = 2;
+
+/// The prefix marking a tag as naming the reader an entry was captured from.
+const SITE_TAG_PREFIX: &str = "site:";
+
+/// The line that introduces the pre-EPIC-07 reader table on the corpus page.
+const PRE_EPIC_07_READERS_MARKER: &str = "<!-- pre-epic-07-readers -->";
+
+/// The readers the pre-EPIC-07 corpus was captured from, **read out of
+/// `docs/wiki/corpus.md`** rather than repeated here.
+///
+/// This is a person's ruling given as a *set*, not a derivation and not a
+/// per-file attribution: the twenty-eight pre-EPIC-07 entries carry no `site:`
+/// tag and are not required to. Attributing a reader to a screenshot captured
+/// a year earlier is what manufactures guesses, and the corpus page rules that
+/// a guessed tag is worse than an absent one.
+///
+/// Nothing here can check the ruling. What it can do is make "unseen reader" a
+/// claim about a tracked file, so that widening the set is a visible edit
+/// rather than a decision nobody wrote down.
+fn documented_pre_epic_07_readers() -> BTreeSet<String> {
+    documented_vocabulary(PRE_EPIC_07_READERS_MARKER, "AC-4")
+}
+
+/// Every entry whose split is `held-out`, in manifest order.
+fn held_out(entries: &[CorpusEntry]) -> Vec<&CorpusEntry> {
+    entries
+        .iter()
+        .filter(|e| e.split == Split::HeldOut)
+        .collect()
+}
+
+/// The `site:` tags an entry carries, prefix stripped. Returns every one, not
+/// the first: "exactly one" is an assertion below, and a helper that silently
+/// took the first would make it unfalsifiable.
+fn site_tags(entry: &CorpusEntry) -> Vec<&str> {
+    entry
+        .tags
+        .iter()
+        .filter_map(|t| t.strip_prefix(SITE_TAG_PREFIX))
+        .collect()
+}
+
+/// The distinct readers named across the held-out set.
+fn held_out_sites(entries: &[CorpusEntry]) -> BTreeSet<String> {
+    held_out(entries)
+        .iter()
+        .flat_map(|e| site_tags(e))
+        .map(str::to_owned)
+        .collect()
+}
+
+// --- AC-1: the held-out set carries enough marked entries to mean something -
+
+#[test]
+fn the_held_out_set_carries_at_least_twenty_marked_entries() {
+    let entries = corpus::load();
+    let held = held_out(&entries);
+
+    // The vacuity guard. "At least twenty" over an empty set fails loudly, but
+    // every *other* held-out count in this file would be quietly measuring
+    // nothing, and that is the state MC-036 deliberately left behind.
+    assert!(
+        !held.is_empty(),
+        "AC-1: no entry in the manifest is `held-out`, so every held-out count \
+         in this file is measuring the empty set. MC-036 left it empty \
+         deliberately and MC-037 is the story that fills it"
+    );
+
+    let marked = held
+        .iter()
+        .filter(|e| matches!(e.expect, Expect::Rect(_)))
+        .count();
+
+    assert!(
+        marked >= MIN_HELD_OUT_MARKED,
+        "AC-1: the held-out set carries {marked} marked entries and needs at \
+         least {MIN_HELD_OUT_MARKED}. This is MIN_ENTRIES' reasoning applied \
+         to the half of the corpus that now carries the accuracy claim: at \
+         twenty entries one miss is five percent, and below that the reported \
+         number is decided by which screenshot happened to land here. The \
+         whole-corpus floor is a different question and stays green while this \
+         one fails - a floor that only fires when the *total* drops is not \
+         measuring the split"
+    );
+}
+
+// --- AC-2: and enough entries that should be left alone ---------------------
+
+#[test]
+fn the_held_out_set_carries_at_least_four_flag_entries() {
+    let entries = corpus::load();
+    let held = held_out(&entries);
+
+    assert!(
+        !held.is_empty(),
+        "AC-2: no entry in the manifest is `held-out`, so this count is over \
+         the empty set"
+    );
+
+    // Counted over `Expect::Flag` specifically, never over "held-out entries"
+    // as a whole. A count of all held-out entries would be satisfied by a set
+    // of twenty-four rectangles and zero flags - precisely the corpus this
+    // criterion exists to reject - and it would read as passing.
+    let flags = held
+        .iter()
+        .filter(|e| matches!(e.expect, Expect::Flag))
+        .count();
+
+    assert!(
+        flags >= MIN_HELD_OUT_FLAGS,
+        "AC-2: the held-out set carries {flags} entries expecting `flag` and \
+         needs at least {MIN_HELD_OUT_FLAGS}. The detector has two jobs - crop \
+         the croppable and decline the rest - and a held-out set of rectangles \
+         alone measures one of them. MC-026's decision gates are scored \
+         against exactly these. Held-out entries in total: {}",
+        held.len()
+    );
+}
+
+// --- AC-3: MC-036's contamination guard, read in the other direction --------
+
+#[test]
+fn no_held_out_entry_is_a_pre_epic_07_file() {
+    let entries = corpus::load();
+    let held = held_out(&entries);
+
+    // Without this the test passes on an empty held-out set - exactly the
+    // state MC-036 left behind, and exactly why the same assertion was vacuous
+    // there. It is the reason this criterion is worth restating from the other
+    // side rather than trusting MC-036's version.
+    assert!(
+        !held.is_empty(),
+        "AC-3: the held-out set is empty, so 'no held-out entry is \
+         contaminated' is true and means nothing. This assertion only has \
+         content once MC-037's screenshots are in"
+    );
+
+    let contaminated: Vec<String> = held
+        .iter()
+        .filter(|e| PRE_EPIC_07_ENTRIES.contains(&e.name().as_str()))
+        .map(|e| e.name())
+        .collect();
+
+    assert_eq!(
+        contaminated,
+        Vec::<String>::new(),
+        "AC-3: no held-out entry may be a file that existed at commit a453aaa. \
+         Six v1 investigations fitted thresholds against those twenty-eight \
+         and their per-file tables have been read; holding one out produces a \
+         number that looks rigorous and is not. This is not hypothetical - on \
+         MC-037's first collection attempt `2025-03-03 11_24_19.png` arrived \
+         as a held-out entry, byte-identical to the tuning entry of the same \
+         name, and was dropped rather than swapped per the story's \
+         `## Out of scope`. A duplicate file name is the shape this mistake \
+         takes in practice"
+    );
+}
+
+// --- AC-4: every held-out entry names its reader ----------------------------
+
+#[test]
+fn every_held_out_entry_carries_exactly_one_site_tag() {
+    let entries = corpus::load();
+    let held = held_out(&entries);
+
+    assert!(
+        !held.is_empty(),
+        "AC-4: the held-out set is empty, so 'every held-out entry names a \
+         reader' is vacuously true"
+    );
+
+    // Both directions, and by name. Zero tags means the entry cannot count
+    // toward reader coverage at all; two means one entry inflates the distinct
+    // reader count on its own. Neither is visible from a total.
+    let wrong: Vec<String> = held
+        .iter()
+        .filter_map(|e| {
+            let sites = site_tags(e);
+            (sites.len() != 1).then(|| format!("{}: {} site tags {sites:?}", e.name(), sites.len()))
+        })
+        .collect();
+
+    assert_eq!(
+        wrong,
+        Vec::<String>::new(),
+        "AC-4: every held-out entry carries exactly one `{SITE_TAG_PREFIX}` tag \
+         naming the reader it came from. The pre-EPIC-07 twenty-eight carry \
+         none and are not required to - see `docs/wiki/corpus.md`. That the \
+         tag is also in the documented vocabulary is a different test in this \
+         file"
+    );
+}
+
+#[test]
+fn the_held_out_set_spans_at_least_four_readers() {
+    let entries = corpus::load();
+    let sites = held_out_sites(&entries);
+
+    assert!(
+        sites.len() >= MIN_HELD_OUT_SITES,
+        "AC-4: the held-out set spans {} distinct readers and needs at least \
+         {MIN_HELD_OUT_SITES}. A reader's furniture - navigation bar, header, \
+         page margins - is pixel-identical across every screenshot from it, so \
+         twenty entries from one reader would let a rule score well by \
+         learning that geometry instead of learning what a page is. Readers \
+         found: {sites:?}",
+        sites.len()
+    );
+}
+
+#[test]
+fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
+    let entries = corpus::load();
+    let sites = held_out_sites(&entries);
+    let known = documented_pre_epic_07_readers();
+
+    let unseen: Vec<&String> = sites.iter().filter(|s| !known.contains(*s)).collect();
+
+    assert!(
+        unseen.len() >= MIN_UNSEEN_SITES,
+        "AC-4: {} held-out readers are absent from the pre-EPIC-07 set, and at \
+         least {MIN_UNSEEN_SITES} are needed. These are the only entries that \
+         can answer 'does this generalise to an unseen *reader*?' rather than \
+         'an unseen *page*?'. Every other held-out entry shares a \
+         pixel-identical navigation bar with an entry the detector was tuned \
+         on, which flatters exactly the rules EPIC-07 story 3 proposes. This \
+         is a strictly stronger claim than the reader count above, and the two \
+         must be able to disagree: collapsing every held-out entry onto the \
+         four pre-EPIC-07 readers satisfies that one and fails this. If they \
+         cannot disagree, one of them is decorative. Held-out readers: \
+         {sites:?}. Pre-EPIC-07 readers: {known:?}. Unseen: {unseen:?}",
+        unseen.len()
+    );
+}

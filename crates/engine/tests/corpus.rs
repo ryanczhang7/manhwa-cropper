@@ -144,7 +144,7 @@ mod corpus;
 
 use std::path::Path;
 
-use corpus::{CorpusEntry, Expect};
+use corpus::{CorpusEntry, Expect, Split};
 use cropper_core::{Dimensions, FlagReason, Luma, Rect, Tuning, detect};
 use cropper_engine::{Flag, Outcome, process_file};
 
@@ -185,10 +185,34 @@ const CLIP_INSET: u32 = 10;
 
 // --- Harness ----------------------------------------------------------------
 
-/// The corpus entries that carry a marked rect, with the rect, in manifest
-/// order.
-fn marked() -> Vec<(CorpusEntry, Rect)> {
+/// The `tuning` half of the corpus, in manifest order. **Every accuracy
+/// measurement in this file runs over this and never over `corpus::load()`.**
+///
+/// MC-037 added thirty-one `held-out` entries, and `docs/wiki/corpus.md` is
+/// explicit that a held-out entry is scored once, at the end of a v2 attempt,
+/// and never before. These suites are not that attempt: they are v1's recorded
+/// behaviour, and running them across held-out entries would spend the set on
+/// a measurement nobody asked for, every time the `integration` gate runs.
+///
+/// It also keeps the existing numbers meaning what they meant. MC-019's,
+/// MC-026's and MC-032's figures were recorded against the twenty-eight
+/// pre-EPIC-07 entries; without this filter their denominator would have
+/// silently become fifty-nine and every one of those claims would quietly
+/// describe a different corpus than the one it was written about.
+///
+/// Whichever EPIC-07 story earns the first held-out score will select
+/// `Split::HeldOut` deliberately, once, and say so in its own file.
+fn tuning_only() -> Vec<CorpusEntry> {
     corpus::load()
+        .into_iter()
+        .filter(|entry| entry.split == Split::Tuning)
+        .collect()
+}
+
+/// The corpus entries that carry a marked rect, with the rect, in manifest
+/// order. Tuning only, via [`tuning_only`].
+fn marked() -> Vec<(CorpusEntry, Rect)> {
+    tuning_only()
         .into_iter()
         .filter_map(|entry| match entry.expect {
             Expect::Rect(rect) => Some((entry, rect)),
@@ -518,7 +542,7 @@ fn the_two_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band()
     let mut at_band = Vec::new();
     let mut past_band = Vec::new();
 
-    for entry in corpus::load() {
+    for entry in tuning_only() {
         let img = luma(&entry.path);
         let now = detect(&img, &t).as_ref().is_some_and(|d| d.ambiguous);
         let then = detect(&img, &past).as_ref().is_some_and(|d| d.ambiguous);
@@ -587,7 +611,7 @@ fn the_no_border_predicate_fires_on_every_flagged_page_and_on_no_marked_page() {
     let mut marked_without_a_border = Vec::new();
     let mut flagged_with_one = Vec::new();
 
-    for entry in corpus::load() {
+    for entry in tuning_only() {
         let img = luma(&entry.path);
         let found = detect(&img, &t);
         let no_border = found
@@ -657,7 +681,7 @@ fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
     let mut wrong = Vec::new();
     let mut seen = Vec::new();
 
-    for entry in corpus::load() {
+    for entry in tuning_only() {
         if entry.expect != Expect::Flag {
             continue;
         }
