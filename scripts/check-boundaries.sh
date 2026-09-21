@@ -215,19 +215,37 @@ case "$ph:$story_type" in
       else
         problem "story $sid: gates were recorded against tree '${rec:-none}' but $where is '$now'. Source, test or config changed after the last full gate run; run 'bash scripts/gates.sh' again and commit the result."
       fi
-
-      # A gate the story escalated must appear in the record as having passed.
-      # gates.sh enforces this while it runs; this catches the record written
-      # before the escalation was added, where the gate is optional again by
-      # the time anyone looks.
-      for g in $(frontmatter_list "$sfile" required_gates); do
-        if printf '%s\n' "$gr" | grep -qE "^[[:space:]]*PASS[[:space:]]+$g( |\(|$)"; then
-          ok "story-required gate '$g' passed in the recorded run"
-        else
-          problem "story $sid: frontmatter requires gate '$g', but the recorded run has no PASS for it. Run 'bash scripts/gates.sh' again."
-        fi
-      done
     fi ;;
+esac
+
+# 3e-i. A gate the story escalated must appear in the record as having passed.
+#
+# gates.sh enforces this while it runs; this catches the record written before
+# the escalation was added, where the gate is optional again by the time
+# anyone looks - and the record that was never written at all.
+#
+# It sits outside the case above deliberately, on both axes:
+#
+#   - Every story type, spike included. The exemption above is about the
+#     RECORD: a spike usually delivers a document, and demanding a full
+#     recorded run to merge markdown would be ceremony. A spike that names a
+#     gate in `required_gates` has made a deliberate claim that something here
+#     does need checking, and that claim is the one thing the exemption must
+#     not cover.
+#   - Outside the marker test's `else`. A story with no ## Gate results section
+#     at all has to be told which gate it did not run, not only that its record
+#     was unrecognised - so this reads a possibly empty body and says the same
+#     thing either way.
+case "$ph" in
+  REVIEW|DONE)
+    gr="$(section "$sfile" "Gate results")"
+    for g in $(frontmatter_list "$sfile" required_gates); do
+      if printf '%s\n' "$gr" | grep -qE "^[[:space:]]*PASS[[:space:]]+$g( |\(|$)"; then
+        ok "story-required gate '$g' passed in the recorded run"
+      else
+        problem "story $sid: frontmatter requires gate '$g', but the recorded run has no PASS for it. Run 'bash scripts/gates.sh' again."
+      fi
+    done ;;
 esac
 
 # 3f. The handoff was actually written
