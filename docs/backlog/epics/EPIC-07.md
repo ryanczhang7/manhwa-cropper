@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041]
 ---
 
 ## Goal
@@ -105,6 +105,33 @@ only one that can start.
    and matching known furniture is far more reliable than inferring it. v1's
    brief excludes per-reader special cases; adopting this is a product decision
    and needs an amendment there, not an agent's judgement.
+
+   **Written as [MC-041](../stories/MC-041.md)**, `type: spike`,
+   `depends_on: [MC-037, MC-038, MC-039]`. Four things settled when it was
+   written:
+
+   - **The amendment has been made.** The user amended
+     [`product-brief.md`](../../wiki/product-brief.md) §5 on **2026-09-21** to
+     permit per-site furniture matching, and listed five things it does not
+     change. That block is the authority for the story and also its ceiling.
+     It corrects the sentence above in one respect, and the correction is worth
+     reading: the brief was **silent** on per-reader special cases rather than
+     against them, and the silence was being read as a prohibition. The
+     sentence is left as written because the amendment quotes it.
+   - **`spike`, not `feature`**, because [MC-038](../stories/MC-038.md) §9b
+     recommends running it and the only bar a furniture rule can currently
+     reach is **MC-031 Option B**, which the user declined on 2026-09-17. A
+     feature story would have to assert a bar that does not exist yet, which is
+     what MC-032's `## Closed` records going wrong. The split line for the
+     feature that might follow — recognising furniture, then acting on it — is
+     named in MC-041 rather than left to be invented later.
+   - **It measures over the 28 `tuning` entries / 21 marked**, like every prior
+     number in this epic, and carries `required_gates: [integration]` on
+     MC-038's reasoning. It does **not** depend on MC-040.
+   - **The tuning set carries no `site:` tag** — all 31 are on held-out
+     entries — so the story discovers furniture groups from the pixels, which
+     is what the product must do at run time anyway, and may not attribute the
+     28 to readers.
 4. **The row accuracy story**, once a signal exists that earns one. Its bar and
    its evidence are written when it is unparked, not now — MC-032's `## Closed`
    is the record of what happens when a story's criteria are written before a

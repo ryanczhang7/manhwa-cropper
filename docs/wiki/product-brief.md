@@ -96,6 +96,55 @@ is enough), clipboard and hotkey input, watch folder.
 - Mac, Linux, phone, web. Windows only.
 - Multi-user features, sharing, accounts, telemetry, updates over the network.
 
+**Amended 2026-09-21, by the user's decision: the detector may use knowledge
+of a specific reader's furniture.** Matching a known site's navigation bar,
+header or footer — which is pixel-identical across every screenshot from that
+site — is permitted as an input to the crop decision, and
+[`EPIC-07`](../backlog/epics/EPIC-07.md) story 3 is where it is built.
+
+The brief was **silent** on this rather than against it, and the amendment is
+recorded here because the silence was being read as a prohibition.
+[`EPIC-07`](../backlog/epics/EPIC-07.md) says "v1's brief excludes per-reader
+special cases" and MC-038's `## Out of scope` repeats it; what section 4 and
+this section actually do is describe a **generic** detector — "the largest
+content region delimited by strong horizontal and vertical edges" — and never
+contemplate per-site knowledge either way. This makes the answer explicit
+instead of inferred.
+
+Why it changed: seven investigations have now looked for a general pixel-level
+rule that places the **row** edges, and all seven came back reasoned negatives
+— MC-026, MC-028, MC-031, MC-032, MC-034, MC-035 and
+[MC-038](../wiki/region-row-search.md), the last of which also closed the "2D
+structure" opening `EPIC-07` was built on. `architecture.md` decision 14 records
+what that costs the product today: the row axis places **0 of 21** and overshoots
+every edge by 97 to 310 px, and on a typical screenshot that band *is* the
+browser and OS furniture this tool exists to remove.
+
+**What does not change**, and a site matcher that breaks any of these is not
+shippable:
+
+- **Never clip** (section 4.2, `architecture.md` decision 13). Unchanged and
+  still absolute.
+- **Uncertain means copy unchanged and flag** (section 4.3). A site the matcher
+  does not know must fall back to today's behaviour, not guess — the tool must
+  get no worse on an unseen reader than it is now.
+- **Offline** (section 6). Furniture is recognised from the pixels in front of
+  it; nothing is fetched, and no site is contacted.
+- **No settings pane, no tuning file** (`architecture.md` decision 11). The user
+  does not maintain a list of sites.
+- One input file still yields one output file, in its original format.
+
+**What this does not open.** Learned or model-based detection stays deferred:
+`EPIC-07` holds it until stories 2 and 3 have reported, and only story 2 has.
+Colour and chroma stay ruled out (MC-025 `## Context`). Re-marking the corpus
+stays declined (the 2026-09-17 decision; `EPIC-07` "deliberately not in this
+epic"). This amendment permits **per-site furniture matching** and nothing else.
+
+One caution for whoever measures it, from `docs/wiki/corpus.md`: the corpus
+spans seven readers with counts as low as one (`demonicrevolution`), so a
+matcher evaluated on `toongod` (10 entries) and on that one entry is not being
+evaluated on the same thing twice.
+
 ## 6. Constraints
 
 - **Platform**: Windows 11 desktop (user's machine: Windows 11 Home).
