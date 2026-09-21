@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040]
 ---
 
 ## Goal
@@ -93,6 +93,13 @@ only one that can start.
    (`2708`, `2630`, `1661`, `13_33_41`, `23_30_20`, `13_45_59`, `70`) as the
    cases that decide it. Output is a document, as MC-028's, MC-031's, MC-034's
    and MC-035's were.
+
+   **Written as [MC-038](../stories/MC-038.md)**, `depends_on: [MC-037]`. Two
+   things settled when it was written, because both are easy to get wrong later:
+   it measures over the **28 `tuning`** entries only — a spike is tuning work by
+   definition, and the held-out set is not scored, not once — and it carries
+   `required_gates: [integration]`, because the `Split::Tuning` filter every
+   number in its document is denominated by is exercised by no other gate.
 3. **Spike or feature, depending on 2: known site furniture.** A site's
    navigation bar is pixel-identical across every screenshot from that site,
    and matching known furniture is far more reliable than inferring it. v1's
