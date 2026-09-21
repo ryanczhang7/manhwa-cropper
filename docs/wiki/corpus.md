@@ -164,9 +164,12 @@ checks that, and it is a different question from this one.
 
 ### The `site:` tags
 
-Added by MC-037. Each held-out entry carries **exactly one**, naming the reader
-it was captured from. **Pre-EPIC-07 entries carry none and are not required
-to** — see "Why the old twenty-eight have no `site:` tag" below.
+Added by MC-037 for the held-out set and completed by MC-042 for the tuning
+set. **Every one of the 59 entries carries exactly one**, naming the reader it
+was captured from: the 31 held-out entries since 2026-09-18, and the 28 tuning
+entries since the user labelled them all on 2026-09-21. What that labelling
+measured, and what it overturned, is under "`PRE_EPIC_07_SITES` — the readers
+the original 28 came from" below.
 
 They exist for one reason. A reader's furniture — navigation bar, header,
 page margins — is pixel-identical across every screenshot from that reader, so
@@ -247,10 +250,12 @@ filled it.
 ### How the split was assigned — MC-037, 2026-09-18
 
 **Stratified, plus whole readers held out.** The user's ruling, made before any
-screenshot was marked. Every reader in the held-out set except three also
-appears in the tuning set, so the corpus answers *"does this rule generalise to
-an unseen page?"*; three readers appear **only** in held-out, so it also
-answers, at lower resolution, *"does it generalise to an unseen reader?"* The
+screenshot was marked. Most readers in the held-out set also appear in the
+tuning set, so the corpus answers *"does this rule generalise to an unseen
+page?"*; a few appear **only** in held-out, so it also answers, at lower
+resolution, *"does it generalise to an unseen reader?"* The ruling was recorded
+as "all but three"; the labelling of 2026-09-21 measured it as **two** —
+`xbato` and `manhwaclan` — for the reasons under `PRE_EPIC_07_SITES` below. The
 gap between those two numbers is itself a finding, and getting both out of one
 corpus is why the split was drawn this way.
 
@@ -316,32 +321,52 @@ second copy of this list in Rust is exactly the drift MC-033 exists to remove.
 <!-- pre-epic-07-readers -->
 | Reader | Note |
 |---|---|
-| `toongod` | |
-| `rolia-scans` | |
-| `w-network` | |
-| `xbato` | |
+| `toongod` | 15 entries, 11 of them marked |
+| `rolia-scans` | 2 entries, both marked |
+| `w-network` | 5 entries, 2 of them marked |
+| `kunmanga` | 2 entries, both marked — counted *unseen* until 2026-09-21 |
+| `demonicrevolution` | 4 entries, all marked — counted *unseen* until 2026-09-21 |
 
-The user's ruling of 2026-09-18, given as a **set** rather than per file. The
-28 pre-EPIC-07 entries carry no `site:` tag and are not required to: attributing
-a reader to a screenshot captured a year earlier is exactly the situation that
-manufactures guesses, and this page already rules that a guessed tag is worse
-than an absent one. Naming the handful of readers in use is a different and far
-safer act of recall than attributing 28 files one by one.
+**Measured, not recalled, since 2026-09-21.** The user labelled all 28 tuning
+entries by reader with the Corpus Reader Labeller, and MC-042 wrote those labels
+into the manifest, so this table is now a count of `site:` tags rather than a
+list someone remembered. Each of the 28 carries exactly one tag, and
+`the_reader_attribution_matches_the_counts_the_user_recorded` pins the per-file
+mapping and the per-reader totals.
 
-A held-out reader counts as **unseen** when its slug is outside that set. Three
-are: `manhwaclan`, `kunmanga` and `demonicrevolution`.
+**The 2026-09-18 recall was falsified in both directions, which is exactly what
+this page said would retire it.** That ruling named four readers — `toongod`,
+`rolia-scans`, `w-network` and `xbato` — as a set rather than per file, and was
+explicit that finding one of the supposedly unseen readers among the 28 would
+overturn it. Two were found, and a fourth turned out never to have been there:
 
-**Read this with the confidence it was given.** The user's words were that these
-three are *likely* not in the old set. It is a recall claim, not a derivation,
-and nothing in this repository can check it — the same footing as every
-rectangle in the corpus. What would falsify it is someone going through the 28
-and finding one of those three; if that ever happens, the unseen count drops and
-the entries stay where they are. Contamination runs one way, and so does this.
+- **`kunmanga` (2 entries) and `demonicrevolution` (4) are in the tuning set**,
+  though both were counted as unseen readers.
+- **`xbato` has zero tuning entries**, though the recalled set named it. The
+  user re-checked on 2026-09-21 and confirmed: *"xbato wasn't in the old 28."*
 
-**The unseen-reader number rests on five entries** — `manhwaclan` 2,
-`kunmanga` 2, `demonicrevolution` 1 — across three readers. That satisfies the
-floor and it is *thin*: one entry decides twenty percent of it, and a
-single-entry reader measures almost nothing on its own. Treat a v2 unseen-reader
+So the row for `xbato` is gone from the table above and the rows for `kunmanga`
+and `demonicrevolution` are new. **No entry moved between splits**, and none
+will: this page's own rule is that when the recall is falsified "the unseen
+count drops and the entries stay where they are". Contamination runs one way,
+and finding that `kunmanga` was in tuning all along does not make its held-out
+entries fresh.
+
+A held-out reader counts as **unseen** when its slug is outside the table above.
+Two are: `xbato` and `manhwaclan`.
+
+**The unseen-reader number rests on five entries** — `xbato` 3 and
+`manhwaclan` 2 — across **two** readers. Five entries either way, by
+coincidence; a different five, and one reader fewer than before 2026-09-21.
+`MIN_UNSEEN_SITES` in `crates/engine/tests/corpus_manifest.rs` is **2**, so the
+count now sits **exactly at the floor with no margin**: attributing a sixth
+reader into the tuning set, or retagging either of these two, drops it to 1 and
+turns the required `unit` gate red. That is deliberate, and it is recorded here
+so the next person to edit this table learns it from the page rather than from
+the failure.
+
+It is also still *thin*: one entry decides twenty percent of it, and a
+two-entry reader measures almost nothing on its own. Treat a v2 unseen-reader
 result as a direction, not a percentage, and say so wherever it is reported.
 The unseen-**page** number, resting on all 31 held-out entries, is the one with
 resolution.
@@ -356,3 +381,44 @@ vocabulary above, the `diagonal-gutter` list exact, the whole set under 60 MB.
 It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the
 detector — and only the person who drew it can rule on that.
+
+### Every accuracy number in EPIC-07 is majority one reader
+
+**`toongod` is 11 of the 21 marked tuning entries** — 52 %. Every accuracy
+suite runs over `tuning` only, and every score in EPIC-07 is measured over its
+marked entries, so MC-019's 20 of 21, MC-026's 8 of 21, MC-028's 4, MC-031's 5,
+MC-034's 8, MC-035's re-score and MC-038's 8 are each a majority-`toongod`
+number. None of those documents says so, because until the labels landed on
+2026-09-21 nobody could count it. The remaining ten are `demonicrevolution` 4,
+`w-network` 2, `rolia-scans` 2 and `kunmanga` 2.
+
+This is counted from the manifest, not re-measured, and it **reweights nothing**.
+Whether 52 % one reader qualifies any of those numbers is a question for
+whoever next measures accuracy; MC-042 was a tagging story and did not reopen
+them. What the count does establish is that "does this generalise across
+readers?" cannot be answered on the tuning set at all — which is what the
+held-out `site:` tags and the unseen-reader floor above exist for.
+
+### The difficulty is not spread evenly across readers — a pointer, not a finding
+
+MC-038's per-file ceiling (`region-row-search.md` §8) re-grouped by the new
+labels, which is that table's own numbers regrouped and not a new measurement:
+
+| Reader | Marked tuning entries where both edges are reachable |
+|---|---|
+| `rolia-scans` | 2 of 2 |
+| `kunmanga` | 2 of 2 |
+| `demonicrevolution` | 2 of 4 |
+| `toongod` | 4 of 11 |
+| `w-network` | 0 of 2 |
+
+The rows sum to §8's own **10 of 21**, which is the arithmetic check that this
+is a regrouping and nothing more.
+
+**Read this as a pointer, not a finding.** The counts are tiny: two entries
+decide two of those five rows outright, and one flipped entry moves
+`demonicrevolution` from 2 of 4 to 1 of 4 or 3 of 4. It is not evidence that
+`rolia-scans` is easy or that `w-network` is hard — it is a suggestion about
+where to look first if a v2 rule stalls, and a reason to check a per-reader
+breakdown before concluding that an aggregate ceiling is a property of the
+method rather than of one site's furniture.

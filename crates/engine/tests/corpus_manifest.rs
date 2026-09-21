@@ -1144,3 +1144,367 @@ fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
         unseen.len()
     );
 }
+
+// --- MC-042: every entry names its reader, and the marks are pinned ---------
+
+/// MC-042 AC-1. The reader the user attributed to each of the twenty-eight
+/// `tuning` entries on **2026-09-21**, read back from the Corpus Reader
+/// Labeller's own store, in manifest order.
+///
+/// **This is the specification, not a derivation.** The labeller is a
+/// throwaway tool outside this repository - the same arrangement as MC-018's
+/// marking annotator - so MC-042's `## Context` table, under "The per-file
+/// attribution, which is the part that cannot be derived", is the only record
+/// of that session anywhere. No agent may revise a row of it, and nothing in
+/// this repository can re-derive one: the counts do not determine the mapping,
+/// and `docs/wiki/corpus.md` rules a guessed tag worse than an absent one.
+/// [`PRE_EPIC_07_ENTRIES`] is the precedent - a list hard-coded here because
+/// the ruling behind it lives in a person's head and a document, not in code.
+///
+/// Two readers in this list, `kunmanga` and `demonicrevolution`, were counted
+/// *unseen* until 2026-09-21; `xbato` appears nowhere in it although the
+/// recalled `PRE_EPIC_07_SITES` set named it. Both directions of that
+/// falsification are AC-3's subject on the corpus page.
+const READER_BY_FILE: [(&str, &str); 28] = [
+    ("2025-02-27 22_46_15.png", "toongod"),
+    ("2025-03-03 11_06_04.png", "toongod"),
+    ("2025-03-03 11_24_19.png", "toongod"),
+    ("2025-05-12 22_55_40.png", "w-network"),
+    ("2025-05-12 22_58_53.png", "w-network"),
+    ("2025-08-05 00_11_13.webp", "rolia-scans"),
+    ("2025-08-05 00_11_27.webp", "rolia-scans"),
+    ("2025-10-14 23_29_06.png", "demonicrevolution"),
+    ("2025-10-14 23_30_20.png", "demonicrevolution"),
+    ("2025-10-20 15_37_25.png", "toongod"),
+    ("2026-01-05 13_33_41.png", "toongod"),
+    ("2026-01-05 13_45_59.png", "demonicrevolution"),
+    ("2026-01-05 13_49_39.png", "demonicrevolution"),
+    ("Screenshot (67).png", "kunmanga"),
+    ("Screenshot (70).jpg", "kunmanga"),
+    ("Screenshot (75).png", "toongod"),
+    ("Screenshot (93).jpg", "toongod"),
+    ("Screenshot (103).jpg", "toongod"),
+    ("Screenshot (1661).png", "toongod"),
+    ("Screenshot (2582).jpg", "toongod"),
+    ("Screenshot (2630).jpg", "toongod"),
+    ("Screenshot (2698).jpg", "toongod"),
+    ("Screenshot (2708).jpg", "toongod"),
+    ("Screenshot (2744).jpg", "w-network"),
+    ("Screenshot (3187).png", "w-network"),
+    ("Screenshot (3455).png", "toongod"),
+    ("Screenshot (3465).png", "w-network"),
+    ("Screenshot (3538).png", "toongod"),
+];
+
+/// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
+/// marked, of which flag, held-out)`, from the counts table in `## Context`.
+///
+/// **Strictly implied by [`READER_BY_FILE`] and kept anyway**, for two jobs
+/// the per-file pin cannot do:
+///
+/// 1. *It is the message a person can read.* The per-file assertion fails with
+///    twenty-eight rows; this one fails with seven, and says which reader
+///    gained or lost entries. When both go red together, this is the one that
+///    explains what happened.
+/// 2. *It is the cross-check on `READER_BY_FILE` itself.* A hand-edit to one
+///    row of the mapping - the realistic way a settled label gets quietly
+///    revised - moves two counts here and contradicts the user's own summary.
+///    A constant that is its own only source of truth checks nothing about
+///    itself, and these two were transcribed from different tables.
+///
+/// The marked/flag columns carry the second job's weight. `toongod`'s fifteen
+/// tuning entries are **eleven marked and four flag** and `w-network`'s five
+/// are **two and three**; every accuracy number in EPIC-07 is measured over
+/// *marked* entries, so a mapping edit that moved one flag entry between
+/// readers while keeping both totals would still be caught here. MC-042's
+/// `## Model guidance` names that split as the story's one trap.
+///
+/// The held-out columns are a fifth column this file has always been able to
+/// check and never did: they must stay exactly as they are, which is AC-1's
+/// "the 31 held-out entries keeping the tags they already have".
+const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
+    ("toongod", 15, 11, 4, 10),
+    ("w-network", 5, 2, 3, 5),
+    ("demonicrevolution", 4, 4, 0, 1),
+    ("rolia-scans", 2, 2, 0, 8),
+    ("kunmanga", 2, 2, 0, 2),
+    ("xbato", 0, 0, 0, 3),
+    ("manhwaclan", 0, 0, 0, 2),
+];
+
+/// MC-042 AC-2. The `expect` rectangle of every **marked `tuning`** entry, in
+/// manifest order, as it stood at commit `f62dfb3` - read out of
+/// `fixtures/corpus/manifest.json` itself rather than transcribed from a
+/// document, because a rectangle retyped by eye is the defect this constant
+/// exists to catch.
+///
+/// Nothing guarded these before MC-042, and **every number in EPIC-07 rests on
+/// them**: MC-019's 20 of 21 on the column axis, MC-026's 8 of 21, MC-028's 4,
+/// MC-031's 5, MC-034's 8, MC-035's re-score and MC-038's 8. MC-042 adds a
+/// `site:` tag to all twenty-eight tuning entries by hand, and a fat-fingered
+/// digit in an adjacent line is the realistic risk that carries - a `git diff`
+/// nobody re-reads is not a control. [`PRE_EPIC_07_ENTRIES`] is the precedent.
+///
+/// This is a pin, not a judgement: no code can say a rectangle is *correct*,
+/// and MC-042's `## Out of scope` forbids re-marking anything. A deliberate
+/// re-mark changes this constant in the story that decides it, which is
+/// exactly the visible edit the pin is here to force.
+/// Written as `(file, x, y, w, h)` and rebuilt into a [`Rect`] where it is
+/// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
+/// explodes over nine lines each, and a pin nobody can scan in one screen is a
+/// pin nobody re-reads.
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
+    ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
+    ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
+    ("2025-10-14 23_29_06.png", 1008, 188, 528, 1138),
+    ("2025-10-14 23_30_20.png", 1040, 171, 476, 1208),
+    ("2025-10-20 15_37_25.png", 1008, 228, 528, 1074),
+    ("2026-01-05 13_33_41.png", 1073, 233, 397, 1060),
+    ("2026-01-05 13_45_59.png", 1040, 204, 466, 1167),
+    ("2026-01-05 13_49_39.png", 1044, 286, 459, 1110),
+    ("Screenshot (67).png", 1012, 290, 524, 1098),
+    ("Screenshot (70).jpg", 1016, 298, 520, 1012),
+    ("Screenshot (75).png", 1077, 171, 393, 1208),
+    ("Screenshot (93).jpg", 1143, 212, 246, 1167),
+    ("Screenshot (103).jpg", 1077, 302, 389, 844),
+    ("Screenshot (1661).png", 1077, 192, 393, 1085),
+    ("Screenshot (2582).jpg", 1008, 216, 524, 1008),
+    ("Screenshot (2630).jpg", 958, 224, 635, 889),
+    ("Screenshot (2698).jpg", 954, 343, 631, 742),
+    ("Screenshot (2708).jpg", 1073, 220, 393, 1102),
+    ("Screenshot (2744).jpg", 950, 134, 639, 1164),
+    ("Screenshot (3187).png", 987, 142, 574, 1237),
+    ("Screenshot (3538).png", 975, 171, 590, 1159),
+];
+
+/// The entries in `split` carrying `site:<reader>`, in manifest order.
+///
+/// Built on [`site_tags`] rather than [`CorpusEntry::has_tag`] so that an
+/// entry carrying two `site:` tags is counted once per tag it really has -
+/// "exactly one" is a separate assertion below, and a helper that quietly
+/// looked at the first tag would make this count agree with it no matter what
+/// the manifest said.
+fn by_reader<'a>(entries: &'a [CorpusEntry], reader: &str, split: Split) -> Vec<&'a CorpusEntry> {
+    entries
+        .iter()
+        .filter(|e| e.split == split && site_tags(e).contains(&reader))
+        .collect()
+}
+
+// --- AC-1: every entry names its reader -------------------------------------
+
+#[test]
+fn every_entry_in_the_manifest_names_exactly_one_reader() {
+    let entries = corpus::load();
+
+    assert!(
+        !entries.is_empty(),
+        "AC-1: the loader returned no entries at all, so 'every entry names a \
+         reader' is vacuously true"
+    );
+
+    // Accumulated and asserted once, with the split alongside the name: the
+    // interesting failure is twenty-eight files long and a per-file table is
+    // the only form of it anyone can act on.
+    let wrong: Vec<String> = entries
+        .iter()
+        .filter_map(|e| {
+            let sites = site_tags(e);
+            (sites.len() != 1).then(|| {
+                format!(
+                    "{} | {} | {} site tags {sites:?}",
+                    e.name(),
+                    e.split.as_str(),
+                    sites.len()
+                )
+            })
+        })
+        .collect();
+
+    assert_eq!(
+        wrong,
+        Vec::<String>::new(),
+        "AC-1: every one of the {} entries in the manifest carries exactly one \
+         `{SITE_TAG_PREFIX}` tag naming the reader it came from. Until \
+         2026-09-21 the twenty-eight `tuning` entries carried none and \
+         `docs/wiki/corpus.md` said they were not required to, because \
+         attributing a screenshot captured a year earlier manufactures \
+         guesses; the user has now labelled all twenty-eight with the Corpus \
+         Reader Labeller, so the exemption is spent. Exactly one and not 'at \
+         least one': an entry with two inflates every distinct-reader count in \
+         this file on its own, and site-disjoint evaluation is the only thing \
+         that can tell a furniture rule which generalises from one that has \
+         memorised `toongod`. Each row is `file | split | site tags`",
+        entries.len()
+    );
+}
+
+#[test]
+fn every_tuning_entry_carries_the_reader_the_labeller_recorded_for_it() {
+    let entries = corpus::load();
+    let mut wrong: Vec<String> = Vec::new();
+
+    for (name, reader) in READER_BY_FILE {
+        match entries.iter().find(|e| e.name() == name) {
+            // A pinned name absent from the manifest would make this test
+            // check twenty-seven attributions while claiming twenty-eight.
+            None => wrong.push(format!(
+                "{name} | {reader} | no entry of that name is in the manifest"
+            )),
+            Some(entry) => {
+                let sites = site_tags(entry);
+                if sites.len() != 1 || sites[0] != reader {
+                    wrong.push(format!("{name} | {reader} | {sites:?}"));
+                }
+            }
+        }
+    }
+
+    // The other direction. A `tuning` entry the mapping does not name is one
+    // whose reader nobody recorded, and no count in this file would notice.
+    for entry in entries.iter().filter(|e| e.split == Split::Tuning) {
+        let name = entry.name();
+        if !READER_BY_FILE.iter().any(|(n, _)| *n == name) {
+            wrong.push(format!(
+                "{name} | - | a `tuning` entry the 2026-09-21 labelling does \
+                 not attribute"
+            ));
+        }
+    }
+
+    assert_eq!(
+        wrong,
+        Vec::<String>::new(),
+        "AC-1: each of the {} `tuning` entries must carry exactly the `site:` \
+         tag the user recorded for it on 2026-09-21 - the per-file table in \
+         MC-042's `## Context`, which READER_BY_FILE reads out. This is the \
+         criterion's actual contract: the counts do not determine the mapping, \
+         so an attribution that gave `toongod`'s eleven marked slots to a \
+         different eleven marked entries would satisfy every total in this \
+         file and still be eleven wrong answers. Nothing here or anywhere else \
+         in the repository can re-derive a row - the labeller is an Artifact \
+         outside the tree - so a disagreement means the manifest is wrong, \
+         never the constant. Each row is `file | expected | actual`",
+        READER_BY_FILE.len()
+    );
+}
+
+#[test]
+fn the_reader_attribution_matches_the_counts_the_user_recorded() {
+    let entries = corpus::load();
+
+    // The readable half of AC-1, and the cross-check on READER_BY_FILE - see
+    // that constant and this one's doc comment for why a test strictly implied
+    // by another is worth its run time. Rendered as rows and compared in one
+    // shot, so a failure prints the whole table - which reader, which column,
+    // measured against recorded - rather than stopping at the first
+    // disagreement.
+    let mut measured: Vec<String> = Vec::new();
+    let mut recorded: Vec<String> = Vec::new();
+    for (reader, tuning_total, marked, flagged, held) in READER_LABELS {
+        let tuning = by_reader(&entries, reader, Split::Tuning);
+        measured.push(format!(
+            "{reader} | tuning {} | marked {} | flag {} | held-out {}",
+            tuning.len(),
+            tuning
+                .iter()
+                .filter(|e| matches!(e.expect, Expect::Rect(_)))
+                .count(),
+            tuning.iter().filter(|e| e.expect == Expect::Flag).count(),
+            by_reader(&entries, reader, Split::HeldOut).len(),
+        ));
+        recorded.push(format!(
+            "{reader} | tuning {tuning_total} | marked {marked} | flag \
+             {flagged} | held-out {held}"
+        ));
+    }
+
+    // A reader the labelling never names is a row neither list would otherwise
+    // carry, and it would leave the seven above still agreeing.
+    let known: BTreeSet<&str> = READER_LABELS.iter().map(|(r, ..)| *r).collect();
+    let strays: BTreeSet<String> = entries
+        .iter()
+        .flat_map(site_tags)
+        .filter(|s| !known.contains(s))
+        .map(str::to_owned)
+        .collect();
+    for stray in &strays {
+        measured.push(format!(
+            "{stray} | a reader slug the 2026-09-21 labelling does not name"
+        ));
+    }
+
+    assert_eq!(
+        measured, recorded,
+        "AC-1: the reader attribution in the manifest must be exactly the one \
+         the user recorded on 2026-09-21, which MC-042's `## Context` carries \
+         and READER_LABELS reads out. The marked and flag columns are the \
+         point: `toongod`'s fifteen tuning entries are eleven marked and four \
+         flag, and every accuracy number in EPIC-07 is measured over marked \
+         entries, so a manifest that got the fifteen right and the eleven \
+         wrong would make AC-5's 'eleven of twenty-one' false while looking \
+         labelled. `xbato`'s zero tuning entries is a recorded finding, not an \
+         omission. Each row is \
+         `reader | tuning | marked | flag | held-out`"
+    );
+}
+
+// --- AC-2: the marked tuning rectangles cannot move -------------------------
+
+#[test]
+fn every_marked_tuning_entry_still_carries_the_rectangle_it_was_marked_with() {
+    let entries = corpus::load();
+    let mut drifted: Vec<String> = Vec::new();
+
+    for (name, x, y, w, h) in MARKED_TUNING_RECTS {
+        let pinned = Rect { x, y, w, h };
+        // A pinned name that is no longer in the manifest is the classic way a
+        // guard stops guarding without anybody noticing: it would check
+        // twenty rectangles while claiming twenty-one.
+        match entries.iter().find(|e| e.name() == name) {
+            None => drifted.push(format!(
+                "{name}: pinned {pinned:?}, but no entry of that name is in the \
+                 manifest at all"
+            )),
+            Some(entry) => match entry.expect {
+                Expect::Rect(actual) if actual == pinned => {}
+                Expect::Rect(actual) => {
+                    drifted.push(format!("{name}: pinned {pinned:?}, manifest {actual:?}"))
+                }
+                Expect::Flag => {
+                    drifted.push(format!("{name}: pinned {pinned:?}, manifest \"flag\""))
+                }
+            },
+        }
+    }
+
+    // The other direction. Without it a marked tuning entry added or renamed
+    // into the corpus would be unpinned and this test would not say so.
+    for entry in entries
+        .iter()
+        .filter(|e| e.split == Split::Tuning && matches!(e.expect, Expect::Rect(_)))
+    {
+        let name = entry.name();
+        if !MARKED_TUNING_RECTS.iter().any(|(n, ..)| *n == name) {
+            drifted.push(format!(
+                "{name}: a marked `tuning` entry that MARKED_TUNING_RECTS does \
+                 not pin"
+            ));
+        }
+    }
+
+    assert_eq!(
+        drifted,
+        Vec::<String>::new(),
+        "AC-2: all {} marked `tuning` rectangles must be byte-for-byte the \
+         ones EPIC-07 measured against. MC-019's 20 of 21, MC-026's 8 of 21, \
+         MC-028's 4, MC-031's 5, MC-034's 8, MC-035's re-score and MC-038's 8 \
+         are all scored against these exact rectangles, and MC-042 edits every \
+         one of the twenty-eight tuning entries by hand to add a `site:` tag. \
+         A digit changed in an adjacent line would silently move a number in \
+         seven prior documents. Re-marking is out of scope for MC-042: if a \
+         mark is genuinely wrong, the story that rules on it changes this \
+         constant and says so. Each row is `file | pinned | manifest`",
+        MARKED_TUNING_RECTS.len()
+    );
+}
