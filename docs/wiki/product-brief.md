@@ -97,10 +97,21 @@ is enough), clipboard and hotkey input, watch folder.
 - Multi-user features, sharing, accounts, telemetry, updates over the network.
 
 **Amended 2026-09-21, by the user's decision: the detector may use knowledge
-of a specific reader's furniture.** Matching a known site's navigation bar,
-header or footer — which is pixel-identical across every screenshot from that
-site — is permitted as an input to the crop decision, and
-[`EPIC-07`](../backlog/epics/EPIC-07.md) story 3 is where it is built.
+of a specific reader's furniture, but only on top of a rule that works
+without it.** Matching a known site's navigation bar, header or footer — which
+is pixel-identical across every screenshot from that site — is permitted as an
+input to the crop decision. It is **an optimisation, never the mechanism**: the
+user's words are *"it should work on any reader"*, so the detector must reach
+the bar on a reader it has never seen, and per-site knowledge may only improve
+a site it recognises on top of that. A rule that is *only* a per-site matcher
+does not satisfy this brief, however well it scores on the sites in the corpus.
+
+This has a consequence worth stating in the same breath, because it is the cost
+of the decision: **the general rule does not exist.** Seven investigations have
+looked for one and all seven came back reasoned negatives (below), so at the
+time of writing nothing meets the requirement this amendment sets, and
+[`EPIC-07`](../backlog/epics/EPIC-07.md) story 3 is parked rather than built —
+see [MC-041](../backlog/stories/MC-041.md).
 
 The brief was **silent** on this rather than against it, and the amendment is
 recorded here because the silence was being read as a prohibition.
@@ -125,20 +136,33 @@ shippable:
 
 - **Never clip** (section 4.2, `architecture.md` decision 13). Unchanged and
   still absolute.
-- **Uncertain means copy unchanged and flag** (section 4.3). A site the matcher
-  does not know must fall back to today's behaviour, not guess — the tool must
-  get no worse on an unseen reader than it is now.
+- **An unrecognised reader is not a reason to flag.** Section 4.3's
+  flag-and-copy is for a screenshot the detector cannot crop confidently — an
+  all-art page, a mostly-white one — and **not** for a site the matcher has
+  never seen. An unseen reader gets the general rule's answer, exactly as it
+  would if no matcher existed; the tool must get no worse on it than it is now,
+  and must not start flagging files it crops today.
 - **Offline** (section 6). Furniture is recognised from the pixels in front of
   it; nothing is fetched, and no site is contacted.
 - **No settings pane, no tuning file** (`architecture.md` decision 11). The user
   does not maintain a list of sites.
 - One input file still yields one output file, in its original format.
 
-**What this does not open.** Learned or model-based detection stays deferred:
-`EPIC-07` holds it until stories 2 and 3 have reported, and only story 2 has.
+**What this does not open — and the decision it now forces.** This amendment
+permits **per-site furniture matching as an optimisation** and nothing else.
 Colour and chroma stay ruled out (MC-025 `## Context`). Re-marking the corpus
 stays declined (the 2026-09-17 decision; `EPIC-07` "deliberately not in this
-epic"). This amendment permits **per-site furniture matching** and nothing else.
+epic").
+
+Learned or model-based detection is **not opened here, and is now the only
+untried signal class left for the general rule.** `EPIC-07` defers it "until
+stories 2 and 3 have reported": story 2 reported a reasoned negative
+([MC-038](region-row-search.md)), and story 3 is answered not by measurement but
+by this decision — per-site matching cannot be the mechanism, so it cannot be
+the general rule either. Both of the epic's cheaper ideas are therefore spent.
+Opening learned detection is a separate decision, with its own cost (it needs
+the grown corpus most of all, and the brief's **offline** constraint means any
+model ships inside the exe and runs locally), and it has not been taken.
 
 One caution for whoever measures it, from `docs/wiki/corpus.md`: the corpus
 spans seven readers with counts as low as one (`demonicrevolution`), so a

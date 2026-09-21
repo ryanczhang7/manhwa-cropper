@@ -106,9 +106,27 @@ only one that can start.
    brief excludes per-reader special cases; adopting this is a product decision
    and needs an amendment there, not an agent's judgement.
 
-   **Written as [MC-041](../stories/MC-041.md)**, `type: spike`,
-   `depends_on: [MC-037, MC-038, MC-039]`. Four things settled when it was
-   written:
+   **Written as [MC-041](../stories/MC-041.md) and PARKED the same day,
+   2026-09-21, by the user's decision — do not start it.** The user settled the
+   premise the story rested on: *"It should work on any reader. Do not flag
+   other readers."* The brief amendment was rewritten to match, and per-site
+   knowledge is now permitted **as an optimisation on top of a rule that works
+   without it, never as the mechanism**. A story measuring whether a furniture
+   matcher reaches the bar is measuring the wrong thing: it can only answer for
+   the sites in the corpus, and the requirement is explicitly the sites that
+   are not. MC-041's `## Parked` section carries the reasoning and what would
+   unpark it — a general row-axis rule that meets the bar on an unseen reader,
+   and nothing else.
+
+   **This spends the epic's second cheap idea**, and the consequence is in the
+   "deliberately not in this epic" list below: learned or model-based detection
+   was held "until stories 2 and 3 have reported", story 2 reported a reasoned
+   negative and story 3 is answered by product decision rather than by
+   measurement. Both conditions are discharged. Opening it is a separate
+   decision and has not been taken.
+
+   The four things settled when MC-041 was written, which still hold for
+   whoever unparks it:
 
    - **The amendment has been made.** The user amended
      [`product-brief.md`](../../wiki/product-brief.md) §5 on **2026-09-21** to
@@ -150,6 +168,17 @@ only one that can start.
   It is no longer excluded — EPIC-05 excluded it and `architecture.md`
   decision 14 defers it to v2 — but it is the most expensive option, it needs
   the grown corpus most of all, and two cheaper ideas are untested.
+
+  **Both conditions are now discharged, 2026-09-21.** Story 2 reported a
+  reasoned negative ([MC-038](../../wiki/region-row-search.md)); story 3 is
+  answered by the user's decision that the detector must work on any reader,
+  which makes per-site matching an optimisation rather than a mechanism and
+  parks [MC-041](../stories/MC-041.md). Neither cheap idea is untested any
+  more, and **no general row-axis rule exists** — so this is the only untried
+  signal class left. It is still deferred: discharging the conditions makes it
+  *available* to open, not opened. Opening it is a product decision with its
+  own cost, and the brief's **offline** constraint is a real constraint on it —
+  any model ships inside the exe and runs locally, with no network at all.
 - **Colour and chroma**, ruled out in MC-025 `## Context` and not revisited
   here.
 - **The column axis**, settled at 20 of 21 and not reopened.
