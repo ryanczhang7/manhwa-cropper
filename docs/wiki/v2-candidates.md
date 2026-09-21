@@ -52,6 +52,7 @@ window, with zero clips.**
 | Are they locatable from the panel's own art edge? | `panel-edge-search.md` (MC-034) | no — two families, 780 parameterisations, best **8 of 21 with 9 clips**, per-file ceiling **10 of 21** |
 | Were those numbers unfairly low, given the gutter-crossing band? | `gutter-band-rescore.md` (MC-035) | no — 387 clipped scorings retire, and **no member of either family is clip-free at all** (0 of 780), at the ruled band width or twice it |
 | Would splitting the bar by edge help? | MC-032 `## Closed` | no — best single rule **14 of 21** top edges *and it clips*; **0 of 780** avoid a top clip |
+| Does 2D region structure locate the edge where 1D projections cannot? | `region-row-search.md` (MC-038) | no — two families, 1120 parameterisations, best **8 of 21 with 6 clips**, ceiling **10 of 21**. The 2D property is real (it separates a bubble row from a marked edge on `2708` and `2630` where `cover(y)` cannot) and too rare to build on: **8 of 42 edges against `cover(y)`'s 6 of 42** |
 
 Two instruments were also tried and abandoned, and both are worth knowing about
 because they look attractive from a standing start:
@@ -65,6 +66,12 @@ because they look attractive from a standing start:
   gutter on both sides"). MC-034 section 2d re-implemented it from its own
   description and got different numbers. It is a property of an instrument, not
   of the corpus; **no argument should rest on it**, and MC-032 says so itself.
+- **Connected components of the *ink*.** MC-038 section 3a: the ink of a comic
+  page percolates, so a page, its browser chrome and everything below it come
+  back as one component — 390,035 px spanning rows 133…1391 on
+  `Screenshot (2630)`. Its ceiling is 6 of 21, below every 1D family. Label the
+  **background** instead, or put a morphological opening in front of the
+  labelling; MC-038 did the former and did not try the latter.
 
 ## What a v2 attempt has to beat
 
