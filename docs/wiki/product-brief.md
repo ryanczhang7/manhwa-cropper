@@ -169,6 +169,58 @@ spans seven readers with counts as low as one (`demonicrevolution`), so a
 matcher evaluated on `toongod` (10 entries) and on that one entry is not being
 evaluated on the same thing twice.
 
+**Amended again 2026-09-21, and this one changes the target: the default crop
+removes *furniture*, not *everything that is not artwork*.** The user's words:
+
+> Ignore the gutters between panels, ignore art that overhangs into the
+> gutters, ignore sound effects / non-typical speech bubbles that overhang onto
+> the gutter or art. Just crop out the sides (which I think we already did),
+> and crop out the browser artifacts and taskbar artifacts and any reader
+> artifacts. A user can choose to crop more, but that should be the default.
+
+So the default output is **the reader's page content area**: the side gutters
+gone (already done — 20 of 21 on the column axis), the browser tab strip,
+bookmarks bar and URL bar gone, the Windows taskbar gone, and the reader site's
+own header, navigation and footer gone. What is **deliberately left in**:
+
+- **page gutter above and below the artwork** — the crop does not look for a
+  panel boundary, and no longer tries to;
+- **gutters between panels**, for the same reason;
+- **art that overhangs into a gutter**, a sound effect, or an atypical speech
+  bubble crossing into the gutter or onto a neighbour. None of these is a
+  defect any more. They were the single cause of every failure below, and they
+  are now out of scope rather than unsolved.
+
+**Never clip** (section 4.2) is untouched and still absolute. Section 5's
+"no preview, manual adjustment, or approval step" is also untouched: *"a user
+can choose to crop more"* means they are content to hand-crop the occasional
+image, not that the app grows an adjustment UI.
+
+**Why the target moved.** Seven investigations looked for the artwork's own
+edge on the row axis — MC-026, MC-028, MC-031, MC-032, MC-034, MC-035,
+[MC-038](region-row-search.md) — and all seven came back reasoned negatives.
+Every one of them failed on the same thing: telling page gutter from panel
+gutter when a bubble crosses it. Dropping that requirement does not work around
+the problem; it removes it.
+
+**This reverses one half of the 2026-09-17 decision, and the reversal is
+specific.** MC-031's Option B — *"no output contains browser or OS chrome"* —
+was refused that day because **the site's own navigation survived into the
+crop**. The target above is Option B **with the reader's furniture removed
+too**, which is precisely the objection that sank it. `architecture.md`
+decision 14 carries the same amendment.
+
+**What this does to the measurement, decided here so no story has to guess.**
+The corpus marks **stay tight and stay as they are** — nobody re-marks 59
+screenshots. Their role changes: they are the **never-clip oracle**, not the
+row-axis accuracy target. A crop is right when it (a) contains the marked
+rectangle, exactly as today, and (b) contains no browser, OS or reader
+furniture. That is a containment-and-absence predicate rather than an 11 px
+window, it needs a furniture oracle rather than a re-marking, and MC-031
+section 9 already built two-thirds of one. If a direct accuracy number is
+wanted later, re-marking to the page content area is the way to get it, and it
+is a separate decision with the user's time in it.
+
 ## 6. Constraints
 
 - **Platform**: Windows 11 desktop (user's machine: Windows 11 Home).
