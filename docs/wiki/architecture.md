@@ -389,3 +389,34 @@ this file and the stories that depend on it.
     grown. The structural finding that motivates it — every rule ever tried,
     and the shipped detector, reduce the image to 1D row statistics, which is
     why a single speech bubble defeats them — is in that epic's `## Why now`.
+
+    **Amended 2026-09-21 by the user's decision, and this one moves the
+    target.** The row axis is no longer aimed at the artwork's own rectangle.
+    The default crop removes **furniture** — browser chrome, the Windows
+    taskbar, and the reader site's own header, navigation and footer — and
+    stops there. Page gutter above and below the artwork stays in the output,
+    as do gutters between panels, overhanging art, sound effects and atypical
+    bubbles that cross a gutter. `product-brief.md` section 5 carries the
+    user's words and the full statement; this is the decision record.
+
+    Three consequences, because each one reverses something written above.
+
+    - **Option B is adopted after all, in the form that was missing.** The
+      paragraph above records it refused on 2026-09-17 because "the site's own
+      navigation is also unacceptable". The new target removes the site's
+      navigation, so the objection is answered rather than overruled. What was
+      refused was chrome removal *alone*; what is adopted is chrome, OS and
+      reader furniture together.
+    - **"The target stays the artwork itself" no longer holds**, and neither
+      does the sentence that every rule ever tried failed on 1D row statistics
+      being the thing to fix. It is still true, and it is now *irrelevant*: the
+      panel boundary those rules were hunting is no longer being located.
+      [MC-038](region-row-search.md) is the last of the seven and the record of
+      why hunting it was abandoned.
+    - **The corpus marks stay tight, and change job.** They remain exactly as
+      marked — nobody re-marks — but they are now the **never-clip oracle**
+      rather than the row-axis accuracy target. Accuracy becomes containment
+      plus absence of furniture; `product-brief.md`'s amendment states the
+      predicate and why re-marking was not chosen.
+
+    Zero clips is untouched by all of this and remains absolute.
