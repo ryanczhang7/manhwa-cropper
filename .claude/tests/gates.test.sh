@@ -373,7 +373,17 @@ if [ -d "$LOCK" ]; then _bad "the lock is released on exit" "$LOCK still exists"
 else _ok "the lock is released on exit"; fi
 
 # --- held by a live process -------------------------------------------------
-sleep 30 & LIVE=$!
+# The owner has to be alive for every assertion below it, and a background
+# `sleep N` is a wall clock: under load the seven gates.sh invocations that
+# follow outlast it, the owner dies mid-block, acquire_lock() correctly takes a
+# stale lock over, and five assertions that exist to pin "a live owner is waited
+# for" observe the opposite (MC-044). This runner's own pid is alive for the
+# whole block by construction - it IS the block - so the fixture is
+# deterministic with no change to scripts/gates.sh: the take-over branch turns
+# on `host = $LOCK_HOST` AND `! kill -0 "$pid"`, and `kill -0 $$` from the
+# gates.sh child always succeeds. Nothing is started, so nothing needs killing
+# afterwards.
+LIVE=$$
 fake_lock "$LIVE" "$(hostname 2>/dev/null || printf '%s' "${HOSTNAME:-unknown}")"
 
 out="$(gates --no-wait)"; rc=$?
@@ -408,7 +418,17 @@ assert_contains "and it gives up out loud"   "gave up waiting for the gate run l
 assert_contains "saying nothing ran"         "neither a pass nor a failure" "$out"
 assert_eq "and exits 3"                      "3" "$rc"
 
-kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
+# The claim the four assertions above only imply: it waited because the owner is
+# ALIVE, not because it happened to give up on something it had already broken.
+# Stated directly, as the foreign-host case below states it, so that a fixture
+# whose owner dies mid-block is caught here rather than read as a pass.
+case "$out" in
+  *"Taking it over"*) _bad "a live owner's lock is never taken over" "broke it: $out" ;;
+  *) _ok "a live owner's lock is never taken over" ;;
+esac
+
+# No teardown: the live owner above is this script, which the next fake_lock
+# simply stops naming. (It was `kill "$LIVE"` when the owner was a `sleep`.)
 
 # --- left behind by a dead process ------------------------------------------
 # A hard kill leaves a lock with nobody behind it. Wedging until somebody reads
