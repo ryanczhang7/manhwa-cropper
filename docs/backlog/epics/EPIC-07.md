@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050]
 ---
 
 ## Goal
@@ -202,6 +202,30 @@ only one that can start.
    Not yet written as a story. It is the next one to plan, and it supersedes
    the "row accuracy" framing above rather than sitting beside it.
 
+   **Written 2026-09-23 as two stories, staged, by the user's decision.** The
+   user's words that day: *"I consider this a failure currently. Not good
+   enough for v1. [...] the app completely failed to crop out the browser
+   artifacts up top."* Asked how to proceed on the top edge, the user chose
+   **staged**:
+
+   - **[MC-048](../stories/MC-048.md)** — *fix*: the crop removes the browser
+     chrome and the taskbar. MC-031's chrome oracle, shipped as an **internal
+     stage** of the crop — which the "deliberately not" list below permits —
+     with containment held absolute and the columns pinned unchanged. It is
+     progress toward this story's bar, **not** the bar: the reader's own
+     header, navigation and footer survive it, and the story says so in its
+     own `## Context` together with everything v1 still lacks after it.
+   - **[MC-050](../stories/MC-050.md)** — *spike*, `depends_on: [MC-048]`: is
+     the reader's own furniture locatable by a rule that works on any reader?
+     A spike rather than a feature because no furniture oracle exists yet and
+     a feature would have to assert a bar no rule has been shown to meet
+     (MC-032's `## Closed`). It is not an eighth run of the panel-boundary
+     search: the boundary it looks for touches the viewport edge, as chrome
+     does. Per-site matching remains an optimisation only; MC-041 stays parked.
+
+   If MC-050 finds a rule, the feature it sketches is the story that meets
+   this item's bar and earns the epic's first held-out score.
+
 ## Deliberately not in this epic
 
 - **Re-marking the corpus.** The marks stay tight, by the user's decision of
@@ -211,6 +235,8 @@ only one that can start.
 - **Shipping chrome removal as its own criterion.** MC-031's Option B,
   declined above. It may still return as an *internal stage* of a rule that
   goes further; it may not return as the product's bar.
+  [MC-048](../stories/MC-048.md) (2026-09-23) is that internal stage; its
+  criteria are framed as progress toward story 4 and say what is still missing.
 - **Learned or model-based detection**, until stories 2 and 3 have reported.
   It is no longer excluded — EPIC-05 excluded it and `architecture.md`
   decision 14 defers it to v2 — but it is the most expensive option, it needs
@@ -229,6 +255,13 @@ only one that can start.
 - **Colour and chroma**, ruled out in MC-025 `## Context` and not revisited
   here.
 - **The column axis**, settled at 20 of 21 and not reopened.
+
+  **Reopened 2026-09-23 by the user — in [`EPIC-08`](EPIC-08.md), not here.**
+  *"The cropping from the side isnt tight enough and I still see the page on
+  the right and left side."* It stays out of this epic because this epic's
+  scope sentence below is about the top and bottom edges only, and the column
+  axis has a different bar (the marks remain its accuracy target). EPIC-08
+  records why.
 - **Any change to the flag-and-copy behaviour**, the output naming rules, the
   window, or the formats. This epic changes where the crop rectangle's top and
   bottom edges land, and nothing else.

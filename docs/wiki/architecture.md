@@ -287,6 +287,14 @@ this file and the stories that depend on it.
    size. Lost because the corpus will decide, and a constant is the easiest
    thing for it to change. A leftover 3 px border is the brief's accepted
    cost.
+
+   **Challenged 2026-09-23 by the user; the value is not yet changed.** *"The
+   cropping from the side isnt tight enough and I still see the page on the
+   right and left side."* A probe that day found the column locator already on
+   the page-background / page boundary on every marked tuning entry, so the
+   band the user sees is this margin. [MC-049](../backlog/stories/MC-049.md)
+   (`EPIC-08`) proposes `margin_px` = 0 and asks the user first; this decision
+   is rewritten when that story lands, not before.
 6. **Output folder is remembered; Send-to with no folder ever chosen falls
    back to a `cropped` folder next to the first input.** Alternative: refuse
    and open the window on the picker. Lost because the tenth-run flow in the
