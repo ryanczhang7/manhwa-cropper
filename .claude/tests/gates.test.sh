@@ -595,4 +595,124 @@ case "$(cat "$FIX/docs/backlog/stories/T-1.md")" in
 esac
 set_phase "$FIX" ""
 
+# ---------------------------------------------------------------------------
+describe "a gate that reads its stdin cannot delete the gates after it"
+
+# MC-046, the user's report. The gate loop read project.conf on its own stdin
+# and ran each gate inside it without redirecting stdin, so a gate that ran
+# `cat` swallowed the rest of the manifest. The loop saw EOF and stopped: every
+# later gate vanished from the run, the summary and the count, and a required
+# gate that exits 1 was certified "All required gates passed", exit 0.
+#
+# gates_isolated runs gates.sh with stdin at end-of-input and descriptors 3-9
+# closed, so that a gate which drains a descriptor can only ever reach what
+# gates.sh itself gave it - never this test process's terminal or pipes, which
+# would block the suite instead of failing it. AC-3 is the test about what the
+# caller's stdin can reach; these are about the manifest.
+gates_isolated() {
+  ( cd "$FIX" && bash scripts/gates.sh "$@" 2>&1 ) </dev/null 3<&- 4<&- 5<&- 6<&- 7<&- 8<&- 9<&-
+}
+
+# assert_gate_failed <what> <id> <output>   The summary line for a required gate
+# that exited 1, by id: `FAIL         <id> (<n>s, exit 1) -> <its log>`. The
+# duration is the one field not pinned.
+assert_gate_failed() {
+  case "$3" in
+    *"FAIL         $2 ("*"s, exit 1) -> .claude/state/gate-logs/$2.log"*) _ok "$1" ;;
+    *) _bad "$1" "expected a summary line: FAIL         $2 (<n>s, exit 1) -> .claude/state/gate-logs/$2.log
+actual:   $3" ;;
+  esac
+}
+
+# assert_lacks <what> <needle> <haystack>
+assert_lacks() {
+  case "$3" in
+    *"$2"*) _bad "$1" "expected NOT to contain: $2
+actual:                   $3" ;;
+    *) _ok "$1" ;;
+  esac
+}
+
+# AC-1(a): the reported bug. Today: `later` is absent, "(1 ran, ...)", exit 0.
+write_conf "$FIX" <<'EOF'
+gate     | eats  | required | . | cat >/dev/null; printf 'Tests 1 passed\n'
+gate     | later | required | . | printf 'Tests 2 passed\n'
+evidence | eats  | Tests [1-9][0-9]* passed
+evidence | later | Tests [1-9][0-9]* passed
+EOF
+out="$(gates_isolated)"; rc=$?
+assert_contains "the gate after a stdin-reading gate still runs" "=== gate: later (required) ===" "$out"
+assert_contains "the stdin-reading gate passes"          "PASS         eats (" "$out"
+assert_contains "and so does the gate after it"          "PASS         later (" "$out"
+assert_contains "and both are counted as having run" \
+  "All required gates passed (2 ran, 0 unconfigured, 0 known)." "$out"
+assert_eq "a run of two passing gates exits 0" "0" "$rc"
+
+# AC-1(b): worse than reported. Today: exit 0, "All required gates passed".
+AC1B_CONF="gate     | eats  | required | . | cat >/dev/null; printf 'Tests 1 passed\n'
+gate     | later | required | . | exit 1
+evidence | eats  | Tests [1-9][0-9]* passed"
+printf '%s\n' "$AC1B_CONF" | write_conf "$FIX"
+out="$(gates_isolated)"; rc=$?
+assert_gate_failed "a failing required gate after a stdin-reading gate is reported FAIL" later "$out"
+assert_contains "and the run says a required gate failed" "1 required gate(s) failed." "$out"
+assert_lacks "and does not certify the run" "All required gates passed" "$out"
+assert_eq "and exits 1" "1" "$rc"
+
+# ---------------------------------------------------------------------------
+describe "a gate cannot reach the manifest through any inherited descriptor"
+
+# AC-2. The obvious fix - read the manifest on fd 3 instead of fd 0 - passes
+# AC-1 and relocates the defect: the eval'd command inherits fd 3 and a gate
+# that reads it drains the manifest exactly as before. This gate reads 0 and
+# every descriptor 3 to 9 an ordinary command can reach by accident.
+write_conf "$FIX" <<'EOF'
+gate     | eats  | required | . | for fd in 0 3 4 5 6 7 8 9; do cat <&$fd >/dev/null; done 2>/dev/null; printf 'Tests 1 passed\n'
+gate     | later | required | . | exit 1
+evidence | eats  | Tests [1-9][0-9]* passed
+EOF
+out="$(gates_isolated)"; rc=$?
+assert_gate_failed "a gate after one that drains fds 0 and 3-9 still runs and is reported FAIL" later "$out"
+assert_contains "and the run says a required gate failed" "1 required gate(s) failed." "$out"
+assert_lacks "and does not certify the run" "All required gates passed" "$out"
+assert_eq "and exits 1" "1" "$rc"
+
+# ---------------------------------------------------------------------------
+describe "a gate reads end-of-input, not the manifest and not the caller's stdin"
+
+# AC-3. Today the gate reads the rest of the manifest. Under the fd-3-only fix
+# it reads whatever gates.sh was given - here a pipe, in a terminal the TTY,
+# where it would block forever. The pipe is finite, so this test cannot block
+# whichever of those it meets; it fails instead.
+write_conf "$FIX" <<'EOF'
+gate  | count | required | . | printf 'stdin-bytes=%s\n' "$(wc -c | tr -d ' ')"
+gate  | after | required | . | printf 'Tests 2 passed\n'
+EOF
+rm -f "$FIX/.claude/state/gate-logs/count.log"
+out="$(printf 'CALLER-DATA\n' | ( cd "$FIX" && bash scripts/gates.sh 2>&1 ))"
+assert_contains "a run given data on stdin still finishes" "--- gate summary ---" "$out"
+seen="$(grep '^stdin-bytes=' "$FIX/.claude/state/gate-logs/count.log" 2>/dev/null)"
+assert_eq "a gate reads zero bytes of stdin, whatever gates.sh was given" "stdin-bytes=0" "$seen"
+
+# ---------------------------------------------------------------------------
+describe "--fast and --required give the same guarantee as a full run"
+
+# AC-4. The subsets run the same loop. (--gate <id> is deliberately absent: a
+# filtered-out gate hits `continue` before anything runs, so it has no defect.)
+printf '%s\n%s\n%s\n' "$AC1B_CONF" \
+  "gate     | slow_one | required | . | printf 'Tests 3 passed\n'" \
+  "slow     | slow_one | stands in for a release build; RED has no use for it" \
+  | write_conf "$FIX"
+out="$(gates_isolated --fast)"; rc=$?
+assert_gate_failed "--fast: a failing gate after a stdin-reading gate is reported FAIL" later "$out"
+assert_contains "--fast: the slow gate after them is still seen, and skipped" "--fast skipped: slow_one" "$out"
+assert_contains "--fast: the run says a required gate failed" "1 required gate(s) failed." "$out"
+assert_eq "--fast: and exits 1" "1" "$rc"
+
+printf '%s\n' "$AC1B_CONF" | write_conf "$FIX"
+out="$(gates_isolated --required)"; rc=$?
+assert_gate_failed "--required: a failing gate after a stdin-reading gate is reported FAIL" later "$out"
+assert_contains "--required: the run says a required gate failed" "1 required gate(s) failed." "$out"
+assert_eq "--required: and exits 1" "1" "$rc"
+
 summary "gates"

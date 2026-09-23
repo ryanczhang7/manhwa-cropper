@@ -608,7 +608,11 @@ while IFS= read -r line; do
   printf '\n=== gate: %s (%s%s) ===\n%s\n' "$id" "$req" "$escalated" "$cmd"
   log="$LOGDIR/$id.log"
   start=$(date +%s)
-  ( cd "$ROOT/$cwd" && eval "$cmd" ) 2>&1 | tee "$log"
+  # </dev/null: this loop reads the manifest on stdin, so a gate that inherited
+  # it could drain the lines after it and every later gate would silently vanish
+  # (MC-046). It also keeps the caller's stdin, a TTY included, out of the gate.
+  # gates.sh opens no other descriptor in 3-9 for the command to inherit.
+  ( cd "$ROOT/$cwd" && eval "$cmd" ) </dev/null 2>&1 | tee "$log"
   rc=${PIPESTATUS[0]}
   dur=$(( $(date +%s) - start ))
   ran=$((ran+1))
