@@ -79,7 +79,36 @@ done
 # see record_in_story.
 RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-trim() { printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+# trim <var> <string>   Sets <var> to <string> without leading or trailing
+# whitespace. Builtins only: it runs once per project.conf line and more per
+# gate, and a `printf | sed` in `$(...)` there cost a fork and an exec each
+# time - minutes for this repo's config on a machine where a fork is ~0.15 s
+# (MC-045). Nothing on the parse path may fork per line or per gate.
+trim() {
+  local _t_s="$2"
+  _t_s="${_t_s#"${_t_s%%[![:space:]]*}"}"
+  _t_s="${_t_s%"${_t_s##*[![:space:]]}"}"
+  printf -v "$1" '%s' "$_t_s"
+}
+
+# split_fields <line>   The `cut -d'|'` fields of a project.conf line, with
+# builtins, each trimmed at its ends only: F1..F4 are fields 1-4 and F3_ and
+# F5_ are `-f3-` and `-f5-` (everything after the 2nd / 4th `|`, so a regex or
+# a command containing `|` survives). A field past the last `|` is empty, as
+# cut prints it.
+split_fields() {
+  local _sf_r="$1" _sf_f1 _sf_f2 _sf_f3 _sf_f4 _sf_3r="" _sf_5r=""
+  _sf_f1="${_sf_r%%|*}"
+  case "$_sf_r" in *'|'*) _sf_r="${_sf_r#*|}" ;; *) _sf_r="" ;; esac
+  _sf_f2="${_sf_r%%|*}"
+  case "$_sf_r" in *'|'*) _sf_r="${_sf_r#*|}"; _sf_3r="$_sf_r" ;; *) _sf_r="" ;; esac
+  _sf_f3="${_sf_r%%|*}"
+  case "$_sf_r" in *'|'*) _sf_r="${_sf_r#*|}" ;; *) _sf_r="" ;; esac
+  _sf_f4="${_sf_r%%|*}"
+  case "$_sf_r" in *'|'*) _sf_5r="${_sf_r#*|}" ;; esac
+  trim F1 "$_sf_f1"; trim F2 "$_sf_f2"; trim F3 "$_sf_f3"; trim F4 "$_sf_f4"
+  trim F3_ "$_sf_3r"; trim F5_ "$_sf_5r"
+}
 
 TAB=$(printf '\t')
 ESC=$(printf '\033')
@@ -209,10 +238,12 @@ acquire_lock() {
 EVIDENCE=""; WAIVERS=""; FLOORS=""; SLOWS=""; CIFACTORS=""; NOCOUNTS=""; GATE_IDS=""
 while IFS= read -r line; do
   line="${line%%$'\r'}"
-  case "$(trim "$line")" in ''|'#'*) continue ;; esac
+  trim tline "$line"
+  case "$tline" in ''|'#'*) continue ;; esac
   case "$line" in *'|'*) ;; *) continue ;; esac
-  kind=$(trim "$(printf '%s' "$line" | cut -d'|' -f1)")
-  tid=$(trim "$(printf '%s' "$line" | cut -d'|' -f2)")
+  split_fields "$line"
+  kind="$F1"
+  tid="$F2"
   # Every gate id, so that --audit can tell a `slow` line naming a real gate
   # from one naming a typo. That distinction matters more here than for the
   # other tables: a misspelt `evidence` id makes its gate report "no evidence
@@ -221,7 +252,7 @@ while IFS= read -r line; do
   [ "$kind" = "gate" ] && { GATE_IDS="$GATE_IDS $tid"; continue; }
   case "$kind" in evidence|waiver|floor|slow|ci-factor|no-count) ;; *) continue ;; esac
   # -f3- so that a regex containing `|` (alternation) survives the split.
-  tval=$(trim "$(printf '%s' "$line" | cut -d'|' -f3-)")
+  tval="$F3_"
   [ -n "$tid" ] || continue
   case "$kind" in
     evidence) EVIDENCE="$EVIDENCE$tid$TAB$tval
@@ -248,14 +279,16 @@ if [ -n "$ONLY" ]; then
   esac
 fi
 
-# table_lookup <table> <id>   Echoes the value. Exact string comparison, never
-# a regex match: a gate id containing `.` or `*` must not silently adopt a
-# different gate's line. Returns 1 when the id has no line.
+# table_lookup <var> <table> <id>   Sets <var> to the value. Exact string
+# comparison, never a regex match: a gate id containing `.` or `*` must not
+# silently adopt a different gate's line. Returns 1, with <var> empty, when the
+# id has no line. Assigns rather than echoes so callers need no `$(...)`.
 table_lookup() {
-  local eid ere
-  while IFS="$TAB" read -r eid ere; do
-    if [ "$eid" = "$2" ]; then printf '%s' "$ere"; return 0; fi
-  done <<< "$1"
+  local _tl_id _tl_val
+  while IFS="$TAB" read -r _tl_id _tl_val; do
+    if [ "$_tl_id" = "$3" ]; then printf -v "$1" '%s' "$_tl_val"; return 0; fi
+  done <<< "$2"
+  printf -v "$1" '%s' ""
   return 1
 }
 
@@ -384,15 +417,17 @@ results=""
 
 while IFS= read -r line; do
   line="${line%%$'\r'}"
-  case "$(trim "$line")" in ''|'#'*) continue ;; esac
+  trim tline "$line"
+  case "$tline" in ''|'#'*) continue ;; esac
   case "$line" in *'|'*) ;; *) continue ;; esac
 
-  kind=$(trim "$(printf '%s' "$line" | cut -d'|' -f1)")
+  split_fields "$line"
+  kind="$F1"
   [ "$kind" = "gate" ] || continue
-  id=$(trim   "$(printf '%s' "$line" | cut -d'|' -f2)")
-  req=$(trim  "$(printf '%s' "$line" | cut -d'|' -f3)")
-  cwd=$(trim  "$(printf '%s' "$line" | cut -d'|' -f4)")
-  cmd=$(trim  "$(printf '%s' "$line" | cut -d'|' -f5-)")
+  id="$F2"
+  req="$F3"
+  cwd="$F4"
+  cmd="$F5_"
   [ -z "$cwd" ] && cwd="."
 
   # An escalation makes the gate required for everything below, and says so
@@ -413,16 +448,16 @@ while IFS= read -r line; do
   # is skipped here like any other. The full run before REVIEW is what judges
   # the story; --fast only answers whether the tests are admissible to it.
   if [ "$FAST" = 1 ] && [ "$LIST" = 0 ] && [ "$AUDIT" = 0 ] \
-     && table_lookup "$SLOWS" "$id" >/dev/null; then
+     && table_lookup slowwhy "$SLOWS" "$id"; then
     skipped="$skipped $id"; continue
   fi
 
-  exp=$(table_lookup "$EVIDENCE" "$id") || exp="<none>"
-  waiver=$(table_lookup "$WAIVERS" "$id") || waiver=""
-  slowwhy=$(table_lookup "$SLOWS" "$id"); is_slow=$?
-  floor=$(table_lookup "$FLOORS" "$id") || floor=""
-  cifactor=$(table_lookup "$CIFACTORS" "$id") || cifactor=""
-  nocountwhy=$(table_lookup "$NOCOUNTS" "$id"); is_nocount=$?
+  table_lookup exp "$EVIDENCE" "$id" || exp="<none>"
+  table_lookup waiver "$WAIVERS" "$id"
+  table_lookup slowwhy "$SLOWS" "$id"; is_slow=$?
+  table_lookup floor "$FLOORS" "$id"
+  table_lookup cifactor "$CIFACTORS" "$id"
+  table_lookup nocountwhy "$NOCOUNTS" "$id"; is_nocount=$?
   logrel=".claude/state/gate-logs/$id.log"
 
   if [ "$LIST" = 1 ]; then
@@ -497,11 +532,11 @@ while IFS= read -r line; do
   # so a story can spend a day optimising a test that was already fine.
   cifactor_broken=""
   if [ -n "$cifactor" ]; then
-    cif_n=$(trim "$(printf '%s' "$cifactor" | cut -d'|' -f1)")
-    # cut prints the whole field when the delimiter is absent, which would
-    # read a missing source as a source repeating the number.
+    trim cif_n "${cifactor%%|*}"
+    # Only a `|` separates a source; without one there is none, rather than a
+    # source repeating the number.
     case "$cifactor" in
-      *'|'*) cif_src=$(trim "$(printf '%s' "$cifactor" | cut -d'|' -f2-)") ;;
+      *'|'*) trim cif_src "${cifactor#*|}" ;;
       *)     cif_src="" ;;
     esac
     case "$cif_n" in
