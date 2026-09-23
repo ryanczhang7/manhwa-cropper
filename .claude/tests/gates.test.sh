@@ -114,6 +114,72 @@ out="$(gates)"
 assert_contains "observed count in the summary" "observed 132" "$out"
 
 # ---------------------------------------------------------------------------
+describe "the evidence regex's width does not change the count it reads"
+
+# The field report (MC-043): the comment over work_count claimed that a regex
+# which stops mid-number - the `[1-9]` in `test result: ok\. [1-9]` - "measures
+# a truncated count", and pointed the next agent at widening it. That is false
+# and cannot be otherwise: the match is `($2).*`, and the trailing `.*` always
+# runs to the end of the line, so the whole number is inside the counted span
+# whatever the regex stopped at. A regex cannot truncate a count it does not
+# have to contain. Narrow and wide read the SAME number. Nothing executable
+# tested the claim, which is how it survived for months; these two runs are
+# that test.
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'test result: ok. 836 passed; 0 failed; 0 ignored\n'
+evidence | unit | test result: ok\. [1-9]
+EOF
+narrow="$(gates)"
+assert_contains "a regex stopping at the first digit still reads the whole number" \
+  "observed 836" "$narrow"
+
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'test result: ok. 836 passed; 0 failed; 0 ignored\n'
+evidence | unit | test result: ok\. [1-9][0-9]*
+EOF
+wide="$(gates)"
+assert_contains "and so does one that covers the whole number" \
+  "observed 836" "$wide"
+
+# Asserted as the equality too, not left implicit in two literals: the claim is
+# that the WIDTH makes no difference, and that is the sentence a reader has to
+# be able to break.
+observed_of() { printf '%s\n' "$1" | sed -n 's/.*, observed \([0-9][0-9]*\).*/\1/p' | head -1; }
+assert_eq "so the narrow and the wide regex read the same count" \
+  "$(observed_of "$wide")" "$(observed_of "$narrow")"
+
+# ---------------------------------------------------------------------------
+describe "the evidence regex's leading digit class decides which line is counted"
+
+# The consequence that IS real, and the one `floor | integration | 9` in
+# project.conf rests on. A line the evidence regex does not match is skipped
+# entirely - `grep -oE -m1` takes the FIRST line that matches - so the count
+# comes from a later line, or from an earlier one that a wider leading class
+# happens to admit. Under `cargo test --workspace --release -- --ignored`
+# twelve `test result: ok. 0` lines go by unmatched before the first match,
+# which is why that floor tracks `crates/engine tests/corpus.rs` rather than
+# whichever binary cargo ran first.
+#
+# Three result lines, not two: cargo keeps printing them after the one that
+# matched, and the third makes "the FIRST match wins" falsifiable as well as
+# "the `ok. 0` line is skipped".
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'test result: ok. 0 passed; 0 failed; 9 ignored\ntest result: ok. 14 passed; 0 failed; 0 ignored\ntest result: ok. 7 passed; 0 failed; 0 ignored\n'
+evidence | unit | test result: ok\. [1-9][0-9]*
+EOF
+out="$(gates)"
+assert_contains "a leading [1-9] skips the \`ok. 0\` line and counts the next match" \
+  "observed 14" "$out"
+
+write_conf "$FIX" <<'EOF'
+gate     | unit | required | . | printf 'test result: ok. 0 passed; 0 failed; 9 ignored\ntest result: ok. 14 passed; 0 failed; 0 ignored\ntest result: ok. 7 passed; 0 failed; 0 ignored\n'
+evidence | unit | test result: ok\. [0-9][0-9]*
+EOF
+out="$(gates)"
+assert_contains "a leading [0-9] matches that same line, and the count is 0" \
+  "observed 0" "$out"
+
+# ---------------------------------------------------------------------------
 describe "no-count: an evidence regex that proves liveness and measures nothing"
 
 # The field report: cargo's `Finished \`dev\` profile ... in 0.29s` proves the
