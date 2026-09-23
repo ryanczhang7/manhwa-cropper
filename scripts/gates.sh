@@ -415,6 +415,19 @@ fi
 fails=0; warns=0; known=0; unconfigured=0; ran=0; noevidence=0; skipped=""
 results=""
 
+# Every gate line the loop reaches is accounted for once, at the place that
+# disposes of it, and the summary compares that list with GATE_IDS - read above,
+# before any gate ran. A line the loop never reached (a gate that truncated
+# project.conf under it, MC-047) is refused rather than silently absent.
+# GATES_FAULT_LOSE is the test seam for that: the gate lines it names are
+# treated as never read. It can only make a run fail, and it says so up front.
+accounted=""
+fault_lose=""
+if [ -n "${GATES_FAULT_LOSE:-}" ] && [ "$LIST" = 0 ] && [ "$AUDIT" = 0 ]; then
+  fault_lose=" $GATES_FAULT_LOSE "
+  printf 'note: GATES_FAULT_LOSE is set; this run will lose: %s\n' "$GATES_FAULT_LOSE"
+fi
+
 while IFS= read -r line; do
   line="${line%%$'\r'}"
   trim tline "$line"
@@ -425,6 +438,7 @@ while IFS= read -r line; do
   kind="$F1"
   [ "$kind" = "gate" ] || continue
   id="$F2"
+  case "$fault_lose" in *" $id "*) continue ;; esac
   req="$F3"
   cwd="$F4"
   cmd="$F5_"
@@ -440,8 +454,14 @@ while IFS= read -r line; do
       req=required ;;
   esac
 
-  [ -n "$ONLY" ] && [ "$ONLY" != "$id" ] && continue
-  [ "$REQUIRED_ONLY" = 1 ] && [ "$req" != "required" ] && continue
+  if [ -n "$ONLY" ] && [ "$ONLY" != "$id" ]; then
+    accounted="$accounted $id"
+    continue
+  fi
+  if [ "$REQUIRED_ONLY" = 1 ] && [ "$req" != "required" ]; then
+    accounted="$accounted $id"
+    continue
+  fi
 
   # --fast leaves out the gates a `slow` line names. It is a deliberate subset,
   # not a cheaper full run: it is never recorded, and a gate the story escalated
@@ -449,7 +469,9 @@ while IFS= read -r line; do
   # the story; --fast only answers whether the tests are admissible to it.
   if [ "$FAST" = 1 ] && [ "$LIST" = 0 ] && [ "$AUDIT" = 0 ] \
      && table_lookup slowwhy "$SLOWS" "$id"; then
-    skipped="$skipped $id"; continue
+    skipped="$skipped $id"
+    accounted="$accounted $id"
+    continue
   fi
 
   table_lookup exp "$EVIDENCE" "$id" || exp="<none>"
@@ -480,6 +502,7 @@ while IFS= read -r line; do
     else
       results="$results\nFAIL         $id (marked slow with no reason in project.conf)"
     fi
+    accounted="$accounted $id"
     fails=$((fails+1)); continue
   fi
 
@@ -492,6 +515,7 @@ while IFS= read -r line; do
     else
       results="$results\nFAIL         $id (marked no-count with no reason in project.conf)"
     fi
+    accounted="$accounted $id"
     fails=$((fails+1)); continue
   fi
 
@@ -521,6 +545,7 @@ while IFS= read -r line; do
     else
       results="$results\nFAIL         $id ($floor_broken)"
     fi
+    accounted="$accounted $id"
     fails=$((fails+1)); continue
   fi
 
@@ -551,6 +576,7 @@ while IFS= read -r line; do
     else
       results="$results\nFAIL         $id ($cifactor_broken)"
     fi
+    accounted="$accounted $id"
     fails=$((fails+1)); continue
   fi
 
@@ -562,6 +588,7 @@ while IFS= read -r line; do
     else
       results="$results\nFAIL         $id (has a waiver but is required$escalated; waivers are for optional gates only)"
     fi
+    accounted="$accounted $id"
     fails=$((fails+1)); continue
   fi
 
@@ -597,9 +624,11 @@ while IFS= read -r line; do
   if [ -z "$cmd" ]; then
     if [ "$req" = "required" ] && [ "$BOOTSTRAPPED" = "yes" ]; then
       results="$results\nFAIL         $id (required gate has no command in project.conf)"
+      accounted="$accounted $id"
       fails=$((fails+1))
     else
       results="$results\nUNCONFIGURED $id"
+      accounted="$accounted $id"
       unconfigured=$((unconfigured+1))
     fi
     continue
@@ -616,6 +645,7 @@ while IFS= read -r line; do
   rc=${PIPESTATUS[0]}
   dur=$(( $(date +%s) - start ))
   ran=$((ran+1))
+  accounted="$accounted $id"
 
   # Three outcomes. Liveness is only ever consulted for a gate that already
   # exited 0: success is the exit code's job, and this asks the separate
@@ -722,6 +752,20 @@ if [ "$AUDIT" = 1 ]; then
   exit 0
 fi
 
+# Declared against accounted, per line and in manifest order: each accounted
+# entry pays off one declared one. Whatever is left was never reached, so the
+# run cannot say anything about it - and a run that cannot account for its own
+# manifest certifies nothing, required gate or optional, filtered or not.
+lost=0; unpaid=" $accounted "
+set -f
+for d in $GATE_IDS; do
+  case "$unpaid" in
+    *" $d "*) unpaid="${unpaid/" $d "/ }" ;;
+    *) results="$results\nFAIL         $d (declared in project.conf but never accounted for)"; lost=$((lost+1)) ;;
+  esac
+done
+set +f
+
 printf '\n--- gate summary ---%b\n' "$results"
 
 if [ "$BOOTSTRAPPED" != "yes" ]; then
@@ -742,7 +786,10 @@ if [ "$warns" -gt 0 ]; then
   printf '  waiver | <id> | <why this optional gate is expected to fail, and where that is recorded>\n'
 fi
 
-if [ "$fails" -gt 0 ]; then
+if [ "$lost" -gt 0 ]; then
+  result="fail ($lost declared gate(s) never accounted for, $fails required gate(s) failed)"
+  printf 'RESULT=fail\nWHEN=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STAMP"
+elif [ "$fails" -gt 0 ]; then
   result="fail ($fails required gate(s) failed)"
   printf 'RESULT=fail\nWHEN=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STAMP"
 else
@@ -784,6 +831,11 @@ fi
 
 if [ "$fails" -gt 0 ]; then
   printf '\n%d required gate(s) failed.\n' "$fails"
+fi
+if [ "$lost" -gt 0 ]; then
+  printf '\n%d declared gate(s) never accounted for; this run certifies nothing.\n' "$lost"
+fi
+if [ "$fails" -gt 0 ] || [ "$lost" -gt 0 ]; then
   exit 1
 fi
 printf '\nAll required gates passed (%d ran, %d unconfigured, %d known).\n' "$ran" "$unconfigured" "$known"
