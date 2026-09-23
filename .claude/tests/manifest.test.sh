@@ -164,8 +164,8 @@ states the rule; the comment above the floor is where the next agent will read i
 # --- integration's evidence line: the thing a floor is measured out of --------
 # All four of these hold today. They are admissibility assertions for AC-1 - a
 # floor is refused by `gates.sh --audit` unless the gate has an evidence line
-# that is not declared no-count, and it measures a truncated count unless that
-# regex covers the whole number.
+# that is not declared no-count. The whole-number clause checked further down is
+# a separate kind of rule: a readability one, not a measurement one (MC-043).
 
 describe "integration is configured as an optional gate with a countable evidence line"
 
@@ -224,25 +224,31 @@ assert_eq "a regex admitting a leading 0 does read 0 off that line, so the check
   "0" "$(measure "$OK0" 'test result: ok\. [0-9]')"
 
 # AC-1's remaining clause, "the regex covers the whole number", checked on the
-# regex rather than on a measurement - deliberately, and this is worth writing
-# down. gates.sh's work_count comment says a regex stopping mid-number "measures
-# a truncated count"; measured, it does not, because the trailing `.*` extends
-# the match to the end of the line and the digit run is read from there:
-#   narrow `test result: ok\. [1-9]` on the 14-test line above also reads 14.
-# So the clause is a manifest rule with no observable consequence here, and the
-# honest way to pin it is as a rule.
+# regex rather than on a measurement - deliberately, and MC-043 is why. The
+# reason first written here was that a narrower regex would measure less of the
+# number; it would not. `work_count` matches `($2).*`, whose trailing `.*` runs
+# to the end of the line, so the whole number is inside the counted span however
+# early the regex stopped - narrow `test result: ok\. [1-9]` on the 14-test line
+# above also reads 14, and `.claude/tests/gates.test.sh` now pins that directly.
+#
+# The rule is kept, on the reason that actually holds: `[1-9][0-9]*` states the
+# shape of the line it means to select, so the next reader can tell from the
+# regex alone which lines it will skip - and skipping is what decides the
+# number, as the two assertions above measure. It is a rule about legibility
+# next to a measurement about the LEADING digit class; nothing here claims a
+# narrower regex would count less.
 # A digit class followed by a repetition: `[0-9]*` in `test result: ok\. [1-9][0-9]*`.
 covers_whole_number() { printf '%s' "$1" | grep -qE '\[[^]]*\][*+]'; }
 
 if covers_whole_number "$ev"; then
-  _ok "integration's evidence regex covers the whole number, not just its first digit"
+  _ok "integration's evidence regex spells out the whole number, so the lines it will skip are legible"
 else
-  _bad "integration's evidence regex covers the whole number, not just its first digit" \
-    "project.conf: a floor needs an evidence regex that covers the whole number.
+  _bad "integration's evidence regex spells out the whole number, so the lines it will skip are legible" \
+    "project.conf: a floor needs an evidence regex that spells out the whole number it matches.
 found: $ev"
 fi
 
-# Control for the predicate itself: the truncating regex must not satisfy it.
+# Control for the predicate itself: the narrow regex must not satisfy it.
 if covers_whole_number 'test result: ok\. [1-9]'; then
   _bad "the whole-number check rejects a regex that stops at the first digit" \
     "covers_whole_number accepted \`test result: ok\\. [1-9]\`, so it accepts anything"

@@ -269,9 +269,21 @@ clean_log() {
 #
 # The evidence regex is the measurement, rather than a second regex, because
 # there should be one description per gate of what "having done something"
-# looks like. The consequence is that a regex which stops mid-number - the
-# `[1-9]` in `test result: ok\. [1-9]` - measures a truncated count; widen it
-# to cover the whole number if you want a floor on that gate.
+# looks like. The match is `($2).*`, so the counted span ALWAYS runs to the end
+# of the line: the whole number is inside it however early the regex stopped,
+# and a regex that stops mid-number - the `[1-9]` in `test result: ok\. [1-9]`
+# - reads the same count as one that spells the number out. The width of the
+# evidence regex does not change the number read. (Nor is the `.*` idle: for
+# `TOTAL` and `Finished .* profile` the match ends BEFORE the digits, and
+# without it there would be nothing to count at all.)
+#
+# What the evidence regex DOES decide is which LINE supplies the count.
+# `grep -oE -m1` takes the first line that matches, and a line it does not
+# match is skipped entirely, so the leading digit class selects the line:
+# `test result: ok\. [1-9][0-9]*` walks past every `test result: ok. 0` line
+# and counts the first target that ran something, where `[0-9][0-9]*` would
+# match that first `ok. 0` line and report 0. That is the property
+# `floor | integration | 9` in project.conf rests on - see the note above it.
 # Parenthesised, so that an evidence regex using top-level alternation
 # (`a|b`) does not bind the trailing `.*` to its last branch alone.
 #
