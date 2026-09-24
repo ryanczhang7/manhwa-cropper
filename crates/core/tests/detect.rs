@@ -10,8 +10,9 @@
 //!
 //! # What is settled, what is mechanical, what was measured
 //!
-//! * **Settled**: `margin_px = 3`, and the `+ 2` slack AC-4 allows on top of
-//!   it. Both are read out of `Tuning::default()` or out of the criterion;
+//! * **Settled**: `margin_px` (3 when this file was written; **0 since
+//!   MC-049**, the user's ruling of 2026-09-23), and the `+ 2` slack AC-4
+//!   allows on top of it. Both are read out of `Tuning::default()` or out of the criterion;
 //!   neither was calibrated here, and `margin_px` is never written as a
 //!   literal - a test below drives `detect` at three different margins to pin
 //!   that it is read from the `Tuning` argument rather than compiled in.
@@ -262,12 +263,21 @@ fn flat_fraction(img: &Luma, rect: Rect, tolerance: u8) -> f64 {
 
 // --- The settled constant and the pinned shape ------------------------------
 
-/// `margin_px` is settled at 3 (`architecture.md`, the `Tuning` table; the
-/// corpus story MC-019 may change it under `## Amendments`). Every margin in
-/// this file is 3 *because of this test*, not because 3 was assumed.
+/// `margin_px` is settled at **0** (`architecture.md`, decision 5 and the
+/// `Tuning` table). It was 3 from MC-006 until MC-049, when the user saw the
+/// three flat columns it adds on each side as "the page on the right and left
+/// side" (2026-09-23) and ruled it to 0 on all four sides. Every default
+/// margin in this file is what it is *because of this test*, not because a
+/// value was assumed; MC-049 AC-6's synthetic pins live in
+/// `tests/page_edges.rs`.
 #[test]
-fn the_default_margin_px_is_three() {
-    assert_eq!(Tuning::default().margin_px, 3, "the settled default margin");
+fn the_default_margin_px_is_zero() {
+    assert_eq!(
+        Tuning::default().margin_px,
+        0,
+        "MC-049: the default margin is 0 on all four sides - the user's ruling of \
+         2026-09-23 that the crop's side edges carry no page background"
+    );
 }
 
 #[test]

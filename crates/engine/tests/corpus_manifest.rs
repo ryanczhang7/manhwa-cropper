@@ -1249,6 +1249,15 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// and MC-042's `## Out of scope` forbids re-marking anything. A deliberate
 /// re-mark changes this constant in the story that decides it, which is
 /// exactly the visible edit the pin is here to force.
+///
+/// **MC-049 is the first such re-mark.** Seven marks contained 1-3 columns of
+/// flat page background on one side (`corpus.md`'s marking rule excludes
+/// them), and with `margin_px` going to 0 those columns would read as clips of
+/// nothing but page. The user approved correcting them on 2026-09-23, on the
+/// MC-027 precedent for `2026-01-05 13_45_59.png`; `Screenshot (2630).jpg`'s
+/// dark column 1591 was ruled page background after a look at the image.
+/// `docs/wiki/corpus.md`, "Corrected marks", records each old and new rect.
+///
 /// Written as `(file, x, y, w, h)` and rebuilt into a [`Rect`] where it is
 /// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
 /// explodes over nine lines each, and a pin nobody can scan in one screen is a
@@ -1257,23 +1266,23 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1008, 188, 528, 1138),
-    ("2025-10-14 23_30_20.png", 1040, 171, 476, 1208),
+    ("2025-10-14 23_30_20.png", 1040, 171, 473, 1208),
     ("2025-10-20 15_37_25.png", 1008, 228, 528, 1074),
-    ("2026-01-05 13_33_41.png", 1073, 233, 397, 1060),
+    ("2026-01-05 13_33_41.png", 1074, 233, 396, 1060),
     ("2026-01-05 13_45_59.png", 1040, 204, 466, 1167),
     ("2026-01-05 13_49_39.png", 1044, 286, 459, 1110),
-    ("Screenshot (67).png", 1012, 290, 524, 1098),
-    ("Screenshot (70).jpg", 1016, 298, 520, 1012),
+    ("Screenshot (67).png", 1012, 290, 523, 1098),
+    ("Screenshot (70).jpg", 1016, 298, 519, 1012),
     ("Screenshot (75).png", 1077, 171, 393, 1208),
     ("Screenshot (93).jpg", 1143, 212, 246, 1167),
     ("Screenshot (103).jpg", 1077, 302, 389, 844),
     ("Screenshot (1661).png", 1077, 192, 393, 1085),
     ("Screenshot (2582).jpg", 1008, 216, 524, 1008),
-    ("Screenshot (2630).jpg", 958, 224, 635, 889),
+    ("Screenshot (2630).jpg", 958, 224, 633, 889),
     ("Screenshot (2698).jpg", 954, 343, 631, 742),
-    ("Screenshot (2708).jpg", 1073, 220, 393, 1102),
+    ("Screenshot (2708).jpg", 1074, 220, 392, 1102),
     ("Screenshot (2744).jpg", 950, 134, 639, 1164),
-    ("Screenshot (3187).png", 987, 142, 574, 1237),
+    ("Screenshot (3187).png", 987, 142, 573, 1237),
     ("Screenshot (3538).png", 975, 171, 590, 1159),
 ];
 

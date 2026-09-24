@@ -178,12 +178,23 @@ pub struct Tuning {
     /// 370 px. It is also exact in `f32` - `8000f32 / 160000f32` is bit for
     /// bit `0.05f32` - so a fixture can sit on the boundary rather than near
     /// it.
+    ///
+    /// Those figures were measured at MC-026's margin of 3. Since MC-049 the
+    /// margin is 0, so nothing is added to the marked rect and the ceiling
+    /// falls with it: `Screenshot (93).jpg`'s 246x1167 alone is 0.077876, and
+    /// 0.05 sits 1.56x below it. The value did not move.
     pub min_content_fraction: f32,
     /// Smallest content box side, in pixels, that is not flagged
     /// `LowContent` (MC-007). Fixed, not tuned by the corpus.
     pub min_content_side: u32,
     /// How far the final rect is expanded on every side, in pixels, before it
     /// is clamped to the image (MC-006).
+    ///
+    /// **0**, since MC-049; it was 3. Those three columns were flat page
+    /// background on every marked corpus side, and the user saw them: *"The
+    /// cropping from the side isnt tight enough and I still see the page on
+    /// the right and left side."* (2026-09-23). They chose 0 on all four
+    /// sides. [`margin`]'s module documentation has what that gives up.
     pub margin_px: u32,
     /// Mean absolute deviation, about the line's own mean, at or above which a
     /// row or column is **textured** rather than flat: the threshold
@@ -250,7 +261,7 @@ impl Default for Tuning {
             ambiguity_band: 0.0025,
             min_content_fraction: 0.05,
             min_content_side: 64,
-            margin_px: 3,
+            margin_px: 0,
             min_line_spread: 8.0,
             central_band_fraction: 0.6,
         }

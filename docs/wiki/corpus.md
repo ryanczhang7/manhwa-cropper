@@ -122,6 +122,60 @@ misses or clips because the rule stopped at the gutter were, on these three,
 producing an acceptable answer. Its document is left as the record of what was
 measured; the correction lives here, and MC-032 carries what it implies.
 
+## Corrected marks
+
+A mark is corrected only when a person has looked at the image and ruled, and
+every correction is recorded here with the old and the new rectangle.
+`MARKED_TUNING_RECTS` in `crates/engine/tests/corpus_manifest.rs` pins the
+current value of every marked `tuning` rectangle, so a correction is always a
+visible edit in two places, never a quiet one.
+
+**The rule every correction below applies** is the marking rule above: the
+rectangle holds the page's own artwork and nothing else. A column that is
+**flat page background** over the mark's rows is outside it. (MC-049's
+definition of flat: at least 0.95 of the column's pixels over the mark's rows
+within `uniform_tolerance`, 10, of the column's median luma.)
+
+### `2026-01-05 13_45_59.png` — MC-027, 2026-09-17 (the precedent)
+
+`{ x: 1040, y: 204, w: 471, h: 1167 }` → `w: 466`. Columns 1506–1510 were
+exactly 255 on all 1167 marked rows. The user saw the image and the
+measurement and corrected the manifest. MC-027's `## Amendments` has the
+column table.
+
+### Seven marks with flat page columns on one side — MC-049, 2026-09-23
+
+With `Tuning::margin_px` going to 0 (MC-049), nothing is left to pad over a
+mark that holds page background. Each of these marks had 1–3 columns of flat
+page on one side, just outside where MC-027's column locator puts the page
+edge. The user approved correcting them before RED, on the `13_45_59`
+precedent. RED measured every column before editing (share within 10 of the
+column's median over the mark's rows; the column just inside each new edge is
+art, share 0.02–0.73).
+
+| Entry | Side | Flat columns removed (share / median luma) | Old rect | New rect |
+|---|---|---|---|---|
+| `2025-10-14 23_30_20.png` | right | 1513, 1514, 1515 (1.00 / 255) | `1040,171 476x1208` | `1040,171 473x1208` |
+| `Screenshot (2630).jpg` | right | 1591 (1.00 / 1), 1592 (1.00 / 11) | `958,224 635x889` | `958,224 633x889` |
+| `Screenshot (67).png` | right | 1535 (1.00 / 255) | `1012,290 524x1098` | `1012,290 523x1098` |
+| `Screenshot (70).jpg` | right | 1535 (1.00 / 251) | `1016,298 520x1012` | `1016,298 519x1012` |
+| `Screenshot (3187).png` | right | 1560 (1.00 / 26) | `987,142 574x1237` | `987,142 573x1237` |
+| `2026-01-05 13_33_41.png` | left | 1073 (1.00 / 11) | `1073,233 397x1060` | `1074,233 396x1060` |
+| `Screenshot (2708).jpg` | left | 1073 (1.00 / 11) | `1073,220 393x1102` | `1074,220 392x1102` |
+
+**`Screenshot (2630).jpg` got its own look.** Column 1591 is nearly black
+(mean luma 3.1, min 2, max 141) against page background at 11–13. A
+one-pixel dark line could be the panel's own border, and a panel border is
+art. The user was shown an 8x zoom of columns 1560–1607 and the full-height
+edge, and ruled 1591 **page background**. Both 1591 and 1592 leave the mark.
+Had the ruling gone the other way, the mark would have stood and MC-049 would
+have stopped: a zero margin would then clip real art.
+
+Nothing else moved: same `y` and `h`, same tags, no image touched, no
+`held-out` entry edited. After the correction, MC-027's column locator lands
+**on** the mark's edge on these seven and on `13_45_59`'s right and
+`Screenshot (3538).png`'s left. It lands outside the mark everywhere else.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from

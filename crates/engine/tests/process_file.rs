@@ -33,8 +33,9 @@
 //!   mechanical too, and `common::ihdr` reads them out of the file rather than
 //!   asking a decoder what it made of them.
 //! * **Measured**: the fixture. `common::screenshot` renders one luma plane;
-//!   `cropper_core::decide` turns it into `Crop(Rect { x: 12, y: 19, w: 126,
-//!   h: 96 })`, and that rect - measured in RED with the plane driven straight
+//!   `cropper_core::decide` turns it into `Crop(Rect { x: 15, y: 22, w: 120,
+//!   h: 90 })` - `{ 12, 19, 126, 96 }` until MC-049 set the margin to 0 -
+//!   and that rect - measured in RED with the plane driven straight
 //!   through `decide`, and re-measured by
 //!   [`the_fixture_decides_to_crop_the_art_plus_the_margin`] on every run - is
 //!   the oracle every expectation below rests on. The four colour renderings
@@ -160,7 +161,9 @@ fn differences(src: &DynamicImage, rect: Rect, out: &DynamicImage) -> Vec<String
 #[test]
 fn the_fixture_decides_to_crop_the_art_plus_the_margin() {
     let t = Tuning::default();
-    assert_eq!(t.margin_px, 3, "the settled default margin");
+    // MC-049 moved the settled margin from 3 to 0, and with it this rect from
+    // `{ 12, 19, 126, 96 }` to the art rect itself.
+    assert_eq!(t.margin_px, 0, "the settled default margin");
     assert_eq!(
         common::art_rect(),
         Rect {
@@ -174,10 +177,10 @@ fn the_fixture_decides_to_crop_the_art_plus_the_margin() {
     assert_eq!(
         common::crop_rect(),
         Rect {
-            x: 12,
-            y: 19,
-            w: 126,
-            h: 96
+            x: 15,
+            y: 22,
+            w: 120,
+            h: 90
         },
         "the art rect plus a margin of {}, clamped to a {}x{} image",
         t.margin_px,

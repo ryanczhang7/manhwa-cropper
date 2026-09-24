@@ -123,7 +123,7 @@ Responsibilities, in pipeline order:
 | `ambiguity_band` | 0.0025 (a strip with flat fraction in [0.8475, 0.85) is ambiguous) | corpus story MC-026 |
 | `min_content_fraction` | 0.05 of the image area | corpus story MC-026 |
 | `min_content_side` | 64 px | fixed |
-| `margin_px` | 3 | MC-019 |
+| `margin_px` | 0 (was 3; the user, 2026-09-23: *"I still see the page on the right and left side"*; decision 5) | MC-049 |
 | `min_line_spread` | 8.0 (mean abs deviation of a line about its own mean) | MC-025 |
 | `central_band_fraction` | 0.6 (share of a rect's rows the column locator measures over, centred) | MC-027 |
 
@@ -283,18 +283,29 @@ this file and the stories that depend on it.
    output PNG for JPEG input (changes the format, which AC 5 in the brief
    forbids). JPEG at quality 100 with 4:4:4 subsampling; WebP lossless,
    which is the maximum WebP quality and keeps `image`'s pure-Rust encoder.
-5. **Outward margin is a fixed 3 px.** Alternative: proportional to image
-   size. Lost because the corpus will decide, and a constant is the easiest
-   thing for it to change. A leftover 3 px border is the brief's accepted
-   cost.
+5. **Outward margin is a fixed pixel count, and it is 0.** Alternative:
+   proportional to image size. Lost because the corpus will decide, and a
+   constant is the easiest thing for it to change.
 
-   **Challenged 2026-09-23 by the user; the value is not yet changed.** *"The
-   cropping from the side isnt tight enough and I still see the page on the
-   right and left side."* A probe that day found the column locator already on
-   the page-background / page boundary on every marked tuning entry, so the
-   band the user sees is this margin. [MC-049](../backlog/stories/MC-049.md)
-   (`EPIC-08`) proposes `margin_px` = 0 and asks the user first; this decision
-   is rewritten when that story lands, not before.
+   **Was 3 px until [MC-049](../backlog/stories/MC-049.md) (`EPIC-08`),
+   2026-09-23.** The decision used to read *"A leftover 3 px border is the
+   brief's accepted cost."* The user overturned that: *"The cropping from the
+   side isnt tight enough and I still see the page on the right and left
+   side."* A probe that day found the column locator already on the boundary
+   between flat page background and art on every marked tuning entry. The
+   three columns the margin added back were page background on 42 of 42
+   sides, so the band the user saw was this margin. The user chose
+   `margin_px` = **0 on all four sides**, not 0 on the columns with 3 kept on
+   the rows (MC-049's Open question 1). One constant keeps `Tuning` simple,
+   and the row edges sit 97+ px from any art, so 3 rows protected nothing.
+
+   What it gives up: the margin was the safety net under "never clip". It now
+   rests on the locator's boundary being exact, and the corpus zero-clip
+   tests hold it there (MC-019's containment check and MC-049's
+   `corpus_sides.rs`, whose narrowed-by-one control clips on 9 of 21). Seven
+   hand marks that contained flat page columns were corrected as the user
+   ruled (`corpus.md`, "Corrected marks"). The `margin` stage stays, so a
+   later story can put air back by changing one number.
 6. **Output folder is remembered; Send-to with no folder ever chosen falls
    back to a `cropped` folder next to the first input.** Alternative: refuse
    and open the window on the picker. Lost because the tenth-run flow in the

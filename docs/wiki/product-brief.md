@@ -66,6 +66,23 @@ Load-bearing, in priority order:
      vertical edges.
 2. **Never clip artwork.** The crop is biased outward: leaving a few pixels
    of border is acceptable; cutting into the panel is a defect.
+
+   **Amended 2026-09-23, by the user's decision: no border of page
+   background is left on any side.** The user's words:
+
+   > The cropping from the side isnt tight enough and I still see the page on
+   > the right and left side.
+
+   The "few pixels of border" was a fixed 3 px outward margin
+   (`architecture.md` decision 5). On the marked corpus it added nothing but
+   page background, on 42 of 42 sides, and that was the band the user saw.
+   The user chose a margin of **0 on all four sides**
+   ([MC-049](../backlog/stories/MC-049.md), Open question 1). **Never clip is
+   untouched and still absolute.** It now rests on the page-column locator
+   stopping exactly at the art, with no slack behind it, and the corpus
+   zero-clip tests are what hold it there. Seven hand marks that included
+   flat page columns were corrected as the user ruled (`corpus.md`,
+   "Corrected marks").
 3. **Uncertain: copy unchanged and flag.** If no confident crop is found
    (e.g. the whole screenshot is art, or the page is mostly white), the
    original is written to the output folder untouched and listed in the
@@ -279,7 +296,8 @@ questions).
    quality).
 3. **Outward bias margin.** How many pixels of slack to leave around the
    detected box to honour "never clip". Proposed: a small fixed margin
-   (2 to 4 px) that the corpus can tune.
+   (2 to 4 px) that the corpus can tune. *Settled at 3 px, then changed to 0
+   on 2026-09-23 by the user's decision; see section 4, item 2.*
 4. **Output folder default.** Proposed: remember the last chosen folder;
    if none has ever been chosen and files arrive via "Send to", fall back to
    a `cropped` subfolder next to the first input file. Needs user agreement.
