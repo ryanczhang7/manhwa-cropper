@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052]
 ---
 
 ## Goal
@@ -235,6 +235,28 @@ only one that can start.
    selects `Split::HeldOut`, and its open questions decide whether it waits
    for [MC-049](../stories/MC-049.md) (recommended) so that the one score
    judges the crop v1 ships.
+
+   **2026-09-24: MC-048 shipped with held-out row clips, because its held-out
+   run was skipped.** MC-048's Open question 2 had planned one aggregate,
+   counts-only clip check at the end of GATES. It was reversed in RED
+   (MC-048 `## Amendments`, "Open question 2 — the held-out run is not
+   made"), so nothing ran the frozen stage over held-out before merge. The
+   first run after merge, on `26eddcb`, read 7 clips where `0f94c75` read 4.
+   The three new ones are all on the row axis (`bottom:103 bottom:31 top:3`,
+   plus a `bottom:2` that the user ruled a mark error). Two more marked
+   entries were also newly flagged `LowContent`.
+   - Two are split-screen screenshots. There the stage reads a second
+     browser window's chrome as the reader's, and clamps the crop's rows into
+     the art.
+   - **[MC-052](../stories/MC-052.md)** — *fix*, the user's top priority of
+     2026-09-24: the viewport stage reads only the reader's own window. It
+     moves the two to `tuning`, corrects the third mark, and requires zero
+     row clips on held-out in an aggregate run that **gates REVIEW**, so the
+     skip is not repeated. The `LowContent` pair is its Open question 1.
+   - It runs before `EPIC-08`'s MC-053, which depends on it.
+   - The lesson for any later story here: a stage that changes where crops
+     land runs the held-out clip check before merge. Skipping it is an
+     explicit, recorded decision with a cost, not a default.
 
 ## Deliberately not in this epic
 
