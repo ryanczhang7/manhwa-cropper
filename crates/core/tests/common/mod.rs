@@ -1499,3 +1499,101 @@ pub fn waist_inner_columns() -> (u32, u32) {
         PAGE_W - PAGE_MARGIN - WAIST_INSET - 1,
     )
 }
+
+// --- MC-048: a screenshot with browser chrome above and a taskbar below -----
+//
+// MC-027's page between two flat page margins, with a band of **full-width
+// texture** above it (the browser's tab strip, address bar and bookmarks) and
+// another below it (the Windows taskbar). Three things have to be true of the
+// bands, and each is what makes the fixture able to fail on the tree before
+// MC-048 rather than pass by accident:
+//
+// 1. they are textured **along the row as well as down it** - seeded noise,
+//    not `page_in_margins_with_chrome_bands`' constant-per-row stripes. A row
+//    whose pixels are all one value is a *uniform* line, and stage 1 trims a
+//    band of them away before the viewport stage ever runs;
+// 2. they are nowhere near chrome-like in `content_box`'s sense: a strip of
+//    them has a flat fraction around 0.12 against a `chrome_flat_fraction` of
+//    0.85, so the chrome peel leaves them alone;
+// 3. they sit wholly outside `central_band` of the rect's rows, so
+//    `page_column` locates the same page it locates without them.
+//
+// What tells them apart from the page is exactly what tells browser chrome
+// apart on a real screenshot: beside the page column, a page row is flat page
+// background and a band row is not.
+
+/// Rows of page between the two bands: the middle two thirds of MC-027's
+/// fixture, so a scene with 40-row bands is [`PAGE_H`] tall.
+pub const VIEW_BODY: u32 = PAGE_H - 2 * PAGE_SIXTH;
+
+/// The darkest and lightest value the band noise takes. Centred on
+/// [`FADE_TONE`], so a band row's median sits in the page background's own
+/// 8-level bin and only its **spread** tells it apart - the harder case.
+pub const VIEW_NOISE_LO: u8 = 40;
+/// See [`VIEW_NOISE_LO`].
+pub const VIEW_NOISE_HI: u8 = 216;
+
+/// The seed every viewport scene's noise is drawn from.
+pub const VIEW_SEED: u32 = 48;
+
+/// What fills the two bands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bands {
+    /// Full-width noise: browser chrome and a taskbar.
+    Textured,
+    /// The page margin's own speckled gutter, full width: nothing to remove.
+    Blank,
+}
+
+/// A [`PAGE_W`]-wide screenshot: `top` rows of band, [`VIEW_BODY`] rows of
+/// MC-027's page in its flat margins, `bottom` rows of band.
+///
+/// `broken_every`, when `Some(p)`, replaces the page margin (the columns
+/// outside the page's fades, both sides) with band noise on every `p`-th page
+/// row - page rows `p - 1`, `2p - 1`, ... counted from the first. The rows
+/// between two such breaks are `p - 1` long, so `Some(16)` leaves no run of 16
+/// flat-margin page rows anywhere and `Some(17)` leaves several.
+///
+/// Deterministic: the same arguments render the same bytes.
+#[must_use]
+pub fn viewport_scene(top: u32, bottom: u32, bands: Bands, broken_every: Option<u32>) -> Luma {
+    let height = top + VIEW_BODY + bottom;
+    let mut rng = Rng::new(VIEW_SEED);
+    let mut data = vec![0u8; (PAGE_W * height) as usize];
+    for y in 0..height {
+        let in_body = (top..top + VIEW_BODY).contains(&y);
+        let broken = in_body && broken_every.is_some_and(|p| (y - top + 1).is_multiple_of(p));
+        for x in 0..PAGE_W {
+            let noise = rng.between(VIEW_NOISE_LO, VIEW_NOISE_HI);
+            let margin = page_amplitude(x) == 0 && !is_seam(x);
+            data[(y * PAGE_W + x) as usize] = if in_body {
+                if broken && margin {
+                    noise
+                } else {
+                    page_pixel(x, y)
+                }
+            } else {
+                match bands {
+                    Bands::Textured => noise,
+                    Bands::Blank => gutter_pixel(x, y),
+                }
+            };
+        }
+    }
+    Luma {
+        width: PAGE_W,
+        height,
+        data,
+    }
+}
+
+/// The page art of a [`viewport_scene`] with a `top`-row band above it: the
+/// full-amplitude core columns ([`page_core_rect`]), over every page row.
+#[must_use]
+pub fn viewport_scene_art(top: u32) -> Rect {
+    Rect {
+        y: top,
+        h: VIEW_BODY,
+        ..page_core_rect()
+    }
+}

@@ -557,17 +557,35 @@ fn the_first_trim_removes_nothing_while_the_top_rows_are_chrome() {
     );
 }
 
+/// Re-pinned by MC-048 (`## Regressions`, Return 1). The art starts on the
+/// first row below the full-width chrome band, which is the browser viewport's
+/// first row, and MC-048 AC-7 forbids the margin from reaching back above it
+/// into the chrome. So the rect is the art plus the margin on the columns and
+/// at the bottom (clamped at the image edge, as before), with **no** margin
+/// above the art.
 #[test]
 fn chrome_above_a_gutter_page_is_peeled_and_the_gutters_go_to_the_second_trim() {
     let t = Tuning::default();
     let scene = ac2_scene();
     let found = detect(&scene, &t).expect("AC-2's scene is not a uniform image");
+    let art = ac2_art();
+    assert_eq!(
+        art.y, AC2_BAND_H,
+        "the premise: the art starts on the first row below the chrome band"
+    );
+    let grown = expanded(art, &scene, t.margin_px);
+    let viewport_first_row = art.y;
     assert_eq!(
         found.rect,
-        expanded(ac2_art(), &scene, t.margin_px),
+        Rect {
+            y: viewport_first_row,
+            h: grown.y + grown.h - viewport_first_row,
+            ..grown
+        },
         "AC-2: the band is peeled, the gutters are trimmed, and what is left is the \
-         art rect {:?} plus the margin, clamped at the bottom edge it touches",
-        ac2_art()
+         art rect {art:?} plus the margin on the columns and at the bottom (clamped \
+         at the image edge) - but not above it: MC-048 AC-7, the margin must not put \
+         the chrome band's rows back above the viewport's first row {viewport_first_row}"
     );
     assert_eq!(
         found.removed,
@@ -592,6 +610,10 @@ fn trimmed_is_true_when_only_the_second_trim_moved_an_edge() {
 
 // --- AC-3 -------------------------------------------------------------------
 
+/// Its bottom assertion was re-pinned by MC-048 (`## Regressions`, Return 1):
+/// the full-width bottom border reads as a taskbar strip to the viewport
+/// stage, and MC-048 AC-7 keeps the margin out of it. The left, top and right
+/// assertions are MC-006's, unchanged.
 #[test]
 fn art_flush_with_the_right_edge_clamps_the_margin_instead_of_overflowing() {
     let t = Tuning::default();
@@ -619,10 +641,17 @@ fn art_flush_with_the_right_edge_clamps_the_margin_instead_of_overflowing() {
         art.y - t.margin_px,
         "AC-3: the top side still carries the full margin"
     );
+    // Re-pinned by MC-048 (`## Regressions`, Return 1). The recipe's 10-row
+    // full-width bottom border is flat at 128, while the only margin beside
+    // the page column (the left border) is at 64. Against that margin tone the
+    // border's rows are not page-like, so the viewport stage reads them as a
+    // taskbar strip, and MC-048 AC-7 forbids the margin from reaching into it.
     assert_eq!(
         found.rect.y + found.rect.h,
-        art.y + art.h + t.margin_px,
-        "AC-3: the bottom side still carries the full margin"
+        art.y + art.h,
+        "AC-3 as re-pinned by MC-048 AC-7: the bottom stops at the art's last row - \
+         no margin into the full-width bottom border, which the viewport stage reads \
+         as a taskbar strip"
     );
 }
 

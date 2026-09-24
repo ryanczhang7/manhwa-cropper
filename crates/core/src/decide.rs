@@ -32,7 +32,16 @@
 //!    where the widest textured run has a flat column on both sides of it.
 //!    [`flat`](crate::flat)'s "Stage 3c" section is where that is argued. The
 //!    row axis stays exactly where stage 4 left it;
-//! 6. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image.
+//! 6. [`viewport::locate`] beside the page column, on the **row axis only**,
+//!    which finds the browser viewport - the rows between the browser chrome
+//!    and the taskbar, both painted edge to edge where the page background
+//!    beside the column is flat - and clamps the rect's rows to it (MC-048).
+//!    When it declines, or its rows do not overlap the rect's, the rect is
+//!    left exactly as stage 5 left it. The columns never move here;
+//! 7. [`margin::expand`] by [`Tuning::margin_px`], clamped to the image - and,
+//!    on the row axis, to the viewport stage 6 located, so the margin never
+//!    puts a row of chrome or taskbar back (MC-048 AC-7). The columns take
+//!    the full margin as before.
 //!
 //! [`decide`] is the other half of this module (MC-007): the same pixels and
 //! the same tuning in, and the one answer the engine acts on out - crop to
@@ -104,6 +113,11 @@
 //! reaches [`decide`] with `!trimmed && removed.is_empty()` and is flagged
 //! `NoBorderFound` however well the page was located.
 //!
+//! MC-048 extends it for the viewport stage, and for the same reason again:
+//! rows of browser chrome or taskbar the stage cuts off are a border around
+//! the page that was removed, and a screenshot whose only border was chrome
+//! is not "all art".
+//!
 //! The field is mechanical rather than statistical, so it is compared rather
 //! than tracked: each stage moved something iff it returned a rect other than
 //! the one it was given.
@@ -112,6 +126,7 @@ use crate::content::{Side, content_box};
 use crate::flat::{page_column, textured_box};
 use crate::margin;
 use crate::trim::{trim_uniform, trim_within};
+use crate::viewport::{self, Viewport};
 use crate::{Dimensions, Luma, Rect, Tuning};
 
 /// What [`detect`] found: the rect to crop to, and what the stages did on the
@@ -143,7 +158,7 @@ pub struct Detection {
 /// even one that is all art - in which case the margin clamps on all four
 /// sides and the answer is the image itself.
 ///
-/// The six steps are in the module documentation above.
+/// The seven steps are in the module documentation above.
 #[must_use]
 pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     let whole = Rect {
@@ -158,19 +173,51 @@ pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     let second = trim_within(img, found.rect, t)?;
     let textured = textured_box(img, second, t);
     let column = page_column(img, textured, t);
+    // Stage 6. A viewport that does not overlap the rect is treated as a
+    // decline: the stage narrows the rows, it never replaces them.
+    let (rows, view) = viewport::locate(img, column, t)
+        .and_then(|view| Some((clamp_rows(column, view)?, view)))
+        .unwrap_or((
+            column,
+            Viewport {
+                top: 0,
+                bottom: img.height,
+            },
+        ));
+
+    let expanded = margin::expand(
+        rows,
+        t.margin_px,
+        Dimensions {
+            width: img.width,
+            height: img.height,
+        },
+    );
+    // `rows` lies inside both `view` and `expanded`, so the overlap is never
+    // empty and the fallback is never taken.
+    let rect = clamp_rows(expanded, view).unwrap_or(expanded);
 
     Some(Detection {
-        rect: margin::expand(
-            column,
-            t.margin_px,
-            Dimensions {
-                width: img.width,
-                height: img.height,
-            },
-        ),
-        trimmed: first != whole || second != found.rect || textured != second || column != textured,
+        rect,
+        trimmed: first != whole
+            || second != found.rect
+            || textured != second
+            || column != textured
+            || rows != column,
         removed: found.removed,
         ambiguous: found.ambiguous,
+    })
+}
+
+/// `rect` with its rows cut to `view.top .. view.bottom` and its columns
+/// untouched, or `None` when the two share no row.
+fn clamp_rows(rect: Rect, view: Viewport) -> Option<Rect> {
+    let y = rect.y.max(view.top);
+    let end = (rect.y + rect.h).min(view.bottom);
+    (end > y).then(|| Rect {
+        y,
+        h: end - y,
+        ..rect
     })
 }
 
