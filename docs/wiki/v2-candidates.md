@@ -53,6 +53,7 @@ window, with zero clips.**
 | Were those numbers unfairly low, given the gutter-crossing band? | `gutter-band-rescore.md` (MC-035) | no — 387 clipped scorings retire, and **no member of either family is clip-free at all** (0 of 780), at the ruled band width or twice it |
 | Would splitting the bar by edge help? | MC-032 `## Closed` | no — best single rule **14 of 21** top edges *and it clips*; **0 of 780** avoid a top clip |
 | Does 2D region structure locate the edge where 1D projections cannot? | `region-row-search.md` (MC-038) | no — two families, 1120 parameterisations, best **8 of 21 with 6 clips**, ceiling **10 of 21**. The 2D property is real (it separates a bubble row from a marked edge on `2708` and `2630` where `cover(y)` cannot) and too rare to build on: **8 of 42 edges against `cover(y)`'s 6 of 42** |
+| After MC-048, is a reader-agnostic rule needed to remove the reader's own header and footer? (bar: `EPIC-07`'s containment + absence, not MC-019's window) | `reader-furniture-search.md` (MC-050) | not on the tuning set. MC-048's crop alone has **0 clips on 21 of 21 and no reader furniture on 19 of 21**, which meets the bar. The 2 misses are both `kunmanga`'s same-tone header, and cutting it clips `Screenshot (67).png`'s mark by 3 rows. No rule family was scored (AC-2 early stop), so this is **not** evidence that a furniture rule exists. The open test is the held-out score |
 
 Two instruments were also tried and abandoned, and both are worth knowing about
 because they look attractive from a standing start:
