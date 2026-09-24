@@ -103,10 +103,24 @@ Responsibilities, in pipeline order:
    its panels instead of being cut to the largest one. Then a second uniform
    trim inside it, because removing chrome often exposes a **page margin**
    that was not an edge of the image a moment ago.
-4. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
-   clamped to the image. "Never clip" is the property that the final rect
-   contains the art rect on every fixture the generator can produce.
-5. **Decision** (`decide`): `CropDecision::Crop(rect)` or
+4. **Browser viewport** (`viewport`, MC-048), after MC-025's flatness locator
+   and MC-027's page column: on the **row axis only**, clamp the rect's rows
+   to the browser viewport — the rows between the browser chrome and the
+   Windows taskbar. Per row, the share of the pixels **outside the page
+   column, over the full image width**, within `uniform_tolerance` of the
+   page background tone (the modal per-row margin median in 8-level bins); a
+   row at 0.90 or above is page-like, and the viewport runs from the first
+   run of at least 16 page-like rows to the end of the last. This is MC-031's
+   chrome oracle as `chrome-row-search.md` §3b and §4 settled it, ported
+   unchanged: 0.90 and 16 are module constants, not `Tuning` fields. When no
+   such run exists the stage declines and moves nothing; there is no
+   narrower fallback. The columns never move here.
+5. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
+   clamped to the image — and, on the row axis, to the viewport stage 4
+   located, so the margin never puts a row of chrome or taskbar back
+   (MC-048 AC-7). "Never clip" is the property that the final rect contains
+   the art rect on every fixture the generator can produce.
+6. **Decision** (`decide`): `CropDecision::Crop(rect)` or
    `CropDecision::Flag(reason)`; see the data model for when each reason
    fires. The core never returns a rect it is not confident in; "not
    confident" is a discrete reason, not a score.
@@ -428,3 +442,28 @@ this file and the stories that depend on it.
       predicate and why re-marking was not chosen.
 
     Zero clips is untouched by all of this and remains absolute.
+
+    **2026-09-24, MC-048: browser chrome and the taskbar are removed, as an
+    internal stage.** The `viewport` stage (pipeline step 4 above) is MC-031's
+    chrome oracle shipped inside the crop, which is the only form `EPIC-07`
+    permits it in. It clamps the crop's rows to the browser viewport, and the
+    outward margin is clamped to that viewport as well, so the margin never
+    puts a chrome or taskbar row back. On the 19 marked `tuning` entries where
+    `chrome-row-search.md` §4 locates a viewport, the stage reproduces §4 to
+    the row on 19 of 19, every crop row lies inside it, the columns do not
+    move, and there are still zero clips on all 21 entries.
+
+    - **Named limitation: the two `2025-08-05` WebPs.** At the full margin
+      width the oracle finds no page-like run there and declines, so their
+      crops are exactly what they were before and still keep the browser
+      chrome. No narrower reading was adopted: the one measured stops inside
+      the chrome at the settled threshold (MC-048 `## Amendments`). Any
+      screenshot whose page background beside the column is not flat enough
+      behaves the same way.
+    - **The `EPIC-07` bar is not yet met.** The bar is containment of the mark
+      plus absence of *all* furniture. This stage delivers the browser and OS
+      part only. The reader site's own header, navigation and footer are
+      still in the output ([MC-050](../backlog/stories/MC-050.md)), and so is
+      the side strip of page background beside the column
+      ([MC-049](../backlog/stories/MC-049.md), `EPIC-08`). No held-out score
+      of the full predicate exists yet, and none can until MC-050 lands.
