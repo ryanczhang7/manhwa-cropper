@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051]
 ---
 
 ## Goal
@@ -225,6 +225,16 @@ only one that can start.
 
    If MC-050 finds a rule, the feature it sketches is the story that meets
    this item's bar and earns the epic's first held-out score.
+
+   **MC-050 found none was needed on tuning** (0 clips and no reader furniture
+   on 19 of 21 with MC-048's crop alone, `reader-furniture-search.md` §1), so
+   the held-out score is filed directly, 2026-09-24, as
+   **[MC-051](../stories/MC-051.md)**. It is a *spike*: the user rules held-out
+   furniture blind, and then the crop is run once over the 24 marked and 7 flag
+   held-out entries against 0 clips and at least 22 of 24. It is the story that
+   selects `Split::HeldOut`, and its open questions decide whether it waits
+   for [MC-049](../stories/MC-049.md) (recommended) so that the one score
+   judges the crop v1 ships.
 
 ## Deliberately not in this epic
 
