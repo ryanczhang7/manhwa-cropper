@@ -1151,6 +1151,9 @@ fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
 /// `tuning` entries on **2026-09-21**, read back from the Corpus Reader
 /// Labeller's own store, in manifest order.
 ///
+/// Thirty since MC-052: the user moved two held-out `toongod` entries to
+/// `tuning` on 2026-09-24, and they keep the `site:` tag they already had.
+///
 /// **This is the specification, not a derivation.** The labeller is a
 /// throwaway tool outside this repository - the same arrangement as MC-018's
 /// marking annotator - so MC-042's `## Context` table, under "The per-file
@@ -1165,7 +1168,7 @@ fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
 /// *unseen* until 2026-09-21; `xbato` appears nowhere in it although the
 /// recalled `PRE_EPIC_07_SITES` set named it. Both directions of that
 /// falsification are AC-3's subject on the corpus page.
-const READER_BY_FILE: [(&str, &str); 28] = [
+const READER_BY_FILE: [(&str, &str); 30] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1194,6 +1197,10 @@ const READER_BY_FILE: [(&str, &str); 28] = [
     ("Screenshot (3455).png", "toongod"),
     ("Screenshot (3465).png", "w-network"),
     ("Screenshot (3538).png", "toongod"),
+    // MC-052: moved from `held-out` to `tuning` by the user's ruling of
+    // 2026-09-24. Their `site:` tag is the one they carried in held-out.
+    ("2025-03-06 01_22_45.png", "toongod"),
+    ("2025-03-07 00_58_06.png", "toongod"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1222,8 +1229,13 @@ const READER_BY_FILE: [(&str, &str); 28] = [
 /// The held-out columns are a fifth column this file has always been able to
 /// check and never did: they must stay exactly as they are, which is AC-1's
 /// "the 31 held-out entries keeping the tags they already have".
+///
+/// **MC-052, 2026-09-24.** The user moved two `toongod` entries from
+/// `held-out` to `tuning` (`2025-03-06 01_22_45.png`, `2025-03-07
+/// 00_58_06.png`), both marked. `toongod`'s row goes from `15, 11, 4, 10` to
+/// `17, 13, 4, 8`; no other row moves, and no reader is re-attributed.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 15, 11, 4, 10),
+    ("toongod", 17, 13, 4, 8),
     ("w-network", 5, 2, 3, 5),
     ("demonicrevolution", 4, 4, 0, 1),
     ("rolia-scans", 2, 2, 0, 8),
@@ -1253,7 +1265,7 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
 /// explodes over nine lines each, and a pin nobody can scan in one screen is a
 /// pin nobody re-reads.
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 23] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1008, 188, 528, 1138),
@@ -1275,6 +1287,10 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
     ("Screenshot (2744).jpg", 950, 134, 639, 1164),
     ("Screenshot (3187).png", 987, 142, 574, 1237),
     ("Screenshot (3538).png", 975, 171, 590, 1159),
+    // MC-052: the two entries the user moved from `held-out` on 2026-09-24,
+    // with the marks they carried there, unchanged.
+    ("2025-03-06 01_22_45.png", 648, 118, 520, 1244),
+    ("2025-03-07 00_58_06.png", 671, 362, 474, 928),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
