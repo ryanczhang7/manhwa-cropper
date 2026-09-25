@@ -1113,7 +1113,7 @@ pub fn fade_core_rect() -> Rect {
 /// [`SPECKLE_PERIOD`] rows holds at least one. Signs alternate along the
 /// selector, and the count per row is even, so a gutter row's mean stays
 /// exactly on [`FADE_TONE`].
-fn gutter_pixel(x: u32, y: u32) -> u8 {
+pub fn gutter_pixel(x: u32, y: u32) -> u8 {
     let t = x + 3 * y;
     if !t.is_multiple_of(SPECKLE_PERIOD) {
         return FADE_TONE;
@@ -1333,7 +1333,7 @@ fn art_pixel(amplitude: u32, y: u32) -> u8 {
 }
 
 /// One pixel of the page: the seam, the art, or the speckled page margin.
-fn page_pixel(x: u32, y: u32) -> u8 {
+pub fn page_pixel(x: u32, y: u32) -> u8 {
     if is_seam(x) {
         return art_pixel(PAGE_SEAM_AMPLITUDE, y);
     }

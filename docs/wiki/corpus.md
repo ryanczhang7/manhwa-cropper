@@ -6,8 +6,9 @@ and where the recorded numbers are less precise than they look.
 
 The corpus is 59 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 28 are `tuning` and 31 are
-`held-out` — see "The tuning / held-out split" below, which is the section to
+`"flag"` for a screenshot that should be left alone. 30 are `tuning` and 29 are
+`held-out` (28 : 31 until MC-052 moved two, 2026-09-24) — see "The tuning /
+held-out split" below, which is the section to
 read before using any of them for anything. It is the oracle for every
 accuracy claim this project makes — MC-019's column-axis bar, MC-026's decision
 gates, MC-027's page column. Nothing in the repository can check that a
@@ -263,7 +264,9 @@ The **31 new entries are held out in their entirety** and the tuning set was
 deliberately **not** grown. The proposal was to give tuning 8 more marked
 entries; the user declined, on the grounds that held-out is what new files are
 for. So the marked ratio is 21 tuning : 24 held-out, and that is a decision
-rather than an accident — do not "rebalance" it.
+rather than an accident — do not "rebalance" it. (It is **23 : 22** since
+MC-052's move of two reproducing entries, under "Moves out of held-out" below;
+that was a ruling on two named files, not a rebalance.)
 
 **The held-out set is scored once, at the end of a v2 attempt, and is never
 tuned against.** Not once, not "just to see". The rule above under "The rule,
@@ -368,8 +371,48 @@ the failure.
 It is also still *thin*: one entry decides twenty percent of it, and a
 two-entry reader measures almost nothing on its own. Treat a v2 unseen-reader
 result as a direction, not a percentage, and say so wherever it is reported.
-The unseen-**page** number, resting on all 31 held-out entries, is the one with
-resolution.
+The unseen-**page** number, resting on all 29 held-out entries (31 before
+MC-052), is the one with resolution.
+
+### Moves out of held-out, and held-out mark corrections
+
+Each is a ruling on named files, recorded here because the rule above makes
+every move irreversible.
+
+#### MC-052, 2026-09-24: two split-screen entries move to `tuning`
+
+`2025-03-06 01_22_45.png` and `2025-03-07 00_58_06.png` moved from `held-out`
+to `tuning`. They are the two files on which MC-048's viewport stage cut the
+art, because each is a split-screen screenshot with a second browser window
+beside the reader, and the stage read that window's chrome as the reader's.
+MC-052 fixes that bug and is designed while looking at them, so they are
+contaminated from that moment and cannot stay held out. The user's ruling of
+2026-09-24. They were found by one aggregate held-out run after MC-048 merged;
+the per-file look that followed was approved by the user and was confined to
+the row-clipped entries.
+
+- **New counts:** tuning 30 : held-out 29; marked 23 : 22.
+- **Both are `toongod`**, a reader already in the tuning set, so the
+  unseen-reader count (`xbato`, `manhwaclan`) does not change, and neither does
+  the `PRE_EPIC_07_SITES` table above, which describes the original 28.
+- Their marks are unchanged: `648,118 520x1244` and `671,362 474x928`.
+
+#### MC-052, 2026-09-24: `2025-09-29 14_33_15.png`'s bottom edge
+
+```
+"expect": { "x": 984, "y": 171, "w": 576, "h": 1231 }   ->   "h": 1229
+```
+
+That moves the mark's last row from 1401 to 1399 and changes nothing else: same
+`x`, `y`, `w`, tags and split. The entry **stays `held-out`**. The user ruled on
+a labelled render of the rows around the edge: rows 1400–1401 are taskbar, and
+the art ends at row 1399. The evidence is the whole-screen mean brightness per
+row, about 57 over rows 1396–1400 and about 62.4 from row 1401 on: the taskbar's
+tone begins at the old mark's last rows, not below them. The mark included two
+rows of taskbar against the marking rule, so the detector cutting them was
+right and the mark was wrong. The first aggregate held-out run after MC-048
+reported the edge as a `bottom:2` clip, which is how it came up; no threshold
+was chosen against it.
 
 ## What the tests can and cannot say
 
@@ -384,7 +427,8 @@ detector — and only the person who drew it can rule on that.
 
 ### Every accuracy number in EPIC-07 is majority one reader
 
-**`toongod` is 11 of the 21 marked tuning entries** — 52 %. Every accuracy
+**`toongod` is 13 of the 23 marked tuning entries** — 57 %, and was 11 of 21
+(52 %) until MC-052 moved two `toongod` entries in on 2026-09-24. Every accuracy
 suite runs over `tuning` only, and every score in EPIC-07 is measured over its
 marked entries, so MC-019's 20 of 21, MC-026's 8 of 21, MC-028's 4, MC-031's 5,
 MC-034's 8, MC-035's re-score and MC-038's 8 are each a majority-`toongod`

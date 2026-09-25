@@ -74,6 +74,14 @@ const SECTION_4: [(&str, u32, u32); 19] = [
 /// declining on.
 const DECLINES: [&str; 2] = ["2025-08-05 00_11_13.webp", "2025-08-05 00_11_27.webp"];
 
+/// MC-052's two split-screen screenshots, moved from `held-out` to `tuning`
+/// by the user on 2026-09-24. Section 4 never saw them, so they are in
+/// neither table above and are **never** merged into [`SECTION_4`], which
+/// claims to be section 4: this readout skips them, and
+/// `tests/corpus_viewport.rs` (`READER_WINDOW`) is where MC-052 judges
+/// them, against rows it measured itself.
+const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_58_06.png"];
+
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
 const REPRODUCED_REQUIRED: usize = 18;
@@ -119,6 +127,7 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     let mut differs = Vec::new();
     let mut spoke_on_a_webp = Vec::new();
     let mut seen = Vec::new();
+    let mut skipped = Vec::new();
 
     for entry in marked() {
         let name = entry.name();
@@ -126,6 +135,13 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         let column = page_column_of(&img, &t);
         let got = locate(&img, column, &t);
 
+        if NOT_IN_SECTION_4.contains(&name.as_str()) {
+            skipped.push(name.clone());
+            rows.push(format!(
+                "{name:<26} not in section 4 (MC-052's; see corpus_viewport.rs)"
+            ));
+            continue;
+        }
         if DECLINES.contains(&name.as_str()) {
             seen.push(name.clone());
             if got.is_some() {
@@ -160,6 +176,11 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         seen.len(),
         SECTION_4.len() + DECLINES.len(),
         "every one of the twenty-one marked tuning entries must be reached"
+    );
+    assert_eq!(
+        skipped,
+        NOT_IN_SECTION_4.map(String::from).to_vec(),
+        "MC-052's two must be marked tuning entries, skipped here and nowhere else"
     );
     assert!(
         spoke_on_a_webp.is_empty(),

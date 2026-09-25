@@ -115,6 +115,21 @@ Responsibilities, in pipeline order:
    unchanged: 0.90 and 16 are module constants, not `Tuning` fields. When no
    such run exists the stage declines and moves nothing; there is no
    narrower fallback. The columns never move here.
+   **Since MC-052 (2026-09-24) the stage makes a second reading, over the
+   reader's own window, that can only widen the first.** The full-width
+   reading above is kept exactly, and it alone decides whether the stage
+   speaks. When it finds a viewport that overlaps the page column's rows, the
+   stage finds the reader's window. From each side of the page column it reads
+   outward over columns that are page background (a majority of their rows
+   inside that viewport within `uniform_tolerance` of the tone), and stops at
+   the first column that is not: the reader window's edge, such as its
+   scrollbar. It then scores the rows again over those columns alone, with
+   the same 0.90 and 16-row run. The viewport becomes the union of the two
+   readings. Pixels past the window's edge, such as a second browser window on
+   a split-screen screenshot, cannot pull the reader's rows out. Where MC-048
+   declined, this still declines, and where it found rows over the page, it
+   keeps all of them. The four settled values (0.90, 16 rows, the tone
+   estimate, `uniform_tolerance`) are unchanged.
 5. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
    clamped to the image — and, on the row axis, to the viewport stage 4
    located, so the margin never puts a row of chrome or taskbar back
@@ -452,6 +467,24 @@ this file and the stories that depend on it.
     `chrome-row-search.md` §4 locates a viewport, the stage reproduces §4 to
     the row on 19 of 19, every crop row lies inside it, the columns do not
     move, and there are still zero clips on all 21 entries.
+
+    **2026-09-24, MC-052: the stage reads only the reader's own window.** As
+    MC-048 shipped it, the stage scored each row over every pixel outside the
+    page column across the full image width. On split-screen screenshots, a
+    second browser window beside the reader has its own chrome and bottom edge,
+    so the stage returned that window's viewport and cut the reader's art
+    (`2025-03-06 01_22_45.png` by 3 rows at the top and 103 at the bottom,
+    `2025-03-07 00_58_06.png` by 31 at the bottom). The first held-out run
+    after MC-048 merged found it. The stage now also reads the rows over the
+    reader's own window, bounded at its edge on each side, and takes the
+    union with MC-048's reading (pipeline step 4). A first version that
+    *replaced* the full-width reading was caught at GATES by the
+    `detect.rs` property test, which found generated scenes it clipped.
+    MC-048's reading did not clip them (MC-052 `## Notes`, "GATES: the
+    proptest clip"). The settled
+    constants did not move, §4 still reads 19 of 19, the 21 original tuning
+    crops did not move by a pixel, and the two files, now `tuning`, crop to the
+    reader's viewport (rows 115..1374 and 115..1399) with zero clips.
 
     - **Named limitation: the two `2025-08-05` WebPs.** At the full margin
       width the oracle finds no page-like run there and declines, so their
