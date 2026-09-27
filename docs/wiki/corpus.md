@@ -414,6 +414,46 @@ right and the mark was wrong. The first aggregate held-out run after MC-048
 reported the edge as a `bottom:2` clip, which is how it came up; no threshold
 was chosen against it.
 
+#### MC-053's rulings, pending MC-055: no held-out score until they land
+
+MC-053 became a spike on 2026-09-27 (its `## Amendments`), so its data edits
+did not merge. The user's rulings stand, and they land with the successor
+fix [MC-055](../backlog/stories/MC-055.md). The manifest is left as it is
+until then because the fix and the move have to land together: three
+clipping entries in `tuning` would turn the zero-clip corpus tests red.
+
+**Hold: until MC-055 lands, no held-out score is taken.** Three entries
+marked `held-out` in the manifest are contaminated:
+`2025-07-17 14_41_58.png`, `2025-07-17 14_55_10.png` and
+`Screenshot (73).png`. The page column locator trims their dark,
+low-texture art. MC-053 looked at their edges, rendered them, had the user
+re-mark them, and designed a candidate rule on them. By the rule above, "an
+entry that has been used to make any such decision is no longer held out,
+whatever its `split` says". Any held-out number taken before MC-055 must
+leave them out and say so.
+
+The rulings MC-055 applies:
+
+- **The move** (the user, 2026-09-24): the three go to `tuning`. That makes
+  tuning 33 : held-out 26, marked 26 : 19.
+- **Their marks, widened to their art** (the user, 2026-09-25, on 8×
+  renders of all six side edges). Every added column is art by MC-049's
+  predicate, and the column beyond each new edge is page background:
+  - `14_41_58`: `931,273 681x1096` → `928,273 690x1096`
+  - `14_55_10`: `931,171 668x1224` → `928,171 690x1224`
+  - `(73)`: `1007,293 530x1086` → `1003,293 540x1086`
+- **Two held-out right edges corrected** (the user, 2026-09-24): they are
+  mark errors on white pages. `Screenshot (56).png` `w` 480 → 472 drops
+  columns 1512–1519, and `Screenshot (59).png` `w` 464 → 463 drops column
+  1506. Both stay `held-out`.
+- **`MIN_HELD_OUT_MARKED` 20 → 19** (MC-053 Open question 6): the move leaves
+  19 marked held-out entries. At 19 one miss is 5.3 %. The held-out set will
+  have shrunk by five marked entries since MC-037, all moved for cause; new
+  screenshots are how it grows back.
+- **"Unseen reader" means no `tuning` entries as well** (MC-053 Open question
+  2). After the move `xbato` has two tuning entries, so `manhwaclan` (2
+  entries) is the only unseen reader. `MIN_UNSEEN_SITES` drops to 1.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate

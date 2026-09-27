@@ -2,7 +2,7 @@
 id: EPIC-08
 title: The crop's sides hug the artwork
 status: planned
-stories: [MC-053, MC-049]
+stories: [MC-053, MC-055, MC-049]
 ---
 
 ## Goal
@@ -89,6 +89,16 @@ constants. Each also changes the counts the next one pins.
    corrects two held-out marks, and changes the page column's boundary rule
    without letting page background back in. MC-049 depends on it and is parked
    at GATES until it is DONE.
+   **2026-09-27: MC-053 became a *spike*** (its `## Amendments`). GREEN's
+   rule passed every test, but one branch of it was fitted to one file,
+   `14_41_58`. The user chose investigation only. The spike's verdict: two
+   general branches fix 25 of 26, and `14_41_58` is open.
+0b. **[MC-055](../stories/MC-055.md)**, a *fix*: the page column keeps dark,
+   low-texture art, **with a rule that is not fitted**. It takes MC-053's
+   acceptance criteria, data rulings and tests unchanged, starting from
+   branch `wip/MC-053-dark-art-candidate`. **MC-049 now waits on MC-055, not
+   on MC-053.** When it resumes, its `depends_on` has to name MC-055: the
+   spike being DONE does not unblock it.
 1. **[MC-049](../stories/MC-049.md)** — *fix*: the crop's side edges carry no
    page background. Margin to 0 (Open question 1), seven marks corrected with
    the user (Open question 2), zero clips.
