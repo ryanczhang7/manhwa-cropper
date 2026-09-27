@@ -82,7 +82,13 @@
 use crate::edges::{
     Axis, col_profile, row_profile, spread_within, strong_lines, textured_span, widest_textured_run,
 };
+use crate::viewport;
 use crate::{Luma, Rect, Tuning};
+
+/// MC-049's page-background share, as a whole percentage: a column is page
+/// background over some rows when at least this share of its pixels there lie
+/// within `uniform_tolerance` of its own upper median.
+const PAGE_BACKGROUND_PERCENT: u64 = 95;
 
 /// `within`, pulled in on each axis to the outermost line of it whose spread
 /// reaches [`Tuning::min_line_spread`].
@@ -178,6 +184,58 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 //
 // That is not a tuning knob and there is no constant in it. It is the
 // definition of a page margin, restated as code.
+//
+// # Where the page column ends: at the margin, not at the threshold (MC-053)
+//
+// Up to MC-053 the widest run's own ends were the answer, which made
+// `min_line_spread` the page column's side boundary. That cut into dark,
+// low-texture art: the outer columns of a dark page fade below 8.0 well
+// before the page ends - 1.8 to 7.8 on the three corpus entries MC-053 moved
+// to `tuning`, `2025-07-17 14_41_58.png`, `2025-07-17 14_55_10.png` and
+// `Screenshot (73).png` - and the crop lost 2 to 24 columns of art on a side.
+// Lowering the threshold is no fix: a JPEG margin column can have more
+// spread (5.27 on `Screenshot (2630).jpg`) than dark art has (1.9), so no
+// single value keeps one and drops the other (MC-053 AC-2's and AC-7's
+// controls).
+//
+// So the widest run now only *finds* the page, and the page column is that
+// run widened outward, one column at a time on each side, until the next
+// column is page margin. A column is **margin**, and the widening stops, on
+// the first of these that holds:
+//
+// 1. **Its tone is the margin's and not the page's.** Its median over the
+//    band lies within `uniform_tolerance` of the page background tone, as
+//    the viewport stage reads that tone (`viewport::page_background_tone`,
+//    MC-048's instrument), and *not* within `uniform_tolerance` of the column
+//    just inside it. This is the column where the page's own tone has already
+//    handed over to the margin's: the resampled edge of a bright page on a
+//    dark margin, the near-flat grey columns MC-049 names on
+//    `Screenshot (3538).png`, which are not page background by MC-049's
+//    predicate and must still not be taken.
+// 2. Otherwise, a column that is **not page background over the band** -
+//    MC-049's predicate: under 95 % of its pixels within `uniform_tolerance`
+//    of its own median - is page, whatever its spread. That is the story's
+//    definition of dark, low-texture art.
+// 3. A column that **is** page background over the band is margin, with one
+//    exception: where its median is not the page background tone *and* a
+//    viewport was located, it is judged again over the viewport's rows, and
+//    it is page if it is not page background there. The band is a stand-in
+//    for "rows clear of the browser chrome", and it is a conservative one: a
+//    dark page can be flat through the middle of the frame and textured
+//    above or below it (the outer columns of `2025-07-17 14_41_58.png` are
+//    0.95 to 0.99 over the band and 0.82 to 0.85 over the page). The viewport
+//    is the measured version of the same rows. A column at the margin's own
+//    tone is never re-read, so where page background and art are the same
+//    grey over the band - `tests/flatness.rs`' waist fixture at a band of
+//    0.5 - the band alone still decides, as MC-027 settled.
+//
+// A widening that reaches either end of the rect falls under the interior
+// rule above exactly as the run itself does.
+//
+// None of this adds a constant: 0.95 is MC-049's predicate, the tolerance is
+// `uniform_tolerance`, the tone and the viewport are MC-048's and MC-052's
+// settled instrument, and `min_line_spread` keeps its value and its meaning
+// everywhere else - `textured_box` above does not read any of this.
 
 /// `rect`, restricted to the middle [`Tuning::central_band_fraction`] of its
 /// rows: the rows [`page_column`] measures a column's spread over.
@@ -213,13 +271,14 @@ pub fn central_band(rect: Rect, t: &Tuning) -> Rect {
 }
 
 /// `within`, narrowed on the **column axis** to the page column inside it:
-/// the widest run of columns that are textured over
-/// [`central_band`] of the rect's rows.
+/// the widest run of columns that are textured over [`central_band`] of the
+/// rect's rows, widened outward on each side up to the page margin (MC-053).
 ///
 /// Returns `within` unchanged where there is no page column to find - no
-/// textured column at all, or a widest run that reaches column 0 or the rect's
-/// last column, which is a rect with no page margin on that side. The section
-/// comment above is where that rule is argued.
+/// textured column at all, or a page column that reaches column 0 or the
+/// rect's last column, which is a rect with no page margin on that side. The
+/// section comments above are where both rules are argued: the run and the
+/// interior rule are MC-027's, and where the page column ends is MC-053's.
 ///
 /// The rows are **never** moved: the returned rect's `y` and `h` are
 /// `within`'s own. Locating the top and bottom of the page is a different
@@ -227,21 +286,141 @@ pub fn central_band(rect: Rect, t: &Tuning) -> Rect {
 /// stage does not guess at it.
 #[must_use]
 pub fn page_column(img: &Luma, within: Rect, t: &Tuning) -> Rect {
-    let spread = spread_within(img, central_band(within, t), Axis::Columns);
+    let band = central_band(within, t);
+    let spread = spread_within(img, band, Axis::Columns);
     let Some((first, last)) = widest_textured_run(&spread, t) else {
         return within;
     };
-    // The interior rule. `spread` has one entry per column of `within` - the
-    // band restricts rows only - so an index reaching either end of it is an
-    // edge of the rect itself.
-    if first == 0 || last + 1 == spread.len() {
-        return within;
-    }
     // A spread profile index *is* a line index, so the arithmetic is an offset
     // from the rect's own origin; both bounds are inclusive, hence the `+ 1`.
-    Rect {
+    let run = Rect {
         x: within.x + first as u32,
         w: (last - first + 1) as u32,
         ..within
+    };
+    let (first, last) = extend_to_the_margin(img, within, band, run, t);
+    // The interior rule, read on the column the extension arrived at: a page
+    // column that reaches either end of `within` has no page margin on that
+    // side.
+    if first == within.x || last + 1 == within.x + within.w {
+        return within;
     }
+    Rect {
+        x: first,
+        w: last - first + 1,
+        ..within
+    }
+}
+
+/// The first and last image column, both inclusive, of `run` widened outward
+/// on each side for as long as the next column [`Margin::belongs`] to the page.
+fn extend_to_the_margin(img: &Luma, within: Rect, band: Rect, run: Rect, t: &Tuning) -> (u32, u32) {
+    let tone = viewport::page_background_tone(img, run);
+    let view = viewport::locate(img, run, t).and_then(|v| {
+        let top = v.top.max(within.y);
+        let bottom = v.bottom.min(within.y + within.h);
+        (top < bottom).then_some(top..bottom)
+    });
+    let band = band.y..band.y + band.h;
+    let margin = Margin {
+        img,
+        band,
+        view,
+        tone,
+        tol: t.uniform_tolerance,
+    };
+
+    let mut first = run.x;
+    let mut edge = margin.over_band(first).0;
+    while first > within.x {
+        match margin.belongs(first - 1, edge) {
+            Some(median) => {
+                first -= 1;
+                edge = median;
+            }
+            None => break,
+        }
+    }
+    let mut last = run.x + run.w - 1;
+    let mut edge = margin.over_band(last).0;
+    while last + 1 < within.x + within.w {
+        match margin.belongs(last + 1, edge) {
+            Some(median) => {
+                last += 1;
+                edge = median;
+            }
+            None => break,
+        }
+    }
+    (first, last)
+}
+
+/// What [`extend_to_the_margin`] reads a column against.
+struct Margin<'a> {
+    img: &'a Luma,
+    /// The central band's rows.
+    band: std::ops::Range<u32>,
+    /// The viewport's rows inside the rect, where one was located.
+    view: Option<std::ops::Range<u32>>,
+    /// The page background tone, where there is a margin to read it from.
+    tone: Option<u8>,
+    tol: u8,
+}
+
+impl Margin<'_> {
+    /// Column `x`'s median over the band, and whether it is page background
+    /// there.
+    fn over_band(&self, x: u32) -> (u8, bool) {
+        column_background(self.img, x, self.band.clone(), self.tol)
+    }
+
+    /// `Some(median over the band)` when column `x`, just outside a page
+    /// column whose edge column has band median `edge`, is part of the page;
+    /// `None` when it is the margin.
+    fn belongs(&self, x: u32, edge: u8) -> Option<u8> {
+        let (median, background) = self.over_band(x);
+        if let Some(tone) = self.tone
+            && median.abs_diff(tone) <= self.tol
+            && median.abs_diff(edge) > self.tol
+        {
+            return None;
+        }
+        if !background {
+            return Some(median);
+        }
+        match (self.tone, &self.view) {
+            (Some(tone), Some(view)) if median != tone => {
+                let (_, flat) = column_background(self.img, x, view.clone(), self.tol);
+                (!flat).then_some(median)
+            }
+            _ => None,
+        }
+    }
+}
+
+/// Column `x`'s upper median over `rows`, and whether it is page background
+/// there by MC-049's predicate: at least [`PAGE_BACKGROUND_PERCENT`] percent of its
+/// pixels within `tol` of that median.
+fn column_background(img: &Luma, x: u32, rows: std::ops::Range<u32>, tol: u8) -> (u8, bool) {
+    let mut counts = [0u32; 256];
+    let len = rows.len() as u32;
+    for y in rows {
+        counts[usize::from(img.data[(y * img.width + x) as usize])] += 1;
+    }
+    let mut seen = 0;
+    let mut median = 0u8;
+    for (value, &count) in (0u8..=255).zip(&counts) {
+        seen += count;
+        if seen > len / 2 {
+            median = value;
+            break;
+        }
+    }
+    let lo = usize::from(median.saturating_sub(tol));
+    let hi = usize::from(median.saturating_add(tol));
+    let near: u32 = counts[lo..=hi].iter().sum();
+    (
+        median,
+        u64::from(near) * 100 >= u64::from(len) * PAGE_BACKGROUND_PERCENT,
+    )
 }

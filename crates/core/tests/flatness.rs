@@ -123,9 +123,10 @@ use common::{
     PAGE_SIXTH, PAGE_W, WAIST_BOTTOM, WAIST_INSET, WAIST_TOP, chrome_band, fade_amplitude,
     fade_first_textured_line, fade_gutter_spread, fade_last_textured_line, fade_row_spread,
     fade_to_gutter, flat_gutter_only, hard_edge_art_rows, hard_edge_to_gutter,
-    page_first_textured_column, page_in_margins, page_in_margins_with_blank_bands,
-    page_in_margins_with_chrome_bands, page_last_textured_column, page_with_a_waist, soft_art,
-    waist_inner_columns, waist_page_columns,
+    page_first_art_column, page_first_textured_column, page_in_margins,
+    page_in_margins_with_blank_bands, page_in_margins_with_chrome_bands, page_last_art_column,
+    page_last_textured_column, page_with_a_waist, soft_art, waist_inner_columns,
+    waist_page_columns,
 };
 use cropper_core::edges::{
     Axis, Line, row_profile, spread_profile, strong_lines, textured_span, widest_textured_run,
@@ -1047,6 +1048,13 @@ fn the_central_band_is_the_middle_share_of_the_rects_rows_and_nothing_else() {
 /// RED measured outside the test framework, on both fixtures: at 0.5, 0.6 and
 /// 2/3 both give 47..252; at 0.7 they give 46..253 and 48..251; at 0.8, 0..299
 /// and 49..250.
+///
+/// **Re-pointed by MC-053, approved by the Lead PO on 2026-09-25.** The page
+/// is columns 45..254, not 47..252: columns 45, 46, 253 and 254 are fade art
+/// at amplitude 6 and 7 - spread below `min_line_spread`, share 0.50, so not
+/// page background by MC-049's predicate - and MC-053 AC-7 case A requires
+/// the locator to keep such columns. The bound is read from the recipe
+/// ([`page_first_art_column`]), not from any rule's output.
 #[test]
 fn a_row_outside_the_central_band_cannot_change_where_the_page_column_is() {
     let t = Tuning::default();
@@ -1054,8 +1062,8 @@ fn a_row_outside_the_central_band_cannot_change_where_the_page_column_is() {
     let blank = page_in_margins_with_blank_bands();
     let rect = whole(&chrome);
 
-    let first = page_first_textured_column(t.min_line_spread);
-    let last = page_last_textured_column(t.min_line_spread);
+    let first = page_first_art_column(t.uniform_tolerance);
+    let last = page_last_art_column(t.uniform_tolerance);
     let expected = Rect {
         x: first,
         w: last - first + 1,
@@ -1065,9 +1073,11 @@ fn a_row_outside_the_central_band_cannot_change_where_the_page_column_is() {
     assert_eq!(
         page_column(&chrome, rect, &t),
         expected,
-        "AC-1: the page is columns {first}..={last} at min_line_spread {}, and the \
-         chrome rows in the outer sixths of the rect must not reach the statistic",
-        t.min_line_spread
+        "AC-1 (as MC-053 re-points it): the page is columns {first}..={last} - every \
+         column that is not page background by MC-049's predicate at \
+         uniform_tolerance {} - and the chrome rows in the outer sixths of the rect \
+         must not reach the statistic",
+        t.uniform_tolerance
     );
     assert_eq!(
         page_column(&blank, rect, &t),
@@ -1273,13 +1283,18 @@ fn a_page_whose_outer_panels_miss_the_middle_needs_a_band_wider_than_half() {
 /// RED measured outside the test framework: column 0's mean absolute deviation
 /// over the band is 0.75 at 2/3, 3.0887 at 0.7 and 8.9583 at 0.8, against a
 /// `min_line_spread` of 8.0.
+///
+/// **Re-pointed by MC-053, approved by the Lead PO on 2026-09-25**: the first
+/// assertion's page is columns 45..254 ([`page_first_art_column`]), for the
+/// reason `a_row_outside_the_central_band_cannot_change_where_the_page_column_is`
+/// gives. The ceiling half is untouched.
 #[test]
 fn a_band_that_reaches_the_chrome_rows_gives_the_page_back_whole() {
     let t = Tuning::default();
     let img = page_in_margins_with_chrome_bands();
     let rect = whole(&img);
-    let first = page_first_textured_column(t.min_line_spread);
-    let last = page_last_textured_column(t.min_line_spread);
+    let first = page_first_art_column(t.uniform_tolerance);
+    let last = page_last_art_column(t.uniform_tolerance);
 
     assert_eq!(
         page_column(&img, rect, &t),
@@ -1424,15 +1439,23 @@ fn a_run_that_reaches_an_end_of_the_rect_is_not_a_page_column_and_is_left_alone(
          blank column"
     );
 
+    // Re-pointed by MC-053, approved by the Lead PO on 2026-09-25: the page is
+    // every column that is not page background, 45..254, for the reason
+    // `a_row_outside_the_central_band_cannot_change_where_the_page_column_is`
+    // gives. The two halves above keep their 47..252 rects untouched.
+    let (art_first, art_last) = (
+        page_first_art_column(t.uniform_tolerance),
+        page_last_art_column(t.uniform_tolerance),
+    );
     let both_margins = whole(&img);
     assert_eq!(
         page_column(&img, both_margins, &t),
         Rect {
-            x: first,
-            w: last - first + 1,
+            x: art_first,
+            w: art_last - art_first + 1,
             ..both_margins
         },
         "while the same fixture with both its margins is located at columns \
-         {first}..={last}"
+         {art_first}..={art_last}, every column that is not page background"
     );
 }

@@ -6,9 +6,10 @@ and where the recorded numbers are less precise than they look.
 
 The corpus is 59 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 30 are `tuning` and 29 are
-`held-out` (28 : 31 until MC-052 moved two, 2026-09-24) — see "The tuning /
-held-out split" below, which is the section to
+`"flag"` for a screenshot that should be left alone. 33 are `tuning` and 26 are
+`held-out`. It was 28 : 31 until MC-052 moved two on 2026-09-24, and MC-053
+moved three more on 2026-09-25. See "The tuning / held-out split" below,
+which is the section to
 read before using any of them for anything. It is the oracle for every
 accuracy claim this project makes — MC-019's column-axis bar, MC-026's decision
 gates, MC-027's page column. Nothing in the repository can check that a
@@ -264,9 +265,10 @@ The **31 new entries are held out in their entirety** and the tuning set was
 deliberately **not** grown. The proposal was to give tuning 8 more marked
 entries; the user declined, on the grounds that held-out is what new files are
 for. So the marked ratio is 21 tuning : 24 held-out, and that is a decision
-rather than an accident — do not "rebalance" it. (It is **23 : 22** since
-MC-052's move of two reproducing entries, under "Moves out of held-out" below;
-that was a ruling on two named files, not a rebalance.)
+rather than an accident — do not "rebalance" it. (It is **26 : 19** since
+MC-052's move of two reproducing entries and MC-053's move of three, under
+"Moves out of held-out" below. Each was a ruling on named files, not a
+rebalance.)
 
 **The held-out set is scored once, at the end of a v2 attempt, and is never
 tuned against.** Not once, not "just to see". The rule above under "The rule,
@@ -355,10 +357,22 @@ count drops and the entries stay where they are". Contamination runs one way,
 and finding that `kunmanga` was in tuning all along does not make its held-out
 entries fresh.
 
-A held-out reader counts as **unseen** when its slug is outside the table above.
-Two are: `xbato` and `manhwaclan`.
+A held-out reader counts as **unseen** when its slug is outside the table above
+**and no `tuning` entry carries it**. The second half is the user's ruling of
+2026-09-24 (MC-053 Open question 2). It was added when MC-053 moved two of
+`xbato`'s three entries into `tuning` and designed its fix on them. `xbato`
+stayed outside the pre-EPIC-07 table, but a reader the rule has been tuned on
+is not unseen. **One is unseen now: `manhwaclan`, on 2 entries.**
+`MIN_UNSEEN_SITES` is **1** since that ruling, and the test reads both halves
+of the definition.
 
-**The unseen-reader number rests on five entries** — `xbato` 3 and
+**The unseen-reader claim is now one reader on two entries.** Treat any v2
+unseen-reader result as an anecdote, not a measurement. New screenshots from
+readers outside the corpus are the only repair.
+
+The rest of this section is the record as it stood before MC-053.
+
+**The unseen-reader number rested on five entries** — `xbato` 3 and
 `manhwaclan` 2 — across **two** readers. Five entries either way, by
 coincidence; a different five, and one reader fewer than before 2026-09-21.
 `MIN_UNSEEN_SITES` in `crates/engine/tests/corpus_manifest.rs` is **2**, so the
@@ -371,8 +385,8 @@ the failure.
 It is also still *thin*: one entry decides twenty percent of it, and a
 two-entry reader measures almost nothing on its own. Treat a v2 unseen-reader
 result as a direction, not a percentage, and say so wherever it is reported.
-The unseen-**page** number, resting on all 29 held-out entries (31 before
-MC-052), is the one with resolution.
+The unseen-**page** number, resting on all 26 held-out entries (31 before
+MC-052 and MC-053), is the one with resolution.
 
 ### Moves out of held-out, and held-out mark corrections
 
@@ -414,6 +428,67 @@ right and the mark was wrong. The first aggregate held-out run after MC-048
 reported the edge as a `bottom:2` clip, which is how it came up; no threshold
 was chosen against it.
 
+#### MC-053, 2026-09-24: three dark-art entries move to `tuning`
+
+`2025-07-17 14_41_58.png`, `2025-07-17 14_55_10.png` (both `xbato`) and
+`Screenshot (73).png` (`kunmanga`) moved from `held-out` to `tuning`. On each,
+the page column locator trims the outer columns of dark, low-texture art as if
+they were page background, and the crop cuts into the art. MC-053 fixes that
+and is designed while looking at them, so they cannot stay held out. The
+user's ruling of 2026-09-24. The bug was found by MC-049's aggregate held-out
+zero-clip check, and the user and orchestrator then looked at the clipped
+edges.
+
+- **New counts:** tuning 33 : held-out 26; marked 26 : 19.
+- **The unseen-reader claim changes.** `xbato` now has two tuning entries, so
+  under the ruling above it is no longer unseen. `manhwaclan` is the only
+  unseen reader left.
+
+#### MC-053, 2026-09-25: the three's marks widened to their art
+
+The three are `tuning`, so looking at them costs nothing. Before any test
+pinned them, the orchestrator rendered every side edge of the three at 8×
+across, over the mark's rows. Each render ticked the mark's edge and the first
+page-background column, by MC-049's predicate (at least 0.95 of the column's
+pixels over the mark's rows within `uniform_tolerance` of its median). On all
+six edges the art runs past the mark to the page background. **The user
+ruled, on the renders: widen all six.** This is MC-027's precedent in the
+other direction: the mark left out art, against the marking rule.
+
+```
+2025-07-17 14_41_58.png  931,273 681x1096  ->  928,273 690x1096   (left 928-930, right 1612-1617 added)
+2025-07-17 14_55_10.png  931,171 668x1224  ->  928,171 690x1224   (left 928-930, right 1599-1617 added)
+Screenshot (73).png      1007,293 530x1086 ->  1003,293 540x1086  (left 1003-1006, right 1537-1542 added)
+```
+
+Every added column scores 0.14–0.92 by the predicate, which is art. The column
+beyond each new edge scores 1.00, which is page background. Rows are
+unchanged.
+
+#### MC-053, 2026-09-24: two white-page held-out marks corrected
+
+```
+Screenshot (56).png  "expect": { "x": 1040, "y": 171, "w": 480, "h": 1218 }  ->  "w": 472
+Screenshot (59).png  "expect": { "x": 1043, "y": 224, "w": 464, "h": 1161 }  ->  "w": 463
+```
+
+Both move the right edge in and change nothing else. `(56)` drops columns
+1512–1519, and `(59)` drops column 1506. Both entries **stay `held-out`**.
+MC-049's held-out zero-clip check reported the two edges as right-side clips
+on white pages. The user ruled on 2026-09-24 that both are mark errors: the
+dropped columns are page, not art. No threshold was chosen against them.
+
+#### `MIN_HELD_OUT_MARKED` lowered to 19 — MC-053, 2026-09-24
+
+The two moves leave **19** marked held-out entries, under MC-037's floor of
+20, and the test then named `the_held_out_set_carries_at_least_twenty_marked_entries`
+(now `the_held_out_set_carries_at_least_nineteen_marked_entries`) would fail
+the required `unit` gate. **The user's ruling (MC-053 Open question 6): the
+floor drops to 19.** This is the same kind of ruling as `MIN_UNSEEN_SITES`.
+At 19 entries one miss is 5.3 %, against 5 % at 20. The held-out set has
+shrunk by five marked entries since MC-037, all moved for cause, and **new
+screenshots are how it grows back**. Held-out is what new files are for.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
@@ -427,14 +502,17 @@ detector — and only the person who drew it can rule on that.
 
 ### Every accuracy number in EPIC-07 is majority one reader
 
-**`toongod` is 13 of the 23 marked tuning entries** — 57 %, and was 11 of 21
-(52 %) until MC-052 moved two `toongod` entries in on 2026-09-24. Every accuracy
+**`toongod` is 13 of the 26 marked tuning entries** — exactly half since
+MC-053 moved in two `xbato` and one `kunmanga` entry on 2026-09-24. It was
+13 of 23 (57 %) after MC-052, and 11 of 21 (52 %) before it. The other 13 are
+now `demonicrevolution` 4, `kunmanga` 3, `w-network` 2, `rolia-scans` 2 and
+`xbato` 2. Every accuracy
 suite runs over `tuning` only, and every score in EPIC-07 is measured over its
 marked entries, so MC-019's 20 of 21, MC-026's 8 of 21, MC-028's 4, MC-031's 5,
 MC-034's 8, MC-035's re-score and MC-038's 8 are each a majority-`toongod`
 number. None of those documents says so, because until the labels landed on
-2026-09-21 nobody could count it. The remaining ten are `demonicrevolution` 4,
-`w-network` 2, `rolia-scans` 2 and `kunmanga` 2.
+2026-09-21 nobody could count it. On the 21, the remaining ten were
+`demonicrevolution` 4, `w-network` 2, `rolia-scans` 2 and `kunmanga` 2.
 
 This is counted from the manifest, not re-measured, and it **reweights nothing**.
 Whether 52 % one reader qualifies any of those numbers is a question for

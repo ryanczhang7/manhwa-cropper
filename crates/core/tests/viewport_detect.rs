@@ -55,23 +55,46 @@ const LOCATES_EVERY: u32 = 17;
 
 /// The crop `detect` made of each fixture on `cb2deef`, before this story, at
 /// `Tuning::default()`. Measured in RED.
+///
+/// **Columns re-pointed by MC-053, approved by the Lead PO on 2026-09-25**;
+/// the rows are untouched. On `cb2deef` both were `x 44, w 212`: the page
+/// column 47..=252 grown by `margin_px` 3. MC-053 AC-7 case A requires the
+/// page column to keep art below `min_line_spread` that is not page
+/// background, and in every `viewport_scene` the fade's columns of amplitude
+/// 6 and 7 (45, 46, 253, 254) are exactly that - share 0.50 over the body
+/// rows - while the fade's columns of amplitude 1..=5 (40..=44, 255..=259)
+/// are page background, share 1.00 (`common::page_column_is_background`).
+/// So the page column is 45..=254 on both scenes, and grown by 3 it is
+/// 42..=257: `x 42, w 216`. On the decline scene the outer margin (0..=39)
+/// reads a share below 0.95 over the body rows, because every 16th row of it is
+/// noise; the page background that bounds the page column there is the
+/// fade's 40..=44 and 255..=259.
 const BLANK_BEFORE: Rect = Rect {
-    x: 44,
+    x: 42,
     y: 37,
-    w: 212,
+    w: 216,
     h: 166,
 };
 const DECLINE_BEFORE: Rect = Rect {
-    x: 44,
+    x: 42,
     y: 0,
-    w: 212,
+    w: 216,
     h: 240,
 };
 
-/// AC-7's columns, before and after alike: the page column 48..=251, grown by
+/// AC-7's columns, before and after alike: the page column grown by
 /// `margin_px` at 3 and not at all at 0. The viewport stage moves rows only.
-const AC7_COLUMNS_AT_3: (u32, u32) = (45, 210);
-const AC7_COLUMNS_AT_0: (u32, u32) = (48, 204);
+///
+/// **Re-pointed by MC-053, approved by the Lead PO on 2026-09-25.** On
+/// `cb2deef` the page column here was 48..=251, one column narrower each side
+/// than on the 240-row scenes, because this scene's central band is 129 rows,
+/// an odd count, and an alternating column of amplitude 8 then reads a spread
+/// just under 8.0. By MC-053's definition the page column is every column that is
+/// not page background over the body rows, 45..=254, as in
+/// [`BLANK_BEFORE`]'s derivation: `(45, 210)` at margin 0 and `(42, 216)` at
+/// margin 3. Were `(48, 204)` and `(45, 210)`.
+const AC7_COLUMNS_AT_3: (u32, u32) = (42, 216);
+const AC7_COLUMNS_AT_0: (u32, u32) = (45, 210);
 
 /// The rect `detect` returns for `img` at `t`.
 fn crop(img: &Luma, t: &Tuning) -> Rect {
