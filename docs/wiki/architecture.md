@@ -103,6 +103,27 @@ Responsibilities, in pipeline order:
    its panels instead of being cut to the largest one. Then a second uniform
    trim inside it, because removing chrome often exposes a **page margin**
    that was not an edge of the image a moment ago.
+   **Then the page column** (`flat::page_column`, MC-027): the widest run of
+   columns whose spread over the central band of rows reaches
+   `min_line_spread` *finds* the page. **Since MC-055 (2026-09-28) that run no
+   longer decides where the page ends**, because the outer columns of dark,
+   low-texture art fall below 8.0 while a JPEG margin can sit above the art's
+   spread, so no threshold separates them. From each end of the run the
+   column is widened outward one column at a time and stops at the first
+   column that is page margin, judged in this order: (1) its band median is
+   within `uniform_tolerance` of the page background tone (the viewport
+   stage's tone) and not of the column just inside it: margin; (2) it is not
+   page background over the band by MC-049's predicate (under 0.95 of its
+   pixels within `uniform_tolerance` of its median): page; (3) it is page
+   background over the band, but it carries on the tone of the column just
+   inside it *and* is not page background over the viewport's rows: page;
+   otherwise margin. The viewport's rows are read only for (3), because the
+   band is a sample of the page's rows and a dark page can be flat all
+   through it. A widened column that reaches an end of the rect gives the
+   rect back whole, as MC-027's interior rule does. No constant is added.
+   Branch (3) does its work on one corpus file (`2025-07-17 14_41_58.png`),
+   and every comparison in the rule was probed at up to `uniform_tolerance`
+   of slack without a corpus test moving (MC-055 `## Notes`).
 4. **Browser viewport** (`viewport`, MC-048), after MC-025's flatness locator
    and MC-027's page column: on the **row axis only**, clamp the rect's rows
    to the browser viewport — the rows between the browser chrome and the
