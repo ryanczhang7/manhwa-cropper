@@ -42,6 +42,33 @@
 //!    the columns of the reader's window, found from step 4's viewport, and
 //!    where that second viewport reaches further up or down than step 4's, the
 //!    viewport is widened to it. It is never narrowed.
+//! 6. **Evidence of chrome** (MC-054, below): for a viewport over the column's
+//!    rows, as step 5 reads, on each side where the viewport would cut rows
+//!    off the page column, it does so only when those rows hold a run of at
+//!    least [`MIN_RUN`] rows that step 3 does not find page-like. Otherwise
+//!    that side has no strip, and the viewport runs to the image's edge there.
+//!
+//! # A strip must be as sure as the page (MC-054)
+//!
+//! Step 4 asks [`MIN_RUN`] rows of evidence before it believes a stretch is
+//! page, and reads anything shorter as part of the strip around it. Until
+//! MC-054 it asked nothing of the strip it cut. On real screenshots that never
+//! mattered: `chrome-row-search.md` section 3c measures chrome rows at a
+//! median share of 0.000, and a tab strip or taskbar is tens to hundreds of
+//! rows. It mattered where the margin's share sits near [`PAGE_LIKE`] on
+//! *every* row - `tests/detect.rs`'s generator draws textured chrome bands at
+//! flat fractions of 0.86 to 0.98 beside the page - because there the art's
+//! rows fall into page-like runs and short gaps by the texture alone, and the
+//! viewport ended at whichever run of [`MIN_RUN`] happened to come first or
+//! last: 20, 9, 856 and 688 art rows cut on the recipes MC-054 froze
+//! (`tests/viewport_generated_recipes.rs`). The same resolution is now asked
+//! of the chrome: the rows the viewport would cut from the column must hold
+//! [`MIN_RUN`] consecutive rows that step 3 - the whole-margin reading, which
+//! decides whether the stage speaks at all - does not find page-like. Only
+//! the column's own rows are read, because they are the only rows the stage
+//! removes. A side that fails is not narrowed at all, and like a decline the
+//! viewport there runs to the image's edge. This can only keep rows: the
+//! guarantee below, that every row MC-048's stage kept is kept, still holds.
 //!
 //! # The second reading: the reader's own window (MC-052)
 //!
@@ -157,9 +184,11 @@ pub struct Viewport {
 ///
 /// `column` is the page column [`page_column`](crate::flat::page_column)
 /// returned, before the margin. Its `x` and `w` say which pixels are beside
-/// it, over the whole image's rows; its `y` and `h` are read only to tell
-/// whether the whole-margin viewport lies over the page at all, which is the
-/// one condition under which the reader-window reading may widen it (MC-052).
+/// it, over the whole image's rows; its `y` and `h` are read to tell whether
+/// the whole-margin viewport lies over the page at all, which is the one
+/// condition under which the reader-window reading may widen it (MC-052), and
+/// which of its rows a side of the viewport would cut, which must hold a
+/// strip of chrome for the cut to stand (MC-054).
 /// See the module documentation for the method and for when it declines.
 #[must_use]
 pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
@@ -213,7 +242,31 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
         top = top.min(window_top);
         bottom = bottom.max(window_bottom);
     }
+
+    // MC-054, step 6: the viewport cuts the column's rows on a side only where
+    // those rows hold a strip of chrome: a run of at least `MIN_RUN` rows that
+    // MC-048's reading does not find page-like. Without one, that side has no
+    // strip.
+    let chrome = |ys: std::ops::Range<usize>| has_run(ys.map(|y| !page_like[y]));
+    if top > first && !chrome(first..top) {
+        top = 0;
+    }
+    if bottom < end && !chrome(bottom..end.min(rows)) {
+        bottom = rows;
+    }
     viewport(top, bottom)
+}
+
+/// Whether `rows` holds a run of at least [`MIN_RUN`] consecutive `true`s.
+fn has_run(rows: impl Iterator<Item = bool>) -> bool {
+    let mut run = 0;
+    for row in rows {
+        run = if row { run + 1 } else { 0 };
+        if run >= MIN_RUN {
+            return true;
+        }
+    }
+    false
 }
 
 /// The page background tone beside `column`: step 2 of the module

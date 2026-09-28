@@ -151,6 +151,17 @@ Responsibilities, in pipeline order:
    declined, this still declines, and where it found rows over the page, it
    keeps all of them. The four settled values (0.90, 16 rows, the tone
    estimate, `uniform_tolerance`) are unchanged.
+   **Since MC-054 (2026-09-28) the stage cuts the page column's rows on a
+   side only where those rows hold a strip of chrome**: a run of at least 16
+   rows that the full-width reading does not find page-like, inside the rows
+   it would cut. Where they hold no such run, that side has no strip and
+   the viewport runs to the image's edge there. The 16-row run is the same
+   resolution the stage already demands of the page; it is now demanded of
+   the chrome too. Without it, a margin whose share sits near 0.90 on every
+   row (textured bands beside the page) split the art into page-like runs
+   and gaps, and the viewport ended wherever the last long-enough run
+   happened to, cutting up to 856 rows of art. Real chrome and taskbars are
+   tens to hundreds of rows at a share near 0, so the corpus does not move.
 5. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
    clamped to the image — and, on the row axis, to the viewport stage 4
    located, so the margin never puts a row of chrome or taskbar back
@@ -521,3 +532,18 @@ this file and the stories that depend on it.
       the side strip of page background beside the column
       ([MC-049](../backlog/stories/MC-049.md), `EPIC-08`). No held-out score
       of the full predicate exists yet, and none can until MC-050 lands.
+
+    **2026-09-28, MC-054: the stage cuts rows only on evidence of chrome in
+    them.** The `detect.rs` property test kept drawing generated pages, about
+    1 in 60,000, on which the stage cut art rows: textured bands beside the
+    page with a flat fraction near 0.90 made the per-row share wobble across
+    the threshold, so runs of 16 page-like rows appeared and vanished inside
+    the art, and the viewport ended at whichever came last (20, 9, 856 and
+    688 rows cut on the four recipes MC-054 froze). The stage now cuts the
+    column's rows on a side only when the rows it cuts contain at least 16
+    consecutive rows that the full-width reading finds not page-like - the
+    settled `MIN_RUN`, applied to the chrome as well as to the page; otherwise the
+    viewport runs to the image's edge on that side (pipeline step 4). No
+    settled value moved and no constant was added. All 26 marked `tuning`
+    crops are unchanged to the pixel at both margins, and the seeded stress
+    count went from 4 clips in 240,000 generated cases to 0, with 0 junk.
