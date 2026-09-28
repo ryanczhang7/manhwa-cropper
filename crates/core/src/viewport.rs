@@ -175,8 +175,7 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
     };
     let rows = img.height as usize;
 
-    let medians: Vec<u8> = (0..rows).map(|y| median(margin(y))).collect();
-    let tone = background_tone(&medians);
+    let tone = margin_tone(img, left_end, right_start);
     let tol = t.uniform_tolerance;
 
     // MC-048's reading: the whole margin. It alone decides whether there is a
@@ -215,6 +214,37 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
         bottom = bottom.max(window_bottom);
     }
     viewport(top, bottom)
+}
+
+/// The page background tone beside `column`: step 2 of the module
+/// documentation, exactly as [`locate`] reads it, or `None` when there is no
+/// pixel beside the column at all.
+///
+/// Crate-private, for [`page_column`](crate::flat::page_column) (MC-053),
+/// which needs to know what the margin's own tone is in order to tell a column
+/// of the margin from a flat column of art. It is the same instrument, read
+/// the same way, not a second one: it does not decline where [`locate`] does,
+/// because the tone is defined whether or not a viewport can be found.
+pub(crate) fn page_background_tone(img: &Luma, column: Rect) -> Option<u8> {
+    let width = img.width as usize;
+    let left_end = (column.x as usize).min(width);
+    let right_start = (column.x as usize + column.w as usize).min(width);
+    if left_end == 0 && right_start == width {
+        return None;
+    }
+    Some(margin_tone(img, left_end, right_start))
+}
+
+/// Step 2 over the pixels outside `left_end .. right_start` on every row,
+/// which must not be empty.
+fn margin_tone(img: &Luma, left_end: usize, right_start: usize) -> u8 {
+    let width = img.width as usize;
+    let medians: Vec<u8> = img
+        .data
+        .chunks_exact(width)
+        .map(|row| median(row[..left_end].iter().chain(&row[right_start..])))
+        .collect();
+    background_tone(&medians)
 }
 
 /// Rows `top .. bottom` as a [`Viewport`], or `None` past `u32`.
