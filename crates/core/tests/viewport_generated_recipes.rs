@@ -261,14 +261,12 @@ fn seed_7_case_1458() -> Recipe {
 }
 
 /// MC-052 `## Notes`: seed 103 case 1539 of the stress harness, one of the two
-/// clips MC-048's own stage made (23 art rows cut at the top). MC-052's
-/// shipped stage keeps them because the reader's window is found from the
-/// columns that are page background over the rows of MC-048's viewport
-/// (`reader_window`'s majority over `top..bottom`). Found over every row
-/// instead, the window does not rescue it, and the crop is
-/// `14,398 486x408` against art `17,375 480x428` (measured in RED, MC-054).
-/// Not one of the two recipes the story names: see MC-054's `## Test plan`
-/// for why it is here.
+/// clips MC-048's own stage made (23 art rows cut at the top). A regression
+/// recipe with no rule claim (MC-054 AC-2, amended twice). On `3449baa` it went
+/// red with MC-052's rule 3 removed (crop `14,398 486x408` against art
+/// `17,375 480x428`), but MC-054's stage rescues it by its own rule as well,
+/// so on the shipped stage it no longer notices rule 3 gone. Rule 3's pin is
+/// [`seed_104_case_191`].
 fn seed_103_case_1539() -> Recipe {
     Recipe {
         art_w: 480,
@@ -333,6 +331,77 @@ fn seed_103_case_1539() -> Recipe {
     }
 }
 
+/// MC-052 `## Notes`: seed 104 case 191 of the stress harness, the other of
+/// MC-048's own two clips there. It pins MC-052's rule 3 on the shipped stage:
+/// the reader's window is found from the columns that are page background
+/// over the rows of the whole-margin viewport (`reader_window`'s majority over
+/// `top..bottom`). Read over every row instead, the crop on the MC-054 stage
+/// (`ee1a151`) is `83,390 1084x795` against art `86,390 1078x813`, 18 art rows
+/// lost below (MC-054 `## Regressions`, Return to RED from GREEN).
+fn seed_104_case_191() -> Recipe {
+    Recipe {
+        art_w: 1078,
+        art_h: 813,
+        top: Border {
+            thickness: 8,
+            colour: 72,
+            spread: 0,
+        },
+        right: Border {
+            thickness: 8,
+            colour: 119,
+            spread: 0,
+        },
+        bottom: Border {
+            thickness: 178,
+            colour: 123,
+            spread: 0,
+        },
+        left: Border {
+            thickness: 29,
+            colour: 85,
+            spread: 0,
+        },
+        layout: Layout::Bands,
+        seed: 4_229_688_960,
+        top_chrome: vec![
+            Chrome {
+                thickness: 118,
+                background: 126,
+                deviation: 20,
+                flat_fraction: 0.883_685_788_521_287_5,
+            },
+            Chrome {
+                thickness: 264,
+                background: 216,
+                deviation: 20,
+                flat_fraction: 0.866_621_555_859_456_4,
+            },
+        ],
+        bottom_chrome: vec![
+            Chrome {
+                thickness: 220,
+                background: 127,
+                deviation: 20,
+                flat_fraction: 0.936_766_847_801_378_6,
+            },
+            Chrome {
+                thickness: 115,
+                background: 217,
+                deviation: 20,
+                flat_fraction: 0.890_608_177_087_83,
+            },
+        ],
+        left_chrome: vec![Chrome {
+            thickness: 57,
+            background: 86,
+            deviation: 20,
+            flat_fraction: 0.973_496_365_637_986_6,
+        }],
+        right_chrome: vec![],
+    }
+}
+
 #[test]
 fn a_viewport_found_in_the_top_border_is_not_widened_into_a_gutters_page() {
     assert_holds_the_art_and_little_more(
@@ -354,6 +423,14 @@ fn the_reader_window_read_over_the_viewport_rows_keeps_the_top_of_a_gutters_page
     assert_holds_the_art_and_little_more(
         &seed_103_case_1539(),
         "AC-2, MC-052 seed 103 case 1539 (art 17,375 480x428 on 774x1057)",
+    );
+}
+
+#[test]
+fn the_reader_window_found_over_the_viewport_rows_keeps_the_foot_of_a_bands_page() {
+    assert_holds_the_art_and_little_more(
+        &seed_104_case_191(),
+        "AC-2, MC-052 seed 104 case 191 (art 86,390 1078x813 on 1172x1716)",
     );
 }
 
