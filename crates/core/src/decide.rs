@@ -30,8 +30,14 @@
 //!    borders, so on the column axis that guard is unconditional and stage 4
 //!    never speaks there - and a rule of its own instead: it narrows only
 //!    where the widest textured run has a flat column on both sides of it.
-//!    [`flat`](crate::flat)'s "Stage 3c" section is where that is argued. The
-//!    row axis stays exactly where stage 4 left it;
+//!    Since MC-053 and MC-055 the run only finds the page. The page column is
+//!    the run widened outward to the page margin, so dark, low-texture art
+//!    below [`Tuning::min_line_spread`] at the page's edges is kept. To tell
+//!    that art from the margin it reads the page background tone. For a
+//!    column that is flat through the band but carries the page's tone on,
+//!    it also reads the viewport, stage 6's instrument, asked beside the
+//!    run. [`flat`](crate::flat)'s "Stage 3c" section is where all of that is
+//!    argued. The row axis stays exactly where stage 4 left it;
 //! 6. [`viewport::locate`] beside the page column, on the **row axis only**,
 //!    which finds the browser viewport - the rows between the browser chrome
 //!    and the taskbar, both painted edge to edge where the page background

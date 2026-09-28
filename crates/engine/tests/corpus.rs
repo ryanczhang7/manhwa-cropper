@@ -765,6 +765,11 @@ fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
 /// applied to each marked rect pulled in by ten pixels on every side, must
 /// report a clip on all twenty-one. The number of entries actually cropped is
 /// printed either way, so the vacuity is visible rather than inferred.
+///
+/// Twenty-six marked tuning entries since MC-053, which moved three whose dark,
+/// low-texture art the page column locator cut: on post-MC-052 `main` this
+/// fails on exactly those three, and it is one of MC-053's AC-1 regression
+/// tests (the margin-3 half; `tests/corpus_page_column.rs` has margin 0).
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn no_crop_clips_a_marked_page() {
@@ -820,7 +825,10 @@ fn no_crop_clips_a_marked_page() {
     }
 
     let printed = table(
-        &format!("AC-5: process_file over the twenty-one marked entries ({cropped} cropped)"),
+        &format!(
+            "AC-5: process_file over the {} marked tuning entries ({cropped} cropped)",
+            rows.len()
+        ),
         &format!("{:<30} {}", "file", "outcome"),
         &rows,
     );
@@ -1088,6 +1096,10 @@ fn the_left_and_right_edges_of_every_marked_page_land_inside_the_window() {
 /// rect pulled in by [`COLUMN_CLIP_INSET`] px on the left and the right, must
 /// report a clip on every one of the twenty-one. Without it this test would
 /// pass against a predicate that always says no.
+///
+/// MC-053: over twenty-six marked tuning entries now, and one of that story's
+/// AC-1 regression tests at margin 3 - on post-MC-052 `main` it fails on
+/// exactly its three.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn no_crop_clips_a_marked_page_on_the_column_axis() {
@@ -1149,8 +1161,9 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
 
     let printed = table(
         &format!(
-            "AC-5: column-axis containment over the twenty-one marked entries \
-             ({cropped} cropped)"
+            "AC-5: column-axis containment over the {} marked tuning entries \
+             ({cropped} cropped)",
+            rows.len()
         ),
         &format!(
             "{:<30} {:>13} {:>13} {:>7} {:>7} {:>7}",

@@ -82,6 +82,21 @@ const DECLINES: [&str; 2] = ["2025-08-05 00_11_13.webp", "2025-08-05 00_11_27.we
 /// them, against rows it measured itself.
 const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_58_06.png"];
 
+/// MC-053's three dark-art entries, moved from `held-out` to `tuning` by the
+/// user on 2026-09-24, `(file, top, bottom)`. Section 4 never saw them either,
+/// so they too are **never** merged into [`SECTION_4`]. Unlike MC-052's two
+/// they are single-window screenshots, and their rows are the ones this stage
+/// **measured itself** on `c004d96` (post-MC-052 `main`) in MC-053's RED - the
+/// same rows `tests/corpus_viewport.rs` (`STAGE_MEASURED`) holds. This readout
+/// checks them exactly but apart from section 4: they are a regression guard
+/// on the stage's own answer, not a reproduction of MC-031's, and they do not
+/// count toward [`REPRODUCED_REQUIRED`].
+const STAGE_MEASURED: [(&str, u32, u32); 3] = [
+    ("2025-07-17 14_41_58.png", 167, 1400),
+    ("2025-07-17 14_55_10.png", 167, 1400),
+    ("Screenshot (73).png", 167, 1392),
+];
+
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
 const REPRODUCED_REQUIRED: usize = 18;
@@ -128,6 +143,8 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     let mut spoke_on_a_webp = Vec::new();
     let mut seen = Vec::new();
     let mut skipped = Vec::new();
+    let mut stage_seen = Vec::new();
+    let mut stage_moved = Vec::new();
 
     for entry in marked() {
         let name = entry.name();
@@ -139,6 +156,17 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
             skipped.push(name.clone());
             rows.push(format!(
                 "{name:<26} not in section 4 (MC-052's; see corpus_viewport.rs)"
+            ));
+            continue;
+        }
+        if let Some(&(_, top, bottom)) = STAGE_MEASURED.iter().find(|(file, _, _)| *file == name) {
+            let expected = Viewport { top, bottom };
+            if got.as_ref() != Some(&expected) {
+                stage_moved.push(format!("{name}: expected {expected:?}, got {got:?}"));
+            }
+            stage_seen.push(name.clone());
+            rows.push(format!(
+                "{name:<26} measured by the stage {top}..{bottom}  got {got:?} (MC-053's)"
             ));
             continue;
         }
@@ -181,6 +209,17 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         skipped,
         NOT_IN_SECTION_4.map(String::from).to_vec(),
         "MC-052's two must be marked tuning entries, skipped here and nowhere else"
+    );
+    assert_eq!(
+        stage_seen,
+        STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
+        "MC-053's three must be marked tuning entries, reached here in manifest order"
+    );
+    assert!(
+        stage_moved.is_empty(),
+        "MC-053: on its three the stage must keep the rows it located on c004d96 \
+         (STAGE_MEASURED); the column fix is not allowed to move the rows.\n{}\n\n{printed}",
+        stage_moved.join("\n")
     );
     assert!(
         spoke_on_a_webp.is_empty(),

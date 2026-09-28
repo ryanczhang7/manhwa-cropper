@@ -32,6 +32,15 @@
 //! the 21 unchanged), AC-4 (0 clips over all 23) and AC-5's column pins
 //! ([`READER_WINDOW_COLUMNS`]).
 //!
+//! # MC-053: three dark-art entries
+//!
+//! MC-053 added three more marked `tuning` entries, on which the page column
+//! locator cut dark, low-texture art. Their viewport rows are
+//! [`STAGE_MEASURED`], **measured by the shipped stage**, and they join
+//! AC-1/AC-2's viewport predicate. They are kept out of [`COLUMNS_BEFORE`]
+//! and [`ORIGINALS_BEFORE`]: their columns are MC-053's to move, and
+//! `tests/corpus_page_column.rs` pins them.
+//!
 //! # Running it
 //!
 //! `#[ignore]`d like every corpus suite, so the `unit` gate never runs it and
@@ -298,6 +307,34 @@ fn is_reader_window_entry(name: &str) -> bool {
     READER_WINDOW.iter().any(|(file, _, _)| *file == name)
 }
 
+// --- MC-053: the three dark-art entries -------------------------------------
+
+/// MC-053: the three entries the user moved from `held-out` to `tuning` on
+/// 2026-09-24 because the page column locator cut their dark, low-texture
+/// art, `(file, first viewport row, first taskbar row)`.
+///
+/// **Measured by the shipped stage, not read out of `chrome-row-search.md`
+/// section 4**, which never saw these files - so they are a separate constant
+/// and never rows of [`VIEWPORT`], which claims to be section 4. They are not
+/// split-screen shots either, so [`READER_WINDOW`]'s provenance does not fit
+/// them. The rows are what `viewport::locate` returns beside the page column
+/// the pipeline locates, on `c004d96` (post-MC-052 `main`), measured in
+/// MC-053's RED; the Lead PO's probe read the same rows off `26eddcb`'s crops.
+/// Both readers put their browser viewport on the rows every other entry from
+/// the same screen does (167, and a taskbar at 1400 or 1392).
+const STAGE_MEASURED: [(&str, u32, u32); 3] = [
+    ("2025-07-17 14_41_58.png", 167, 1400),
+    ("2025-07-17 14_55_10.png", 167, 1400),
+    ("Screenshot (73).png", 167, 1392),
+];
+
+/// Whether `name` is one of MC-053's three. Their columns are MC-053's AC-1
+/// and AC-3 (`tests/corpus_page_column.rs`), not MC-048's or MC-052's, so the
+/// column and whole-rect pins in this file skip them.
+fn is_stage_measured_entry(name: &str) -> bool {
+    STAGE_MEASURED.iter().any(|(file, _, _)| *file == name)
+}
+
 // --- Harness ----------------------------------------------------------------
 
 /// The marked `tuning` entries, with their marks, in manifest order. **Never
@@ -372,11 +409,11 @@ fn table(title: &str, header: &str, rows: &[String]) -> String {
     out
 }
 
-/// The premise every test below leans on: [`VIEWPORT`] names exactly the
-/// marked `tuning` entries other than [`WEBPS`] and MC-052's [`READER_WINDOW`],
-/// in manifest order. A name
-/// that drifted would turn a 19-of-19 claim into a claim about fewer files
-/// without anything going red.
+/// The premise every test below leans on: [`VIEWPORT`], followed by MC-053's
+/// [`STAGE_MEASURED`], names exactly the marked `tuning` entries other than
+/// [`WEBPS`] and MC-052's [`READER_WINDOW`], in manifest order. A name that
+/// drifted would turn a 22-of-22 claim into a claim about fewer files without
+/// anything going red.
 fn viewport_entries() -> Vec<(CorpusEntry, Rect, u32, u32)> {
     let marked = marked();
     let names: Vec<String> = marked
@@ -385,16 +422,21 @@ fn viewport_entries() -> Vec<(CorpusEntry, Rect, u32, u32)> {
         .filter(|name| !WEBPS.contains(&name.as_str()))
         .filter(|name| !is_reader_window_entry(name))
         .collect();
+    let tables: Vec<(&str, u32, u32)> = VIEWPORT.iter().chain(&STAGE_MEASURED).copied().collect();
     assert_eq!(
         names,
-        VIEWPORT.map(|(name, _, _)| name.to_string()).to_vec(),
-        "VIEWPORT must list exactly the marked tuning entries other than the two \
-         WebPs and MC-052's two split-screen shots (READER_WINDOW), in manifest order"
+        tables
+            .iter()
+            .map(|(name, _, _)| name.to_string())
+            .collect::<Vec<_>>(),
+        "VIEWPORT then STAGE_MEASURED must list exactly the marked tuning entries \
+         other than the two WebPs and MC-052's two split-screen shots \
+         (READER_WINDOW), in manifest order"
     );
     marked
         .into_iter()
         .filter_map(|(entry, mark)| {
-            VIEWPORT
+            tables
                 .iter()
                 .find(|(name, _, _)| *name == entry.name())
                 .map(|&(_, top, taskbar)| (entry, mark, top, taskbar))
@@ -407,7 +449,8 @@ fn viewport_entries() -> Vec<(CorpusEntry, Rect, u32, u32)> {
 /// AC-2, and AC-1 as the bug it reproduces.
 ///
 /// On the nineteen entries for which `chrome-row-search.md` section 4 locates
-/// the viewport, every crop row must lie in `[chromeEnd, taskbar)`. On `main`
+/// the viewport - and, since MC-053, its three [`STAGE_MEASURED`] entries -
+/// every crop row must lie in `[chromeEnd, taskbar)`. On `main`
 /// at `cb2deef` the crop starts at y = 15..37 - inside the tab strip - and
 /// ends at row 1439, inside the taskbar, so both halves fail on every entry;
 /// the message counts the two halves separately.
@@ -456,7 +499,8 @@ fn no_crop_row_lies_in_the_browser_chrome_or_the_taskbar_where_the_viewport_was_
     }
 
     let printed = table(
-        "AC-2: crop rows against the viewport located in chrome-row-search.md section 4",
+        "AC-2: crop rows against the viewport located in chrome-row-search.md section 4 \
+         (and, for MC-053's three, by the shipped stage)",
         &format!(
             "{:<26} {:>5} {:>5} {:>6} {:>6} {:>4} {:>4}",
             "file", "chrEnd", "tbar", "first", "last", "top", "bot"
@@ -484,7 +528,8 @@ fn no_crop_row_lies_in_the_browser_chrome_or_the_taskbar_where_the_viewport_was_
 ///
 /// The same predicate over the same crops, with each entry's `chromeEnd`
 /// replaced by 0 and its `taskbar` by the image height. Every crop lies inside
-/// its own image, so this must hold on 19 of 19. Beside the test above, which
+/// its own image, so this must hold on 22 of 22 (19 of 19 before MC-053
+/// added its three). Beside the test above, which
 /// fails on today's crops, it shows the predicate is reading the viewport rows
 /// and not something else about the rect.
 #[test]
@@ -528,8 +573,8 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     );
     assert_eq!(
         entries.len(),
-        VIEWPORT.len(),
-        "the control must see all nineteen"
+        VIEWPORT.len() + STAGE_MEASURED.len(),
+        "the control must see all twenty-two: section 4's nineteen and MC-053's three"
     );
     assert!(
         broken.is_empty(),
@@ -632,8 +677,10 @@ fn every_marked_crop_keeps_the_columns_it_had_before_the_viewport_stage() {
 
     for (entry, _) in marked() {
         // MC-052: the two it added are pinned by READER_WINDOW_COLUMNS, not
-        // here; this pin is MC-048's, over the twenty-one it measured.
-        if is_reader_window_entry(&entry.name()) {
+        // here; this pin is MC-048's, over the twenty-one it measured. MC-053's
+        // three are pinned by `tests/corpus_page_column.rs`, whose AC-1 moves
+        // their columns.
+        if is_reader_window_entry(&entry.name()) || is_stage_measured_entry(&entry.name()) {
             continue;
         }
         seen.push(entry.name());
@@ -791,6 +838,10 @@ fn on_both_split_screen_shots_the_crop_keeps_the_top_and_bottom_of_the_art_at_bo
 /// two - at both margins. At margin 3 all four sides count. At margin 0 only
 /// the top and the bottom do: the 21's column-axis clips there are MC-049's
 /// seven mark errors, which AC-3 pins rather than this.
+///
+/// MC-053 adds its three, and this is also MC-053's AC-4 (0 clips at margin 3
+/// over all 26). Their margin-0 side edges are MC-053's AC-1, in
+/// `tests/corpus_page_column.rs`.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
@@ -826,15 +877,19 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
             }
         }
     }
+    // MC-053 adds its three to the set this counts, and its AC-4 is this
+    // assertion at margin 3 over all 26: on post-MC-052 `main` it fails on
+    // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        23,
-        "MC-052 AC-4 is over the 23 marked tuning entries"
+        26,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 26 marked tuning entries \
+         (23 until MC-053 moved three)"
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4: 0 clips over the 23 marked tuning entries at both margins \
-         (top and bottom only at margin 0). {} clip:\n{}",
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 26 marked tuning entries at \
+         both margins (top and bottom only at margin 0). {} clip:\n{}",
         clips.len(),
         clips.join("\n")
     );
@@ -948,7 +1003,8 @@ fn the_twenty_one_original_crops_do_not_move_by_a_pixel_at_either_margin() {
     let mut seen = Vec::new();
     for (entry, _) in marked() {
         let name = entry.name();
-        if is_reader_window_entry(&name) {
+        // MC-053's three are not originals; its AC-1 (fixed by MC-055) moves their columns.
+        if is_reader_window_entry(&name) || is_stage_measured_entry(&name) {
             continue;
         }
         seen.push(name.clone());
