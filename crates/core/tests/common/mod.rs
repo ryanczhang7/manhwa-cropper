@@ -1444,6 +1444,44 @@ pub fn page_last_textured_column(threshold: f32) -> u32 {
         .expect("the page fixture has textured columns")
 }
 
+/// Whether column `x` of the page fixture is **page background** by MC-049's
+/// predicate (at least 0.95 of its pixels within `tolerance` of its upper
+/// median), read out of the recipe rather than measured (MC-053).
+///
+/// An art column alternates `FADE_TONE + a` and `FADE_TONE - a` over an even
+/// number of rows, so its upper median is `FADE_TONE + a` and the other half
+/// of its pixels sit `2a` away: its share is exactly 1.00 when `2a <=
+/// tolerance` and exactly 0.50 otherwise. A margin column (`a = 0`) is the
+/// speckled gutter, share 0.958 (one speckle in 25 rows, 20 off the tone) -
+/// page background. The seam is art. So at `uniform_tolerance` 10 the fade's
+/// columns of amplitude 1..=5 are page background and amplitude 6 and 7 -
+/// spread 6 and 7, below `min_line_spread` - are **not**: they are MC-053's
+/// case A shape.
+#[must_use]
+pub fn page_column_is_background(x: u32, tolerance: u8) -> bool {
+    !is_seam(x) && 2 * page_amplitude(x) <= u32::from(tolerance)
+}
+
+/// The first column of the page fixture that is **not** page background by
+/// [`page_column_is_background`]: where MC-053's definition puts the page
+/// column's left edge. 45 at `uniform_tolerance` 10, where
+/// [`page_first_textured_column`] at `min_line_spread` 8.0 gives 47.
+#[must_use]
+pub fn page_first_art_column(tolerance: u8) -> u32 {
+    (0..PAGE_W)
+        .find(|&x| !page_column_is_background(x, tolerance))
+        .expect("the page fixture has art columns")
+}
+
+/// The mirror of [`page_first_art_column`]: 254 at `uniform_tolerance` 10.
+#[must_use]
+pub fn page_last_art_column(tolerance: u8) -> u32 {
+    (0..PAGE_W)
+        .rev()
+        .find(|&x| !page_column_is_background(x, tolerance))
+        .expect("the page fixture has art columns")
+}
+
 // --- MC-027: the floor control, a page with a waist -------------------------
 //
 // `Screenshot (2708).jpg`, synthetically: a page whose outer panels do not
