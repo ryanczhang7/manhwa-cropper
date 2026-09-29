@@ -110,6 +110,14 @@ const NARROWED_CLIPS_REQUIRED: usize = 8;
 /// Mechanical: the value `architecture.md` decision 5 carried until this story.
 const MARGIN_BEFORE_MC049: u32 = 3;
 
+/// MC-056, the user's ruling of 2026-09-29 (its Open question 2): the one
+/// marked `tuning` entry that is not cropped - the detector flags it
+/// `Ambiguous` - named as AC-1's only known exception. **Exact in both
+/// directions**: AC-1 fails if any other marked `tuning` entry is not cropped,
+/// and fails if this one is cropped, so the story that fixes it has to empty
+/// this list.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+
 // --- Harness ------------------------------------------------------------------
 
 /// The marked `tuning` entries, in manifest order. Tuning only - see
@@ -221,6 +229,7 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
     let (mut widened_left, mut widened_right) = (0usize, 0usize);
     let mut widened_missed = Vec::new();
     let mut entries = 0usize;
+    let mut not_cropped = Vec::new();
 
     for (entry, mark) in marked() {
         entries += 1;
@@ -244,8 +253,11 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
             Ok(rect) => rect,
             Err(outcome) => {
                 rows.push(format!("{:<30} {outcome}", entry.name()));
-                failing_sides.push(format!("{}: not cropped ({outcome})", entry.name()));
-                failing_sides.push(format!("{}: not cropped ({outcome})", entry.name()));
+                // MC-056: every entry not cropped is collected by name and
+                // compared with KNOWN_NOT_CROPPED below, exactly. Before MC-056
+                // it went into `failing_sides` twice; any entry other than the
+                // known exception still fails AC-1, now on that comparison.
+                not_cropped.push(entry.name());
                 continue;
             }
         };
@@ -334,6 +346,14 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
          on {widened_left} left and {widened_right} right. Misses:\n{}\n\n{printed}",
         widened_missed.join("\n")
     );
+    assert_eq!(
+        not_cropped,
+        KNOWN_NOT_CROPPED.map(String::from).to_vec(),
+        "AC-1: every marked tuning entry must be cropped, except MC-056's one known \
+         exception (KNOWN_NOT_CROPPED, the user's ruling of 2026-09-29), which must \
+         still not be: if a fix makes it crop, empty the list. `left` is the \
+         entries not cropped.\n\n{printed}"
+    );
     assert!(
         failing_sides.is_empty(),
         "AC-1: the crop must carry no page background outside the mark, on either \
@@ -341,7 +361,7 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
         failing_sides.len(),
         2 * entries,
         t.margin_px,
-        failing_sides[0],
+        failing_sides.first().map_or("-", String::as_str),
         failing_sides.join("\n")
     );
 }

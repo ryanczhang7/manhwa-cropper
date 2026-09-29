@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 26] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 28] = [
     (
         "2025-08-05 00_11_13.webp",
         [950, 15, 646, 1425],
@@ -167,7 +167,33 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 26] = [
         [1000, 167, 546, 1225],
         [1003, 167, 540, 1225],
     ),
+    // MC-056: two of the three the user moved from `held-out` on 2026-09-29,
+    // read out of one run of `process_file` on `c3fee28` (release; crates
+    // unchanged since `d2876f5`) in MC-056's RED, on a scratch copy with the
+    // move applied. Measured, never chosen. The third, `2025-07-17
+    // 14_20_23.png`, is not cropped at either margin (`Flagged
+    // Detector(Ambiguous)`), which a row of this table cannot say; it is named
+    // in KNOWN_NOT_CROPPED below (MC-056's AC-4, as amended).
+    (
+        "2025-08-03 11_27_49.png",
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
+    ),
+    (
+        "Screenshot (68).png",
+        [955, 167, 635, 1225],
+        [958, 167, 629, 1225],
+    ),
 ];
+
+/// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
+/// 2): the one marked `tuning` entry `main` does not crop - the detector flags
+/// it `Ambiguous` at both margins - so it has no row in [`MAIN_CROPS`], and is
+/// named here instead. **Exact in both directions**: the test fails if any
+/// other marked `tuning` entry is not cropped at either margin, and fails if
+/// this one is cropped at either, so the story that fixes it has to move it
+/// from this list into [`MAIN_CROPS`] with the crop it then measures.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 
 /// The marked `tuning` entries, in manifest order. Never `held-out`.
 fn marked() -> Vec<CorpusEntry> {
@@ -210,6 +236,11 @@ fn every_marked_tuning_crop_is_exactly_what_main_produces_at_both_margins() {
     let tmp = tempfile::tempdir().expect("a temp dir");
     let mut moved = Vec::new();
     let mut seen = Vec::new();
+    // MC-056: every entry not cropped, `(file, margin_px)`, compared exactly
+    // with KNOWN_NOT_CROPPED at both margins below. Before MC-056 a
+    // non-cropped entry went into `moved`; any entry other than the known
+    // exception still fails, now on that comparison.
+    let mut not_cropped: Vec<(String, u32)> = Vec::new();
     for entry in marked() {
         let name = entry.name();
         seen.push(name.clone());
@@ -228,16 +259,36 @@ fn every_marked_tuning_crop_is_exactly_what_main_produces_at_both_margins() {
                     "{name} at margin_px {}: {rect:?}, main {want:?}",
                     t.margin_px
                 )),
-                Err(what) => moved.push(format!("{name} at margin_px {}: {what}", t.margin_px)),
+                Err(what) => {
+                    moved.extend(
+                        pinned.map(|_| format!("{name} at margin_px {}: {what}", t.margin_px)),
+                    );
+                    not_cropped.push((name.clone(), t.margin_px));
+                }
             }
         }
     }
-    let mut pinned: Vec<String> = MAIN_CROPS.map(|(name, _, _)| name.to_string()).to_vec();
+    let known: Vec<(String, u32)> = KNOWN_NOT_CROPPED
+        .iter()
+        .flat_map(|name| both_margins().map(|t| (name.to_string(), t.margin_px)))
+        .collect();
+    assert_eq!(
+        not_cropped, known,
+        "MC-056: at both margins, the only marked tuning entry main does not crop is the \
+         known exception (KNOWN_NOT_CROPPED), and it must still not be cropped - if a fix \
+         makes it crop, move it into MAIN_CROPS. `(file, margin_px)`, `left` measured"
+    );
+    let mut pinned: Vec<String> = MAIN_CROPS
+        .map(|(name, _, _)| name.to_string())
+        .into_iter()
+        .chain(KNOWN_NOT_CROPPED.map(String::from))
+        .collect();
     pinned.sort();
     seen.sort();
     assert_eq!(
         seen, pinned,
-        "MC-054 AC-3 must reach every marked tuning entry, and pin no other"
+        "MC-054 AC-3 must reach every marked tuning entry, and pin no other: MAIN_CROPS \
+         and MC-056's KNOWN_NOT_CROPPED together"
     );
     assert!(
         moved.is_empty(),

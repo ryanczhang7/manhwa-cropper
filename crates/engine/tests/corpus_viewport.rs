@@ -337,11 +337,33 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// MC-053's RED; the Lead PO's probe read the same rows off `26eddcb`'s crops.
 /// Both readers put their browser viewport on the rows every other entry from
 /// the same screen does (167, and a taskbar at 1400 or 1392).
-const STAGE_MEASURED: [(&str, u32, u32); 3] = [
+///
+/// **MC-056 adds its three**, moved from `held-out` by the user on 2026-09-29
+/// because MC-051 read them per file, interleaved in manifest order:
+/// `2025-07-17 14_20_23.png`, `2025-08-03 11_27_49.png` and `Screenshot
+/// (68).png`. Same provenance - what `viewport::locate` returns beside the
+/// pipeline's page column - measured on `c3fee28` (crates unchanged since
+/// `d2876f5`) in MC-056's RED, on a scratch copy with the move applied; the
+/// same rows `tests/corpus_viewport_stage.rs` holds. They are not originals,
+/// so [`is_stage_measured_entry`] keeps them out of [`COLUMNS_BEFORE`] and
+/// [`ORIGINALS_BEFORE`] as it does MC-053's.
+const STAGE_MEASURED: [(&str, u32, u32); 6] = [
+    ("2025-07-17 14_20_23.png", 167, 1400),
     ("2025-07-17 14_41_58.png", 167, 1400),
     ("2025-07-17 14_55_10.png", 167, 1400),
+    ("2025-08-03 11_27_49.png", 115, 1400),
+    ("Screenshot (68).png", 167, 1392),
     ("Screenshot (73).png", 167, 1392),
 ];
+
+/// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
+/// 2): the one marked `tuning` entry that is not cropped at either margin -
+/// the detector flags it `Ambiguous` - named as the only known exception in
+/// the three tests here that need a crop over every marked entry. **Exact in
+/// both directions**: each fails if any other entry it reads is not cropped,
+/// and fails if this one is cropped, so the story that fixes it has to empty
+/// this list.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 
 /// Whether `name` is one of MC-053's three. Their columns are MC-053's AC-1
 /// and AC-3 (`tests/corpus_page_column.rs`), not MC-048's or MC-052's, so the
@@ -533,8 +555,21 @@ fn no_crop_row_lies_in_the_browser_chrome_or_the_taskbar_where_the_viewport_was_
     );
 
     let bad: std::collections::BTreeSet<&String> = above.iter().chain(&below).collect();
+    // MC-056: the entries not cropped, by name, exactly KNOWN_NOT_CROPPED. Any
+    // other entry not cropped still fails; the known one being cropped fails.
+    let failed_names: Vec<&str> = failed
+        .iter()
+        .map(|row| row.split(": ").next().unwrap_or(row))
+        .collect();
+    assert_eq!(
+        failed_names,
+        KNOWN_NOT_CROPPED.to_vec(),
+        "AC-2: every entry here must be cropped except MC-056's one known exception \
+         (KNOWN_NOT_CROPPED), which must still not be - if a fix makes it crop, empty \
+         the list. `left` is the entries not cropped: {failed:?}\n\n{printed}"
+    );
     assert!(
-        failed.is_empty() && bad.is_empty(),
+        bad.is_empty(),
         "AC-2: every crop row must lie inside the browser viewport, below the \
          browser chrome and above the taskbar. {} of {} entries break it: {} start \
          above chromeEnd (browser chrome kept), {} end at or below the taskbar row \
@@ -562,6 +597,7 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     let tmp = tempfile::tempdir().expect("a temp dir");
     let mut rows = Vec::new();
     let mut broken = Vec::new();
+    let mut not_cropped = Vec::new();
 
     let entries = viewport_entries();
     for (entry, _, _, _) in &entries {
@@ -581,7 +617,10 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
                 ));
             }
             Err(what) => {
-                broken.push(entry.name());
+                // MC-056: compared with KNOWN_NOT_CROPPED below, exactly.
+                // Before MC-056 this went into `broken`; any entry other than
+                // the known exception still fails, now on that comparison.
+                not_cropped.push(entry.name());
                 rows.push(format!("{:<26} {what}", entry.name()));
             }
         }
@@ -598,7 +637,15 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all twenty-two: section 4's nineteen and MC-053's three"
+        "the control must see all twenty-five: section 4's nineteen, MC-053's three and \
+         MC-056's three"
+    );
+    assert_eq!(
+        not_cropped,
+        KNOWN_NOT_CROPPED.map(String::from).to_vec(),
+        "AC-2's control: every entry must be cropped except MC-056's one known \
+         exception (KNOWN_NOT_CROPPED), which must still not be - if a fix makes it \
+         crop, empty the list. `left` is the entries not cropped.\n\n{printed}"
     );
     assert!(
         broken.is_empty(),
@@ -873,6 +920,10 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     let tmp = tempfile::tempdir().expect("a temp dir");
     let entries = marked();
     let mut clips = Vec::new();
+    // MC-056: `(file, margin_px)` for every entry not cropped, compared with
+    // KNOWN_NOT_CROPPED at both margins below. Before MC-056 it was a clip;
+    // any entry other than the known exception still fails, on that comparison.
+    let mut not_cropped: Vec<(String, u32)> = Vec::new();
     for t in both_margins() {
         for (entry, mark) in &entries {
             match crop_at(entry, &tmp, &t) {
@@ -898,22 +949,33 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
                         ));
                     }
                 }
-                Err(what) => clips.push(format!("{:<26} m{} {what}", entry.name(), t.margin_px)),
+                Err(_) => not_cropped.push((entry.name(), t.margin_px)),
             }
         }
     }
+    let known: Vec<(String, u32)> = both_margins()
+        .iter()
+        .flat_map(|t| KNOWN_NOT_CROPPED.map(|name| (name.to_string(), t.margin_px)))
+        .collect();
+    assert_eq!(
+        not_cropped, known,
+        "MC-052 AC-4 / MC-053 AC-4: every marked tuning entry must be cropped at both \
+         margins except MC-056's one known exception (KNOWN_NOT_CROPPED), which must \
+         still not be - if a fix makes it crop, empty the list. `(file, margin_px)`, \
+         `left` measured"
+    );
     // MC-053 adds its three to the set this counts, and its AC-4 is this
     // assertion at margin 3 over all 26: on post-MC-052 `main` it fails on
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        26,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 26 marked tuning entries \
-         (23 until MC-053 moved three)"
+        29,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 29 marked tuning entries \
+         (23 until MC-053 moved three, 26 until MC-056 moved three more)"
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 26 marked tuning entries at \
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 29 marked tuning entries at \
          both margins (top and bottom only at margin 0). {} clip:\n{}",
         clips.len(),
         clips.join("\n")

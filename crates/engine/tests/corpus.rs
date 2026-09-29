@@ -178,6 +178,17 @@ const BAND_PAST_THE_CLIFF: f32 = 0.005;
 /// only two of the twenty-eight that do.
 const AMBIGUOUS_PAST_THE_CLIFF: [&str; 2] = ["2026-01-05 13_45_59.png", "2026-01-05 13_49_39.png"];
 
+/// MC-056, the user's ruling of 2026-09-29 (its Open question 2): the one
+/// marked `tuning` entry the detector flags `Ambiguous` at the default band,
+/// so it crops nothing. It moved from `held-out` with MC-056 because MC-051
+/// read it per file; why it is ambiguous is a later story's question.
+///
+/// **Exact in both directions.** The tests naming it fail if any *other*
+/// marked `tuning` entry is ambiguous, and fail if this one stops being - so
+/// the story that fixes it has to empty this list, and cannot leave a stale
+/// exception behind.
+const KNOWN_AMBIGUOUS: [&str; 1] = ["2025-07-17 14_20_23.png"];
+
 /// AC-5's control: how far in each side a marked rect is pulled to build a
 /// rect that genuinely clips it. Any positive number would do; ten pixels is
 /// far larger than `margin_px` so no expansion can hide it.
@@ -490,17 +501,23 @@ fn no_marked_page_is_reported_ambiguous() {
     );
 
     assert!(!rows.is_empty(), "AC-2 checked no entries at all");
-    assert!(
-        ambiguous.is_empty(),
+    // MC-056: exact in both directions against KNOWN_AMBIGUOUS. Any other
+    // marked page that is ambiguous fails this exactly as it did before MC-056;
+    // the known exception going unambiguous fails it too, until the list is
+    // emptied.
+    assert_eq!(
+        ambiguous,
+        KNOWN_AMBIGUOUS.map(String::from).to_vec(),
         "AC-2: a page a person marked must not turn on a close call the detector is \
          not confident about - `decide` answers Flag(Ambiguous) before it ever \
-         reaches the size gate. {} of {} are ambiguous at ambiguity_band {}; the \
-         first is {}.\n\n{printed}\nall ambiguous entries: {:?}",
+         reaches the size gate. The only marked page allowed to be ambiguous is \
+         MC-056's known exception (KNOWN_AMBIGUOUS, the user's ruling of \
+         2026-09-29), and it must still be: if a fix makes it unambiguous, empty \
+         the list. {} of {} are ambiguous at ambiguity_band {}. `left` is \
+         measured, `right` is KNOWN_AMBIGUOUS.\n\n{printed}",
         ambiguous.len(),
         rows.len(),
-        t.ambiguity_band,
-        ambiguous[0],
-        ambiguous
+        t.ambiguity_band
     );
 }
 
@@ -569,8 +586,17 @@ fn the_two_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band()
         &rows,
     );
 
+    // The entries that *turn* ambiguous past the band: ambiguous at 0.005 and
+    // not at the default. Before MC-056 nothing was ambiguous at the default,
+    // so this was `past_band` itself; MC-056's known exception is ambiguous at
+    // both bands and is accounted for by the two assertions after this one.
+    let turned: Vec<String> = past_band
+        .iter()
+        .filter(|name| !at_band.contains(name))
+        .cloned()
+        .collect();
     assert_eq!(
-        past_band,
+        turned,
         AMBIGUOUS_PAST_THE_CLIFF.map(String::from).to_vec(),
         "AC-2's control: the ambiguity path must still fire on real files one step \
          above the chosen band - these two entries' offending strip sits 0.0032497 \
@@ -578,11 +604,23 @@ fn the_two_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band()
          derived from. If this list is empty the feature is gone; if it is longer \
          the cliff has moved and the derivation needs re-measuring.\n\n{printed}"
     );
-    assert!(
-        at_band.is_empty(),
-        "AC-2's control: and at the chosen band of {} nothing is ambiguous, so the \
-         band sits strictly below the cliff. Still ambiguous: {at_band:?}\n\n{printed}",
+    assert_eq!(
+        at_band,
+        KNOWN_AMBIGUOUS.map(String::from).to_vec(),
+        "AC-2's control: and at the chosen band of {} nothing is ambiguous but \
+         MC-056's known exception (KNOWN_AMBIGUOUS), so the band sits strictly \
+         below the cliff. Exact in both directions: if the exception stops being \
+         ambiguous, empty the list. `left` is measured.\n\n{printed}",
         t.ambiguity_band
+    );
+    let missing_past: Vec<&String> = at_band
+        .iter()
+        .filter(|name| !past_band.contains(name))
+        .collect();
+    assert!(
+        missing_past.is_empty(),
+        "AC-2's control: an entry ambiguous at the chosen band must still be \
+         ambiguous at the wider {BAND_PAST_THE_CLIFF}; not: {missing_past:?}\n\n{printed}"
     );
 }
 

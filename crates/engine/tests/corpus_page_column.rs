@@ -79,6 +79,35 @@ const THE_THREE: [&str; 3] = [
     "Screenshot (73).png",
 ];
 
+/// MC-056's three: the held-out entries MC-051 read per file, moved to
+/// `tuning` by the user on 2026-09-29. They are **not** originals and join no
+/// originals list here ([`ORIGINALS_AT_BOTH_MARGINS`] stays the 23), for the
+/// reason MC-053's three do not: they were never part of the set AC-3 holds.
+/// They do join every test over all marked `tuning` entries.
+const MC056_THREE: [&str; 3] = [
+    "2025-07-17 14_20_23.png",
+    "2025-08-03 11_27_49.png",
+    "Screenshot (68).png",
+];
+
+/// MC-056, the user's ruling of 2026-09-29 (its Open question 3): the mark
+/// edges the user ruled **art** after a close-up although the predicate reads
+/// them as page background, `(file, side)`. `2025-07-17 14_20_23.png`'s mark
+/// was widened to column 962, where the picture's own flat black background
+/// starts (the page's grey ends at 961); flat black is uniform, so the
+/// predicate reads it as background (share 1.000 in MC-056's RED). **Exact in
+/// both directions**: the metric control fails if any other edge outside
+/// MC-049's seven reads as background, and fails if this one stops reading so.
+const RULED_ART_EDGES: [(&str, Side); 1] = [("2025-07-17 14_20_23.png", Side::Left)];
+
+/// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
+/// 2): the one marked `tuning` entry that is not cropped - the detector flags
+/// it `Ambiguous` - named as AC-2's only known exception. **Exact in both
+/// directions**: AC-2 fails if any other marked `tuning` entry is not cropped,
+/// and fails if this one is cropped, so the story that fixes it has to empty
+/// this list.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+
 /// AC-2's control on the metric: on at least this many of the 26 marked
 /// `tuning` entries the predicate calls the mark's own first **and** last
 /// columns not page background. The story's number: 26 less MC-049's seven.
@@ -471,14 +500,31 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        26,
-        "MC-053 (MC-055) AC-2 is over the 26 marked tuning entries"
+        29,
+        "MC-053 (MC-055) AC-2 is over the 29 marked tuning entries (26 until MC-056 moved three)"
     );
-    assert!(
-        not_cropped.is_empty(),
-        "MC-053 (MC-055) AC-2: every marked tuning entry must be cropped; not cropped: {not_cropped:?}"
+    // MC-056: exact against KNOWN_NOT_CROPPED, by name. `not_cropped` rows are
+    // `name: outcome`; the name is everything before the first ": ".
+    let not_cropped_names: Vec<&str> = not_cropped
+        .iter()
+        .map(|row| row.split(": ").next().unwrap_or(row))
+        .collect();
+    assert_eq!(
+        not_cropped_names,
+        KNOWN_NOT_CROPPED.to_vec(),
+        "MC-053 (MC-055) AC-2: every marked tuning entry must be cropped, except \
+         MC-056's one known exception (KNOWN_NOT_CROPPED), which must still not be: \
+         if a fix makes it crop, empty the list. Not cropped: {not_cropped:?}"
     );
-    assert_eq!(sides, 52, "MC-053 (MC-055) AC-2 checks 52 sides");
+    assert_eq!(
+        sides,
+        2 * (entries.len() - KNOWN_NOT_CROPPED.len()),
+        "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
+    );
+    assert_eq!(
+        sides, 56,
+        "MC-053 (MC-055) AC-2 checks 56 sides: 29 entries less MC-056's one known exception"
+    );
     assert!(
         failing.is_empty(),
         "MC-053 (MC-055) AC-2: at margin_px 0 no column the crop keeps outside the mark may \
@@ -592,7 +638,10 @@ fn mc027s_rule_frozen_here_reproduces_the_shipped_page_column_on_the_originals()
     let mut differ = Vec::new();
     let mut compared = 0usize;
     for (entry, _) in marked() {
-        if THE_THREE.contains(&entry.name().as_str()) {
+        // MC-056's three are not originals either.
+        if THE_THREE.contains(&entry.name().as_str())
+            || MC056_THREE.contains(&entry.name().as_str())
+        {
             continue;
         }
         compared += 1;
@@ -690,6 +739,13 @@ fn a_min_line_spread_lowered_globally_lets_page_background_into_screenshot_2630(
 ///
 /// On `c004d96`: 19 of 26, the seven exceptions exactly MC-049's (14 of the 21
 /// originals, as MC-049 measured; MC-052's two and the three all pass).
+///
+/// MC-056 adds its three, over 29, and one edge the user ruled art
+/// ([`RULED_ART_EDGES`]): `2025-07-17 14_20_23.png`'s widened left edge, column
+/// 962, flat black (share 1.000). The other two's edges read as art (0.327 /
+/// 0.237 and 0.841 / 0.930). Measured in MC-056's RED on `c3fee28` with the
+/// move applied: 28 of 29, the one exception exactly [`RULED_ART_EDGES`] (none
+/// of MC-049's seven reads as background any longer).
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_errors() {
@@ -726,18 +782,34 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
     let unexplained: Vec<&(String, Side)> = exceptions
         .iter()
         .filter(|(name, side)| !MC049_MARK_ERRORS.contains(&(name.as_str(), *side)))
+        .filter(|(name, side)| !RULED_ART_EDGES.contains(&(name.as_str(), *side)))
+        .collect();
+    // MC-056: the other direction for the edges the user ruled art. Each must
+    // still read as page background; one that stops is a stale exception.
+    let ruled_art_read: Vec<(&str, Side)> = exceptions
+        .iter()
+        .map(|(name, side)| (name.as_str(), *side))
+        .filter(|edge| RULED_ART_EDGES.contains(edge))
         .collect();
     assert_eq!(
         entries.len(),
-        26,
-        "the control is over the 26 marked tuning entries"
+        29,
+        "the control is over the 29 marked tuning entries (26 until MC-056 moved three)"
+    );
+    assert_eq!(
+        ruled_art_read,
+        RULED_ART_EDGES.to_vec(),
+        "MC-056: every mark edge the user ruled art (RULED_ART_EDGES) must still read \
+         as page background here - if one no longer does, the exception is stale and \
+         must be removed. `left` is measured.\n\n{printed}"
     );
     assert!(
         ok >= METRIC_CONTROL_REQUIRED && unexplained.is_empty(),
         "MC-053 (MC-055) AC-2's control on the metric: a mark's own first and last columns \
          are art, so the predicate must call both not page background on at least \
          {METRIC_CONTROL_REQUIRED} of {} entries (it did on {ok}), and may call a \
-         mark edge background only on MC-049's seven mark errors (it also did on \
+         mark edge background only on MC-049's seven mark errors and the edges the \
+         user ruled art (RULED_ART_EDGES, MC-056) (it also did on \
          {unexplained:?}).\n\n{printed}",
         entries.len()
     );
@@ -761,7 +833,8 @@ fn the_twenty_three_original_crops_do_not_move_by_a_pixel_at_either_margin() {
     let mut seen = Vec::new();
     for (entry, _) in marked() {
         let name = entry.name();
-        if THE_THREE.contains(&name.as_str()) {
+        // MC-056's three are not originals either.
+        if THE_THREE.contains(&name.as_str()) || MC056_THREE.contains(&name.as_str()) {
             continue;
         }
         seen.push(name.clone());
