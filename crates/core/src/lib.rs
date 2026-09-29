@@ -11,7 +11,10 @@
 //! [`content`]; MC-006 the fourth, [`margin`], and [`decide`], which is where
 //! they are finally composed into [`detect`]; MC-007 puts [`decide()`] on top
 //! of that, which turns a [`Detection`] into the one answer the engine acts
-//! on; the rest arrives story by story.
+//! on; the rest arrives story by story. MC-025 and MC-027 add [`flat`], the
+//! flatness and page-column locators, and MC-048 adds [`viewport`], which
+//! runs after the page column and cuts the rows to the browser viewport,
+//! dropping the browser chrome above it and the taskbar below it.
 //!
 //! [`decide()`], [`CropDecision`], [`FlagReason`], [`detect`] and
 //! [`Detection`] are re-exported at the root because they are what a caller
@@ -29,6 +32,7 @@ pub mod edges;
 pub mod flat;
 pub mod margin;
 pub mod trim;
+pub mod viewport;
 
 pub use decide::{CropDecision, Detection, FlagReason, decide, detect};
 

@@ -103,10 +103,71 @@ Responsibilities, in pipeline order:
    its panels instead of being cut to the largest one. Then a second uniform
    trim inside it, because removing chrome often exposes a **page margin**
    that was not an edge of the image a moment ago.
-4. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
-   clamped to the image. "Never clip" is the property that the final rect
-   contains the art rect on every fixture the generator can produce.
-5. **Decision** (`decide`): `CropDecision::Crop(rect)` or
+   **Then the page column** (`flat::page_column`, MC-027): the widest run of
+   columns whose spread over the central band of rows reaches
+   `min_line_spread` *finds* the page. **Since MC-055 (2026-09-28) that run no
+   longer decides where the page ends**, because the outer columns of dark,
+   low-texture art fall below 8.0 while a JPEG margin can sit above the art's
+   spread, so no threshold separates them. From each end of the run the
+   column is widened outward one column at a time and stops at the first
+   column that is page margin, judged in this order: (1) its band median is
+   within `uniform_tolerance` of the page background tone (the viewport
+   stage's tone) and not of the column just inside it: margin; (2) it is not
+   page background over the band by MC-049's predicate (under 0.95 of its
+   pixels within `uniform_tolerance` of its median): page; (3) it is page
+   background over the band, but it carries on the tone of the column just
+   inside it *and* is not page background over the viewport's rows: page;
+   otherwise margin. The viewport's rows are read only for (3), because the
+   band is a sample of the page's rows and a dark page can be flat all
+   through it. A widened column that reaches an end of the rect gives the
+   rect back whole, as MC-027's interior rule does. No constant is added.
+   Branch (3) does its work on one corpus file (`2025-07-17 14_41_58.png`),
+   and every comparison in the rule was probed at up to `uniform_tolerance`
+   of slack without a corpus test moving (MC-055 `## Notes`).
+4. **Browser viewport** (`viewport`, MC-048), after MC-025's flatness locator
+   and MC-027's page column: on the **row axis only**, clamp the rect's rows
+   to the browser viewport — the rows between the browser chrome and the
+   Windows taskbar. Per row, the share of the pixels **outside the page
+   column, over the full image width**, within `uniform_tolerance` of the
+   page background tone (the modal per-row margin median in 8-level bins); a
+   row at 0.90 or above is page-like, and the viewport runs from the first
+   run of at least 16 page-like rows to the end of the last. This is MC-031's
+   chrome oracle as `chrome-row-search.md` §3b and §4 settled it, ported
+   unchanged: 0.90 and 16 are module constants, not `Tuning` fields. When no
+   such run exists the stage declines and moves nothing; there is no
+   narrower fallback. The columns never move here.
+   **Since MC-052 (2026-09-24) the stage makes a second reading, over the
+   reader's own window, that can only widen the first.** The full-width
+   reading above is kept exactly, and it alone decides whether the stage
+   speaks. When it finds a viewport that overlaps the page column's rows, the
+   stage finds the reader's window. From each side of the page column it reads
+   outward over columns that are page background (a majority of their rows
+   inside that viewport within `uniform_tolerance` of the tone), and stops at
+   the first column that is not: the reader window's edge, such as its
+   scrollbar. It then scores the rows again over those columns alone, with
+   the same 0.90 and 16-row run. The viewport becomes the union of the two
+   readings. Pixels past the window's edge, such as a second browser window on
+   a split-screen screenshot, cannot pull the reader's rows out. Where MC-048
+   declined, this still declines, and where it found rows over the page, it
+   keeps all of them. The four settled values (0.90, 16 rows, the tone
+   estimate, `uniform_tolerance`) are unchanged.
+   **Since MC-054 (2026-09-28) the stage cuts the page column's rows on a
+   side only where those rows hold a strip of chrome**: a run of at least 16
+   rows that the full-width reading does not find page-like, inside the rows
+   it would cut. Where they hold no such run, that side has no strip and
+   the viewport runs to the image's edge there. The 16-row run is the same
+   resolution the stage already demands of the page; it is now demanded of
+   the chrome too. Without it, a margin whose share sits near 0.90 on every
+   row (textured bands beside the page) split the art into page-like runs
+   and gaps, and the viewport ended wherever the last long-enough run
+   happened to, cutting up to 856 rows of art. Real chrome and taskbars are
+   tens to hundreds of rows at a share near 0, so the corpus does not move.
+5. **Outward margin** (`margin`): expand by `Tuning.margin_px` on every side,
+   clamped to the image — and, on the row axis, to the viewport stage 4
+   located, so the margin never puts a row of chrome or taskbar back
+   (MC-048 AC-7). "Never clip" is the property that the final rect contains
+   the art rect on every fixture the generator can produce.
+6. **Decision** (`decide`): `CropDecision::Crop(rect)` or
    `CropDecision::Flag(reason)`; see the data model for when each reason
    fires. The core never returns a rect it is not confident in; "not
    confident" is a discrete reason, not a score.
@@ -439,3 +500,61 @@ this file and the stories that depend on it.
       predicate and why re-marking was not chosen.
 
     Zero clips is untouched by all of this and remains absolute.
+
+    **2026-09-24, MC-048: browser chrome and the taskbar are removed, as an
+    internal stage.** The `viewport` stage (pipeline step 4 above) is MC-031's
+    chrome oracle shipped inside the crop, which is the only form `EPIC-07`
+    permits it in. It clamps the crop's rows to the browser viewport, and the
+    outward margin is clamped to that viewport as well, so the margin never
+    puts a chrome or taskbar row back. On the 19 marked `tuning` entries where
+    `chrome-row-search.md` §4 locates a viewport, the stage reproduces §4 to
+    the row on 19 of 19, every crop row lies inside it, the columns do not
+    move, and there are still zero clips on all 21 entries.
+
+    **2026-09-24, MC-052: the stage reads only the reader's own window.** As
+    MC-048 shipped it, the stage scored each row over every pixel outside the
+    page column across the full image width. On split-screen screenshots, a
+    second browser window beside the reader has its own chrome and bottom edge,
+    so the stage returned that window's viewport and cut the reader's art
+    (`2025-03-06 01_22_45.png` by 3 rows at the top and 103 at the bottom,
+    `2025-03-07 00_58_06.png` by 31 at the bottom). The first held-out run
+    after MC-048 merged found it. The stage now also reads the rows over the
+    reader's own window, bounded at its edge on each side, and takes the
+    union with MC-048's reading (pipeline step 4). A first version that
+    *replaced* the full-width reading was caught at GATES by the
+    `detect.rs` property test, which found generated scenes it clipped.
+    MC-048's reading did not clip them (MC-052 `## Notes`, "GATES: the
+    proptest clip"). The settled
+    constants did not move, §4 still reads 19 of 19, the 21 original tuning
+    crops did not move by a pixel, and the two files, now `tuning`, crop to the
+    reader's viewport (rows 115..1374 and 115..1399) with zero clips.
+
+    - **Named limitation: the two `2025-08-05` WebPs.** At the full margin
+      width the oracle finds no page-like run there and declines, so their
+      crops are exactly what they were before and still keep the browser
+      chrome. No narrower reading was adopted: the one measured stops inside
+      the chrome at the settled threshold (MC-048 `## Amendments`). Any
+      screenshot whose page background beside the column is not flat enough
+      behaves the same way.
+    - **The `EPIC-07` bar is not yet met.** The bar is containment of the mark
+      plus absence of *all* furniture. This stage delivers the browser and OS
+      part only. The reader site's own header, navigation and footer are
+      still in the output ([MC-050](../backlog/stories/MC-050.md)), and so is
+      the side strip of page background beside the column
+      ([MC-049](../backlog/stories/MC-049.md), `EPIC-08`). No held-out score
+      of the full predicate exists yet, and none can until MC-050 lands.
+
+    **2026-09-28, MC-054: the stage cuts rows only on evidence of chrome in
+    them.** The `detect.rs` property test kept drawing generated pages, about
+    1 in 60,000, on which the stage cut art rows: textured bands beside the
+    page with a flat fraction near 0.90 made the per-row share wobble across
+    the threshold, so runs of 16 page-like rows appeared and vanished inside
+    the art, and the viewport ended at whichever came last (20, 9, 856 and
+    688 rows cut on the four recipes MC-054 froze). The stage now cuts the
+    column's rows on a side only when the rows it cuts contain at least 16
+    consecutive rows that the full-width reading finds not page-like - the
+    settled `MIN_RUN`, applied to the chrome as well as to the page; otherwise the
+    viewport runs to the image's edge on that side (pipeline step 4). No
+    settled value moved and no constant was added. All 26 marked `tuning`
+    crops are unchanged to the pixel at both margins, and the seeded stress
+    count went from 4 clips in 240,000 generated cases to 0, with 0 junk.

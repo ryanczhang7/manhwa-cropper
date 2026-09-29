@@ -895,7 +895,17 @@ fn the_loader_still_reports_path_expect_and_tags_exactly_as_the_manifest_gives_t
 /// of the corpus that now carries the accuracy claim: below this the held-out
 /// set cannot support a "nine in ten" number with any resolution, because one
 /// miss moves it by five percent.
-const MIN_HELD_OUT_MARKED: usize = 20;
+///
+/// **Lowered to 19 by MC-053, on the user's ruling of 2026-09-24** (MC-053's
+/// Open question 6, "the recommended default. `MIN_HELD_OUT_MARKED` drops to
+/// 19, with the ruling recorded in `corpus.md` the same way
+/// `MIN_UNSEEN_SITES` was lowered"). MC-052 moved two marked held-out entries
+/// to `tuning` and MC-053 three more, every one of them for cause - each
+/// reproduced a bug the story fixing it was designed while looking at - which
+/// leaves 19. At 19 one miss is 5.3 %. The held-out set has shrunk by five
+/// marked entries since MC-037, and new screenshots, not a lower floor, are
+/// how it grows back; `docs/wiki/corpus.md` records the ruling.
+const MIN_HELD_OUT_MARKED: usize = 19;
 
 /// MC-037 AC-2. The detector has two jobs - crop the croppable and decline the
 /// rest - and a held-out set of rectangles alone measures one of them.
@@ -909,7 +919,17 @@ const MIN_HELD_OUT_SITES: usize = 4;
 
 /// MC-037 AC-4. The readers appearing *only* in the held-out set are the only
 /// entries that can answer "does this generalise to an unseen reader?".
-const MIN_UNSEEN_SITES: usize = 2;
+///
+/// **Lowered from 2 to 1 by MC-053, on the user's ruling of 2026-09-24**
+/// (MC-053's Open question 2): *"unseen reader" means a reader with **no
+/// `tuning` entries**.* MC-053 moved two of `xbato`'s three entries to
+/// `tuning` and designs its fix on them, so `xbato` is tuned-on and the
+/// unseen-reader claim rests on `manhwaclan` alone (2 entries). The test below
+/// now counts a reader as unseen only when it is absent from the pre-EPIC-07
+/// readers **and** from every `tuning` entry's `site:` tag; under that
+/// definition the floor of 2 is not met, and the ruling lowers it to 1.
+/// `docs/wiki/corpus.md` records it.
+const MIN_UNSEEN_SITES: usize = 1;
 
 /// The prefix marking a tag as naming the reader an entry was captured from.
 const SITE_TAG_PREFIX: &str = "site:";
@@ -964,11 +984,11 @@ fn held_out_sites(entries: &[CorpusEntry]) -> BTreeSet<String> {
 // --- AC-1: the held-out set carries enough marked entries to mean something -
 
 #[test]
-fn the_held_out_set_carries_at_least_twenty_marked_entries() {
+fn the_held_out_set_carries_at_least_nineteen_marked_entries() {
     let entries = corpus::load();
     let held = held_out(&entries);
 
-    // The vacuity guard. "At least twenty" over an empty set fails loudly, but
+    // The vacuity guard. "At least nineteen" over an empty set fails loudly, but
     // every *other* held-out count in this file would be quietly measuring
     // nothing, and that is the state MC-036 deliberately left behind.
     assert!(
@@ -988,7 +1008,8 @@ fn the_held_out_set_carries_at_least_twenty_marked_entries() {
         "AC-1: the held-out set carries {marked} marked entries and needs at \
          least {MIN_HELD_OUT_MARKED}. This is MIN_ENTRIES' reasoning applied \
          to the half of the corpus that now carries the accuracy claim: at \
-         twenty entries one miss is five percent, and below that the reported \
+         twenty entries one miss is five percent (5.3 % at the nineteen the \
+         user ruled on 2026-09-24, MC-053), and below that the reported \
          number is decided by which screenshot happened to land here. The \
          whole-corpus floor is a different question and stays green while this \
          one fails - a floor that only fires when the *total* drops is not \
@@ -1120,18 +1141,33 @@ fn the_held_out_set_spans_at_least_four_readers() {
     );
 }
 
+/// MC-037 AC-4, as MC-053 re-defines "unseen" on the user's ruling of
+/// 2026-09-24 (see [`MIN_UNSEEN_SITES`]): a held-out reader is unseen when it
+/// is absent from the pre-EPIC-07 readers **and** no `tuning` entry carries
+/// its `site:` tag. Until MC-053 only the first half was checked, so a reader
+/// whose entries had moved to `tuning` - `xbato`, since MC-053 - still counted.
 #[test]
-fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
+fn at_least_one_held_out_reader_is_absent_from_the_pre_epic_07_set_and_from_tuning() {
     let entries = corpus::load();
     let sites = held_out_sites(&entries);
     let known = documented_pre_epic_07_readers();
+    let tuned_on: BTreeSet<&str> = entries
+        .iter()
+        .filter(|e| e.split == Split::Tuning)
+        .flat_map(site_tags)
+        .collect();
 
-    let unseen: Vec<&String> = sites.iter().filter(|s| !known.contains(*s)).collect();
+    let unseen: Vec<&String> = sites
+        .iter()
+        .filter(|s| !known.contains(*s) && !tuned_on.contains(s.as_str()))
+        .collect();
 
     assert!(
         unseen.len() >= MIN_UNSEEN_SITES,
-        "AC-4: {} held-out readers are absent from the pre-EPIC-07 set, and at \
-         least {MIN_UNSEEN_SITES} are needed. These are the only entries that \
+        "AC-4: {} held-out readers are absent from the pre-EPIC-07 set and from \
+         every `tuning` entry, and at least {MIN_UNSEEN_SITES} are needed (the \
+         user's ruling of 2026-09-24: an unseen reader has no `tuning` \
+         entries). Readers with `tuning` entries: {tuned_on:?}. These are the only entries that \
          can answer 'does this generalise to an unseen *reader*?' rather than \
          'an unseen *page*?'. Every other held-out entry shares a \
          pixel-identical navigation bar with an entry the detector was tuned \
@@ -1151,6 +1187,11 @@ fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
 /// `tuning` entries on **2026-09-21**, read back from the Corpus Reader
 /// Labeller's own store, in manifest order.
 ///
+/// Thirty since MC-052: the user moved two held-out `toongod` entries to
+/// `tuning` on 2026-09-24, and they keep the `site:` tag they already had.
+/// Thirty-three since MC-053, which moved two `xbato` entries and one
+/// `kunmanga` entry the same way, by the user's ruling of the same day.
+///
 /// **This is the specification, not a derivation.** The labeller is a
 /// throwaway tool outside this repository - the same arrangement as MC-018's
 /// marking annotator - so MC-042's `## Context` table, under "The per-file
@@ -1165,7 +1206,7 @@ fn at_least_two_held_out_readers_are_absent_from_the_pre_epic_07_set() {
 /// *unseen* until 2026-09-21; `xbato` appears nowhere in it although the
 /// recalled `PRE_EPIC_07_SITES` set named it. Both directions of that
 /// falsification are AC-3's subject on the corpus page.
-const READER_BY_FILE: [(&str, &str); 28] = [
+const READER_BY_FILE: [(&str, &str); 33] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1194,6 +1235,16 @@ const READER_BY_FILE: [(&str, &str); 28] = [
     ("Screenshot (3455).png", "toongod"),
     ("Screenshot (3465).png", "w-network"),
     ("Screenshot (3538).png", "toongod"),
+    // MC-052: moved from `held-out` to `tuning` by the user's ruling of
+    // 2026-09-24. Their `site:` tag is the one they carried in held-out.
+    ("2025-03-06 01_22_45.png", "toongod"),
+    ("2025-03-07 00_58_06.png", "toongod"),
+    // MC-053: moved from `held-out` to `tuning` by the user's ruling of
+    // 2026-09-24, because the column-axis fix is designed while looking at
+    // them. Their `site:` tag is the one they carried in held-out.
+    ("2025-07-17 14_41_58.png", "xbato"),
+    ("2025-07-17 14_55_10.png", "xbato"),
+    ("Screenshot (73).png", "kunmanga"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1222,13 +1273,25 @@ const READER_BY_FILE: [(&str, &str); 28] = [
 /// The held-out columns are a fifth column this file has always been able to
 /// check and never did: they must stay exactly as they are, which is AC-1's
 /// "the 31 held-out entries keeping the tags they already have".
+///
+/// **MC-052, 2026-09-24.** The user moved two `toongod` entries from
+/// `held-out` to `tuning` (`2025-03-06 01_22_45.png`, `2025-03-07
+/// 00_58_06.png`), both marked. `toongod`'s row goes from `15, 11, 4, 10` to
+/// `17, 13, 4, 8`; no other row moves, and no reader is re-attributed.
+///
+/// **MC-053, 2026-09-24.** The user moved three marked entries from
+/// `held-out` to `tuning`: `2025-07-17 14_41_58.png` and `2025-07-17
+/// 14_55_10.png` (`xbato`) and `Screenshot (73).png` (`kunmanga`). `xbato`'s
+/// row goes from `0, 0, 0, 3` to `2, 2, 0, 1` and `kunmanga`'s from
+/// `2, 2, 0, 2` to `3, 3, 0, 1`; no other row moves, and no reader is
+/// re-attributed.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 15, 11, 4, 10),
+    ("toongod", 17, 13, 4, 8),
     ("w-network", 5, 2, 3, 5),
     ("demonicrevolution", 4, 4, 0, 1),
     ("rolia-scans", 2, 2, 0, 8),
-    ("kunmanga", 2, 2, 0, 2),
-    ("xbato", 0, 0, 0, 3),
+    ("kunmanga", 3, 3, 0, 1),
+    ("xbato", 2, 2, 0, 1),
     ("manhwaclan", 0, 0, 0, 2),
 ];
 
@@ -1262,7 +1325,7 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
 /// explodes over nine lines each, and a pin nobody can scan in one screen is a
 /// pin nobody re-reads.
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 26] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1008, 188, 528, 1138),
@@ -1284,6 +1347,18 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 21] = [
     ("Screenshot (2744).jpg", 950, 134, 639, 1164),
     ("Screenshot (3187).png", 987, 142, 573, 1237),
     ("Screenshot (3538).png", 975, 171, 590, 1159),
+    // MC-052: the two entries the user moved from `held-out` on 2026-09-24,
+    // with the marks they carried there, unchanged.
+    ("2025-03-06 01_22_45.png", 648, 118, 520, 1244),
+    ("2025-03-07 00_58_06.png", 671, 362, 474, 928),
+    // MC-053: the three entries the user moved from `held-out` on 2026-09-24,
+    // with the marks **widened** on all six side edges by the user's ruling of
+    // 2026-09-25 (MC-053's Open question 3), made on renders of each edge:
+    // the art runs to the page background on every one. Rows unchanged. Were
+    // `931,273 681x1096`, `931,171 668x1224` and `1007,293 530x1086`.
+    ("2025-07-17 14_41_58.png", 928, 273, 690, 1096),
+    ("2025-07-17 14_55_10.png", 928, 171, 690, 1224),
+    ("Screenshot (73).png", 1003, 293, 540, 1086),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -1452,8 +1527,8 @@ fn the_reader_attribution_matches_the_counts_the_user_recorded() {
          flag, and every accuracy number in EPIC-07 is measured over marked \
          entries, so a manifest that got the fifteen right and the eleven \
          wrong would make AC-5's 'eleven of twenty-one' false while looking \
-         labelled. `xbato`'s zero tuning entries is a recorded finding, not an \
-         omission. Each row is \
+         labelled. `xbato` had zero tuning entries until MC-053 moved two of \
+         its three there on 2026-09-24. Each row is \
          `reader | tuning | marked | flag | held-out`"
     );
 }
