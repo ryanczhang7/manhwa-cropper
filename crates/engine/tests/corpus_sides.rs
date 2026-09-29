@@ -66,6 +66,10 @@ mod corpus;
 use std::path::Path;
 
 use corpus::{CorpusEntry, Expect, Split};
+use cropper_core::content::content_box;
+use cropper_core::flat::{page_column, textured_box};
+use cropper_core::trim::{trim_uniform, trim_within};
+use cropper_core::viewport::locate;
 use cropper_core::{Luma, Rect, Tuning, detect};
 use cropper_engine::{Outcome, process_file};
 
@@ -445,28 +449,112 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
 
 // --- AC-4 ---------------------------------------------------------------------
 
-/// `rect`'s rows grown by `by` on each side and clamped to `height`, as
-/// `(first row, one past the last)`. Test-side arithmetic, deliberately not
-/// `margin::expand`, so a change to that function cannot move both sides of
-/// the comparison at once.
-fn grown_rows(rect: Rect, by: u32, height: u32) -> (u32, u32) {
-    (
-        rect.y.saturating_sub(by),
-        (rect.y + rect.h + by).min(height),
-    )
+/// Sides on which the margin must be seen to reach: a side MC-048's viewport
+/// stage did not cut, with room for the whole margin before the image edge.
+/// Mechanical: the two WebPs' tops (`2025-08-05 00_11_13.webp` and
+/// `00_11_27.webp`), where the stage declines (`corpus_viewport.rs`, AC-3) and
+/// the located top is row 18. Their bottoms reach the image edge. Without this
+/// floor, a corpus on which the stage cut every side would pass AC-4 with the
+/// margin never exercised at all.
+const MARGIN_REACHED_SIDES_REQUIRED: usize = 2;
+
+/// The page column `detect` locates before the viewport stage and before the
+/// margin: its first five stages, composed exactly as `decide.rs` composes
+/// them, as `corpus_viewport_stage.rs` does. None of them reads `margin_px`.
+fn page_column_of(img: &Luma, t: &Tuning) -> Rect {
+    let first = trim_uniform(img, t).expect("a marked page is not one flat colour");
+    let found = content_box(img, first, t);
+    let second = trim_within(img, found.rect, t).expect("the content box is not one flat colour");
+    page_column(img, textured_box(img, second, t), t)
 }
 
-/// AC-4: each crop's top and bottom edge moves by exactly the change in
-/// `margin_px` and no more, clamped at the image edge, and still contains the
-/// mark.
+/// The rows MC-048's viewport stage keeps beside `column`, as
+/// `(first row, one past the last)`, or `None` where the stage declines. A
+/// viewport sharing no row with the column is a decline too, because that is
+/// how `detect` treats it.
+fn viewport_rows(img: &Luma, column: Rect, t: &Tuning) -> Option<(u32, u32)> {
+    let view = locate(img, column, t)?;
+    (view.top.max(column.y) < view.bottom.min(column.y + column.h))
+        .then_some((view.top, view.bottom))
+}
+
+/// One entry's row edges by AC-4 as amended: which sides the viewport stage
+/// cut, and where each side must be at a given margin.
+struct RowEdges {
+    column: Rect,
+    view: Option<(u32, u32)>,
+    height: u32,
+}
+
+impl RowEdges {
+    /// Whether the viewport stage cut the top: the viewport's first row is at
+    /// or below the page column's.
+    ///
+    /// "At" counts. On eight entries (`Screenshot (1661).png` to `(3538).png`)
+    /// the earlier stages already end the page column on the viewport's
+    /// bottom row, 1392, so the stage moves nothing there, but that row is
+    /// the browser window's edge and the margin stops at it. That is the
+    /// user's wording of the amendment: *"except where they stop at the image
+    /// edge or the browser window's edge"*.
+    fn top_cut(&self) -> bool {
+        self.view.is_some_and(|(top, _)| top >= self.column.y)
+    }
+
+    /// Whether the viewport stage cut the bottom: the viewport ends at or
+    /// above the page column's end. See [`RowEdges::top_cut`] for why "at"
+    /// counts.
+    fn bottom_cut(&self) -> bool {
+        self.view
+            .is_some_and(|(_, bottom)| bottom <= self.column.y + self.column.h)
+    }
+
+    /// The crop's rows at margin `by`, `(first row, one past the last)`.
+    /// Test-side arithmetic, deliberately not `margin::expand` or the stage's
+    /// clamp, so a change to either cannot move both sides of the comparison.
+    ///
+    /// On a side the stage cut: the viewport's edge, at every margin - the
+    /// margin never puts a row of chrome or taskbar back. On a side it did
+    /// not cut: the page column's edge moved out by exactly `by`, clamped at
+    /// the image edge.
+    fn at(&self, by: u32) -> (u32, u32) {
+        let top = match self.view {
+            Some((top, _)) if self.top_cut() => top,
+            _ => self.column.y.saturating_sub(by),
+        };
+        let bottom = match self.view {
+            Some((_, bottom)) if self.bottom_cut() => bottom,
+            _ => (self.column.y + self.column.h + by).min(self.height),
+        };
+        (top, bottom)
+    }
+
+    /// How many sides the margin `by` reaches in full: sides the stage did
+    /// not cut, with room for all of `by` before the image edge.
+    fn reached_in_full(&self, by: u32) -> usize {
+        let top = !self.top_cut() && self.column.y >= by;
+        let bottom = !self.bottom_cut() && self.column.y + self.column.h + by <= self.height;
+        usize::from(top) + usize::from(bottom)
+    }
+}
+
+/// AC-4, as amended on 2026-09-28: each crop's top and bottom edge moves by
+/// exactly the change in `margin_px` on that side and no more - clamped at the
+/// image edge, or at the browser viewport's edge where MC-048's viewport stage
+/// cut that side - and still contains the mark.
 ///
-/// Three detections per entry: the pre-margin rect (`margin_px` 0), the crop
-/// as it was before MC-049 ([`MARGIN_BEFORE_MC049`]), and the crop at
-/// `Tuning::default()`. Both crops' rows must be the pre-margin rows grown by
-/// their own margin, which is the statement that the margin is the *only*
-/// thing on the row axis that differs between them. A change that zeroed the
-/// columns' margin and left the rows' at 3 fails here, as does one that moved
-/// the row locator.
+/// Whether the stage cut a side is read from the stage itself, not inferred
+/// from the crop: [`page_column_of`] is the rect the stage is handed, and
+/// [`viewport_rows`] is what `viewport::locate` finds beside it. A side is cut
+/// where the viewport's edge lies inside the page column's rows or on its
+/// edge ([`RowEdges::top_cut`]). Where the stage declines (the two WebPs)
+/// no side is cut.
+///
+/// Three detections per entry: `margin_px` 0, the margin before MC-049
+/// ([`MARGIN_BEFORE_MC049`]), and `Tuning::default()`. Each must have exactly
+/// [`RowEdges::at`] its own margin. So a margin that grows an uncut side by
+/// more (or less) than the change fails, as does one that grows a cut side
+/// past the viewport. The margin 0 leg also checks the premise: the stage's
+/// cut, read here, is the one the pipeline made.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
@@ -481,62 +569,93 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
     };
     let mut rows = Vec::new();
     let mut wrong = Vec::new();
-    let mut clamped = 0usize;
+    let (mut cut, mut reached) = (0usize, 0usize);
 
     for (entry, mark) in marked() {
         let img = luma(&entry.path);
         let at = |tuning: &Tuning| {
-            detect(&img, tuning)
+            let r = detect(&img, tuning)
                 .unwrap_or_else(|| panic!("{} is not a uniform image", entry.name()))
-                .rect
+                .rect;
+            (r.y, r.y + r.h)
         };
-        let (located, old, new) = (at(&bare), at(&before), at(&t));
-        let rows_of = |r: Rect| (r.y, r.y + r.h);
-        let want_old = grown_rows(located, MARGIN_BEFORE_MC049, img.height);
-        let want_new = grown_rows(located, t.margin_px, img.height);
-        if want_old.1 - want_old.0 < located.h + 2 * MARGIN_BEFORE_MC049 {
-            clamped += 1;
+        let column = page_column_of(&img, &t);
+        let edges = RowEdges {
+            column,
+            view: viewport_rows(&img, column, &t),
+            height: img.height,
+        };
+        cut += usize::from(edges.top_cut()) + usize::from(edges.bottom_cut());
+        reached += edges.reached_in_full(MARGIN_BEFORE_MC049);
+
+        let mut ok = true;
+        for (margin, tuning) in [
+            (0, &bare),
+            (MARGIN_BEFORE_MC049, &before),
+            (t.margin_px, &t),
+        ] {
+            let (got, want) = (at(tuning), edges.at(margin));
+            if got != want {
+                ok = false;
+                wrong.push(format!(
+                    "{}: at margin {margin} rows {got:?}, want {want:?} (page column rows \
+                     {}..{}, viewport {:?}, cut top {} bottom {})",
+                    entry.name(),
+                    column.y,
+                    column.y + column.h,
+                    edges.view,
+                    edges.top_cut(),
+                    edges.bottom_cut()
+                ));
+            }
         }
-        let contains_rows = new.y <= mark.y && new.y + new.h >= mark.y + mark.h;
-        let ok = rows_of(old) == want_old && rows_of(new) == want_new && contains_rows;
-        if !ok {
+        let (top, bottom) = at(&t);
+        let contains_rows = top <= mark.y && bottom >= mark.y + mark.h;
+        if !contains_rows {
+            ok = false;
             wrong.push(format!(
-                "{}: located rows {:?}; at margin {MARGIN_BEFORE_MC049} {:?} (want {want_old:?}); \
-                 at margin {} {:?} (want {want_new:?}); mark rows {}..{} contained {contains_rows}",
+                "{}: at margin {} rows {top}..{bottom} do not contain the mark's {}..{}",
                 entry.name(),
-                rows_of(located),
-                rows_of(old),
                 t.margin_px,
-                rows_of(new),
                 mark.y,
                 mark.y + mark.h
             ));
         }
         rows.push(format!(
-            "{:<30} located {:>4}..{:<4} before {:>4}..{:<4} now {:>4}..{:<4} {}",
+            "{:<30} column {:>4}..{:<4} viewport {:<14} cut {}{}  m{MARGIN_BEFORE_MC049} {:?}  m{} {:?}  {}",
             entry.name(),
-            located.y,
-            located.y + located.h,
-            old.y,
-            old.y + old.h,
-            new.y,
-            new.y + new.h,
+            column.y,
+            column.y + column.h,
+            format!("{:?}", edges.view),
+            if edges.top_cut() { "T" } else { "-" },
+            if edges.bottom_cut() { "B" } else { "-" },
+            at(&before),
+            t.margin_px,
+            at(&t),
             if ok { "ok" } else { "MOVED" }
         ));
     }
 
     let printed = table(
         &format!(
-            "AC-4: rows before ({MARGIN_BEFORE_MC049}) and now ({}), {clamped} entries clamped at an image edge",
+            "AC-4: rows at margin {MARGIN_BEFORE_MC049} and {}; {cut} sides cut by the viewport \
+             stage, {reached} sides the margin {MARGIN_BEFORE_MC049} reaches in full",
             t.margin_px
         ),
         &rows,
     );
     assert!(
         wrong.is_empty(),
-        "AC-4: the rows may move by the change in margin_px and nothing else. {} \
-         entries moved otherwise:\n{}\n\n{printed}",
+        "AC-4: on each side the rows may move by the change in margin_px, clamped at \
+         the image edge or at the viewport's edge where the viewport stage cut that \
+         side, and nothing else, and the crop must contain the mark. {} failures:\n{}\n\n{printed}",
         wrong.len(),
         wrong.join("\n")
+    );
+    assert!(
+        reached >= MARGIN_REACHED_SIDES_REQUIRED,
+        "AC-4's control: the margin {MARGIN_BEFORE_MC049} must reach in full on at least \
+         {MARGIN_REACHED_SIDES_REQUIRED} sides (the two WebPs' tops), or the test above \
+         never sees a row move. It reaches on {reached}.\n\n{printed}"
     );
 }

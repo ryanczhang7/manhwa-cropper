@@ -14,7 +14,8 @@
 //! * **Settled, read out and never re-derived**: MC-049's page-background
 //!   predicate ([`PAGE_BACKGROUND_SHARE`], `uniform_tolerance` from the
 //!   `Tuning` under test, over the mark's rows, the upper median); the user's
-//!   marks; "both margins" (`Tuning::default()` and `margin_px: 0`); AC-2's
+//!   marks; "both margins" (`margin_px: 3` and `margin_px: 0`, explicitly since
+//!   MC-049 moved the default to 0); AC-2's
 //!   floor of 19 on the metric control ([`METRIC_CONTROL_REQUIRED`]) and MC-049's
 //!   seven mark errors ([`MC049_MARK_ERRORS`]).
 //! * **Mechanical, pinned exactly**: AC-3's 23 x 2 rects
@@ -254,10 +255,15 @@ fn marked() -> Vec<(CorpusEntry, Rect)> {
         .collect()
 }
 
-/// Both margins, as the story defines them.
+/// Both margins, as the story defines them: 3 and 0. The 3 is written out
+/// because MC-049 moved `Tuning::default().margin_px` to 0, and the pins were
+/// measured at 3.
 fn both_margins() -> [Tuning; 2] {
     [
-        Tuning::default(),
+        Tuning {
+            margin_px: 3,
+            ..Tuning::default()
+        },
         Tuning {
             margin_px: 0,
             ..Tuning::default()
@@ -384,7 +390,7 @@ fn on_the_three_dark_art_entries_the_crop_keeps_the_art_on_the_left_and_right_at
             .iter()
             .filter(|(entry, _)| THE_THREE.contains(&entry.name().as_str()))
         {
-            if t.margin_px == Tuning::default().margin_px {
+            if t.margin_px == both_margins()[0].margin_px {
                 seen.push(entry.name());
             }
             match crop_at(entry, &tmp, &t) {

@@ -2,7 +2,9 @@
 //! chrome and the taskbar, and leaves the columns where they were.
 //!
 //! Every test here goes through the real pipeline - [`process_file`] at
-//! `Tuning::default()` - and reads nothing but the rect it returns, so this
+//! `Tuning::default()`, or at `margin_px` 3 written out where a pin was
+//! measured at the default before MC-049 moved it to 0 ([`WEBPS_BEFORE`]
+//! and MC-052's "both margins") - and reads nothing but the rect it returns, so this
 //! file compiles against the tree before MC-048 as well as after it. The
 //! stage's own located rows are asked of the stage directly in
 //! `tests/corpus_viewport_stage.rs`, which is a separate target on purpose:
@@ -100,6 +102,11 @@ const WEBPS: [&str; 2] = ["2025-08-05 00_11_13.webp", "2025-08-05 00_11_27.webp"
 /// produces it at `Tuning::default()` on `cb2deef`, measured in RED (release)
 /// and pinned. The stage declines on both and the pipeline must fall back to
 /// exactly this; chrome removal on them is a named limitation.
+///
+/// **At `margin_px` 3, explicitly (MC-049, 2026-09-28).** `cb2deef`'s default
+/// margin was 3; MC-049 moved it to 0. What this pins is that the stage
+/// declines and moves nothing, so the test runs at [`at_margin_3`], the margin
+/// these rects were measured at.
 const WEBPS_BEFORE: [(&str, Rect); 2] = [
     (
         "2025-08-05 00_11_13.webp",
@@ -124,28 +131,36 @@ const WEBPS_BEFORE: [(&str, Rect); 2] = [
 /// AC-8: every marked `tuning` entry's crop `(file, x, w)` as `process_file`
 /// produces it at `Tuning::default()` on `cb2deef`, measured in RED (release)
 /// and pinned. The side edges are MC-049's; this story must not move them.
+///
+/// **Re-pinned by MC-049 at the new default, 2026-09-28.** This pin means
+/// "the columns at the default tuning", not "at margin 3": its side edges
+/// were declared MC-049's to move. MC-049 moved `margin_px` 3 -> 0, so every
+/// entry moves by exactly that change and nothing else: `x + 3`, `w - 6`
+/// (no side here was clamped at the image edge at margin 3). Derived from
+/// the `cb2deef` pins, not re-measured; it agrees with the margin-0 column
+/// of [`ORIGINALS_BEFORE`] on all 21.
 const COLUMNS_BEFORE: [(&str, u32, u32); 21] = [
-    ("2025-08-05 00_11_13.webp", 950, 646),
-    ("2025-08-05 00_11_27.webp", 1003, 539),
-    ("2025-10-14 23_29_06.png", 1000, 546),
-    ("2025-10-14 23_30_20.png", 1030, 486),
-    ("2025-10-20 15_37_25.png", 1004, 538),
-    ("2026-01-05 13_33_41.png", 1071, 404),
-    ("2026-01-05 13_45_59.png", 1036, 473),
-    ("2026-01-05 13_49_39.png", 1036, 473),
-    ("Screenshot (67).png", 1007, 531),
-    ("Screenshot (70).jpg", 1007, 531),
-    ("Screenshot (75).png", 1070, 406),
-    ("Screenshot (93).jpg", 1136, 273),
-    ("Screenshot (103).jpg", 1070, 406),
-    ("Screenshot (1661).png", 1070, 406),
-    ("Screenshot (2582).jpg", 1003, 539),
-    ("Screenshot (2630).jpg", 952, 642),
-    ("Screenshot (2698).jpg", 950, 645),
-    ("Screenshot (2708).jpg", 1071, 405),
-    ("Screenshot (2744).jpg", 945, 654),
-    ("Screenshot (3187).png", 981, 582),
-    ("Screenshot (3538).png", 972, 602),
+    ("2025-08-05 00_11_13.webp", 953, 640),
+    ("2025-08-05 00_11_27.webp", 1006, 533),
+    ("2025-10-14 23_29_06.png", 1003, 540),
+    ("2025-10-14 23_30_20.png", 1033, 480),
+    ("2025-10-20 15_37_25.png", 1007, 532),
+    ("2026-01-05 13_33_41.png", 1074, 398),
+    ("2026-01-05 13_45_59.png", 1039, 467),
+    ("2026-01-05 13_49_39.png", 1039, 467),
+    ("Screenshot (67).png", 1010, 525),
+    ("Screenshot (70).jpg", 1010, 525),
+    ("Screenshot (75).png", 1073, 400),
+    ("Screenshot (93).jpg", 1139, 267),
+    ("Screenshot (103).jpg", 1073, 400),
+    ("Screenshot (1661).png", 1073, 400),
+    ("Screenshot (2582).jpg", 1006, 533),
+    ("Screenshot (2630).jpg", 955, 636),
+    ("Screenshot (2698).jpg", 953, 639),
+    ("Screenshot (2708).jpg", 1074, 399),
+    ("Screenshot (2744).jpg", 948, 648),
+    ("Screenshot (3187).png", 984, 576),
+    ("Screenshot (3538).png", 975, 596),
 ];
 
 // --- MC-052: the two split-screen screenshots -------------------------------
@@ -356,6 +371,15 @@ fn marked() -> Vec<(CorpusEntry, Rect)> {
 /// here, so it is reported rather than skipped.
 fn crop(entry: &CorpusEntry, tmp: &tempfile::TempDir) -> Result<Rect, String> {
     crop_at(entry, tmp, &Tuning::default())
+}
+
+/// `Tuning::default()` at `margin_px` 3: what the default was when the
+/// margin-3 pins in this file were measured, before MC-049 moved it to 0.
+fn at_margin_3() -> Tuning {
+    Tuning {
+        margin_px: 3,
+        ..Tuning::default()
+    }
 }
 
 /// [`crop`] at `t`: MC-052 runs every criterion at both margins.
@@ -611,7 +635,7 @@ fn both_webp_crops_are_exactly_as_before_and_keep_their_marks() {
             .iter()
             .find(|(name, _)| *name == entry.name())
             .map(|&(_, rect)| rect);
-        match crop(&entry, &tmp) {
+        match crop_at(&entry, &tmp, &at_margin_3()) {
             Ok(rect) => {
                 let moved = pinned != Some(rect);
                 let clips = !contains(rect, mark);
@@ -730,11 +754,12 @@ fn every_marked_crop_keeps_the_columns_it_had_before_the_viewport_stage() {
 
 // --- MC-052: the split-screen shots, and nothing else moves -----------------
 
-/// Both margins, as MC-052 defines them: `Tuning::default()` and
-/// `margin_px: 0`.
+/// Both margins, as MC-052 defines them: what was `Tuning::default()` then,
+/// `margin_px: 3`, and `margin_px: 0`. The 3 is written out because MC-049
+/// moved the default to 0, and the pins were measured at 3.
 fn both_margins() -> [Tuning; 2] {
     [
-        Tuning::default(),
+        at_margin_3(),
         Tuning {
             margin_px: 0,
             ..Tuning::default()
