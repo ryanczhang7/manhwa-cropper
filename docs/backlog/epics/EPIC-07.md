@@ -84,6 +84,16 @@ both sets. Where the detector cannot crop safely it still flags and copies the
 file unchanged rather than guessing — but an **unrecognised reader is not a
 reason to flag** (the brief's second amendment of the same day).
 
+**The held-out score, 2026-09-29 ([MC-051](../stories/MC-051.md),
+[`held-out-score.md`](../../wiki/held-out-score.md)): not met.** At scored
+commit `d2876f5`, **16 of 19** marked held-out entries meet the bar, against 18
+required, with **0 clips on 19 of 19**. The three misses:
+- `kunmanga`'s same-tone site header, left in;
+- a one-row site header on one `rolia-scans` entry;
+- an unseen-reader (`xbato`) page the detector flagged rather than cropped.
+
+The held-out set is now spent. The next held-out score needs new screenshots.
+
 ## Stories
 
 To be written; the order below is the dependency order and the first is the
@@ -262,6 +272,22 @@ only one that can start.
    - The lesson for any later story here: a stage that changes where crops
      land runs the held-out clip check before merge. Skipping it is an
      explicit, recorded decision with a cost, not a default.
+
+   **MC-051's verdict, 2026-09-29: item 4 is not earned on held-out.** The
+   one held-out run, at `d2876f5` after MC-049, scored **16 of 19 against
+   18**, with **0 clips on 19 of 19**
+   ([`held-out-score.md`](../../wiki/held-out-score.md)). The absolute half
+   holds. The furniture half misses by two:
+   - `kunmanga`'s same-tone header, the failure MC-050 predicted;
+   - a one-row `rolia-scans` header;
+   - the flagged `xbato` page.
+
+   Even without the one-row call it would be 17. The next story is a
+   same-tone-header furniture rule (MC-050 §6), fitted on tuning plus the
+   three now-read entries. It must still work on any reader. Why the `xbato`
+   page flags `Ambiguous` is a separate question. Held-out is spent: the next
+   `EPIC-07` held-out score needs new screenshots, in a story shaped like
+   MC-037.
 
 ## Deliberately not in this epic
 
