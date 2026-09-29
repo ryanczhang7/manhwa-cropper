@@ -21,9 +21,20 @@
 //!   5). A webtoon strip is tall and narrow, so a proportional margin would be
 //!   invisible across and enormous down.
 //!
-//! `margin_px` is 3 by default and is read from the [`Tuning`] argument at
-//! every call, never compiled in: MC-006 drives `detect` at 0, 3 and 7 on one
-//! fixture to pin that.
+//! `margin_px` is read from the [`Tuning`] argument at every call, never
+//! compiled in: MC-006 drives `detect` at 0, 3 and 7 on one fixture to pin
+//! that.
+//!
+//! **The default is 0 since MC-049**, so by default this stage expands
+//! nothing. It was 3. On the corpus the column locator already lands on the
+//! boundary between flat page background and art, and the three columns the
+//! margin added were page background on 42 of 42 sides - the white or black
+//! band the user saw: *"The cropping from the side isnt tight enough and I
+//! still see the page on the right and left side."* (2026-09-23). The user
+//! chose 0 on all four sides. The cost is the safety net described above:
+//! never-clip now rests on the locator's boundary being exact, and the
+//! corpus's zero-clip tests are what hold it there. The stage stays, so a
+//! caller that wants air back sets `margin_px`.
 
 use crate::{Dimensions, Rect};
 

@@ -178,10 +178,15 @@ fn marked() -> Vec<CorpusEntry> {
         .collect()
 }
 
-/// Both margins, as the story defines them.
+/// Both margins, as the story defines them: 3 and 0. The 3 is written out
+/// because MC-049 moved `Tuning::default().margin_px` to 0, and the pins
+/// above were measured at 3.
 fn both_margins() -> [Tuning; 2] {
     [
-        Tuning::default(),
+        Tuning {
+            margin_px: 3,
+            ..Tuning::default()
+        },
         Tuning {
             margin_px: 0,
             ..Tuning::default()

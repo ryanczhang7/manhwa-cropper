@@ -28,7 +28,8 @@
 //!
 //! # The rect is the same for every container, and that is measured
 //!
-//! `decide` answers `Crop(Rect { x: 12, y: 19, w: 126, h: 96 })` for the PNG
+//! `decide` answers `Crop(Rect { x: 15, y: 22, w: 120, h: 90 })` - the art
+//! alone since MC-049 set the margin to 0; `{ 12, 19, 126, 96 }` before - for the PNG
 //! rendering (MC-008), and - measured in RED - for the quality-95 JPEG, for the
 //! lossless WebP and for the PNG named `x.jpg` as well. Quality 95 is gentle
 //! enough that no border row leaves `uniform_tolerance`, so one oracle serves
@@ -456,10 +457,10 @@ fn every_container_of_the_fixture_decides_to_crop_the_same_rect() {
     assert_eq!(
         rect(),
         Rect {
-            x: 12,
-            y: 19,
-            w: 126,
-            h: 96
+            x: 15,
+            y: 22,
+            w: 120,
+            h: 90
         },
         "MC-008's rect: the art plus a margin of {}",
         Tuning::default().margin_px

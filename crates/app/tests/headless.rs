@@ -37,7 +37,8 @@
 //! * **Measured**: the crop rect the fixture scene yields, `Rect { x: 12,
 //!   y: 19, w: 126, h: 96 }`, which is [`common::crop_rect`] evaluated at
 //!   `Tuning::default()` and is re-derived here rather than written as
-//!   literals; the 126x96 output dimensions that follow from it; and the
+//!   literals; the 126x96 output dimensions that follow from it, re-derived
+//!   the same way since MC-049 took the margin to 0 and made them 120x90; and the
 //!   operating system's wording for a missing file, which is read out of the
 //!   summary rather than pinned. The numbers are in the story's
 //!   `## Handoff: RED -> GREEN`.
@@ -229,10 +230,22 @@ fn supported_images(dir: &Path) -> (PathBuf, PathBuf, PathBuf) {
 /// The rect the fixture scene is cropped to, derived from the scene's geometry
 /// and `Tuning::default().margin_px` rather than written out, so a tuning
 /// change moves the expectation instead of breaking it. Measured in RED as
-/// `Rect { x: 12, y: 19, w: 126, h: 96 }`.
+/// `Rect { x: 12, y: 19, w: 126, h: 96 }` at a margin of 3, and
+/// `Rect { x: 15, y: 22, w: 120, h: 90 }` - the art alone - since MC-049 set
+/// the margin to 0.
 fn rect() -> Value {
     let r = common::crop_rect();
     json!({ "x": r.x, "y": r.y, "w": r.w, "h": r.h })
+}
+
+/// The pixel dimensions a cropped output of the fixture scene has: the width
+/// and height of [`rect`]. Derived the same way, for the same reason - these
+/// were written as `(126, 96)` until MC-049 moved the margin, which is exactly
+/// the break the derivation exists to prevent. What every use asserts is
+/// unchanged: the output is the *crop* of the 147x120 scene, not a copy.
+fn crop_dims() -> (u32, u32) {
+    let r = common::crop_rect();
+    (r.w, r.h)
 }
 
 /// The `results` entry a cropped input earns: six keys, the nulls present
@@ -318,7 +331,7 @@ fn three_supported_images_are_cropped_into_out_and_the_summary_records_all_three
             dimensions(&out.join("b.jpg")),
             dimensions(&out.join("c.webp"))
         ),
-        ((126, 96), (126, 96), (126, 96)),
+        (crop_dims(), crop_dims(), crop_dims()),
         "AC-1: each output is the CROP of the 147x120 scene, not a copy of it. \
          A batch that flagged all three - which junk bytes behind a real PNG \
          signature would do - copies them at their original size and still \
@@ -517,7 +530,7 @@ fn with_no_out_flag_the_remembered_folder_receives_the_crop() {
     );
     assert_eq!(
         dimensions(&remembered.join("a.png")),
-        (126, 96),
+        crop_dims(),
         "AC-4: and it is the crop that went there, not a copy"
     );
     assert_eq!(
@@ -564,7 +577,7 @@ fn with_no_out_flag_and_no_settings_file_a_cropped_folder_is_made_beside_the_inp
     );
     assert_eq!(
         dimensions(&src.join(FALLBACK).join("a.png")),
-        (126, 96),
+        crop_dims(),
         "AC-5: the crop, not a copy - the fallback folder is a destination for \
          the real run, not a consolation prize"
     );
@@ -610,7 +623,7 @@ fn an_out_folder_on_the_command_line_does_not_become_the_remembered_folder() {
     );
     assert_eq!(
         dimensions(&out.join("a.png")),
-        (126, 96),
+        crop_dims(),
         "AC-6: `when the run completes` - the batch really ran and really \
          cropped, so what follows about the settings is a statement about a \
          completed run and not about an exe that did nothing"

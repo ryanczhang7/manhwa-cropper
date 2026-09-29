@@ -166,24 +166,44 @@ fn bordered(art_w: u32, art_h: u32, side_x: u32, side_y: u32, chrome: Vec<Chrome
 /// percentage point either side of the constant, with the middle one exactly
 /// on it in whole pixels - and every rect keeps an 80 px height, so the three
 /// differ only in width and only the area can decide them.
+///
+/// MC-049: every one of the five is sized from `Tuning::default().margin_px`
+/// ([`margin`]) rather than from a literal 3 - the art is the target rect
+/// shrunk by the margin on every side and each border grows by it - so the
+/// *detected* rect keeps the exact geometry each test names (80 px tall, 4%,
+/// exactly 5% and 6% of 400x400; 300x63 and 300x64) whatever the settled
+/// margin is. Before MC-049 these read `bordered(74, 74, 163, 163, ..)` and
+/// so on, which is the same scene at a margin of 3.
 fn area_at_four_percent() -> Luma {
-    bordered(74, 74, 163, 163, vec![]).render()
+    let m = margin();
+    bordered(80 - 2 * m, 80 - 2 * m, 160 + m, 160 + m, vec![]).render()
 }
 fn area_at_exactly_five_percent() -> Luma {
-    bordered(94, 74, 153, 163, vec![]).render()
+    let m = margin();
+    bordered(100 - 2 * m, 80 - 2 * m, 150 + m, 160 + m, vec![]).render()
 }
 fn area_at_six_percent() -> Luma {
-    bordered(114, 74, 143, 163, vec![]).render()
+    let m = margin();
+    bordered(120 - 2 * m, 80 - 2 * m, 140 + m, 160 + m, vec![]).render()
+}
+
+/// The settled `margin_px`, which `detect` grows every rect by: the one
+/// number the area and side fixtures are sized around.
+fn margin() -> u32 {
+    Tuning::default().margin_px
 }
 
 /// AC-3's side controls: a 300 px wide rect 63 px tall (flagged) and the same
 /// one 64 px tall (cropped). Both fill over 70% of their image, so the area is
 /// nowhere near deciding them and the short side is the only thing that can.
+/// Sized from [`margin`] like the area controls above.
 fn side_at_sixty_three_px() -> Luma {
-    bordered(294, 57, 13, 13, vec![]).render()
+    let m = margin();
+    bordered(300 - 2 * m, 63 - 2 * m, 10 + m, 10 + m, vec![]).render()
 }
 fn side_at_sixty_four_px() -> Luma {
-    bordered(294, 58, 13, 13, vec![]).render()
+    let m = margin();
+    bordered(300 - 2 * m, 64 - 2 * m, 10 + m, 10 + m, vec![]).render()
 }
 
 /// How wide the art is in every scene that carries an ambiguity band, and the
@@ -985,7 +1005,16 @@ fn a_detection_with_a_nearly_chrome_edge_strip_is_flagged_ambiguous() {
     // widened the scene from 240x210 with the art; the share it covers barely
     // moved, and the point of the assertion - that the size gate cannot be
     // what decides this fixture - did not move at all.
-    assert_eq!(areas(&img, found.rect), (141_856, 176_400));
+    //
+    // The rect is the 800x150 art plus the kept 20 px band, grown by the
+    // margin: 806x176 = 141,856 while the margin was 3, and 800x170 = 136,000
+    // since MC-049 set it to 0. Computed rather than written out, for the
+    // reason `margin()` gives.
+    let grown = |side: u32| u64::from(side + 2 * margin());
+    assert_eq!(
+        areas(&img, found.rect),
+        (grown(AMBIGUITY_ART_W) * grown(150 + 20), 176_400)
+    );
     assert!(found.rect.w.min(found.rect.h) > t.min_content_side);
     assert_eq!(
         decide(&img, &t),

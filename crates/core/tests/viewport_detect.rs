@@ -56,6 +56,12 @@ const LOCATES_EVERY: u32 = 17;
 /// The crop `detect` made of each fixture on `cb2deef`, before this story, at
 /// `Tuning::default()`. Measured in RED.
 ///
+/// **Pinned at `margin_px` 3, explicitly (MC-049, 2026-09-28).** These rects
+/// were measured when the default margin was 3, and the tests below run at
+/// [`at_margin_3`], not at `Tuning::default()`: MC-049 moved the default to 0,
+/// and what these identities pin is that the viewport stage moves nothing,
+/// which is a claim about the stage and not about the margin.
+///
 /// **Columns re-pointed by MC-053, approved by the Lead PO on 2026-09-25**;
 /// the rows are untouched. On `cb2deef` both were `x 44, w 212`: the page
 /// column 47..=252 grown by `margin_px` 3. MC-053 AC-7 case A requires the
@@ -95,6 +101,15 @@ const DECLINE_BEFORE: Rect = Rect {
 /// margin 3. Were `(48, 204)` and `(45, 210)`.
 const AC7_COLUMNS_AT_3: (u32, u32) = (42, 216);
 const AC7_COLUMNS_AT_0: (u32, u32) = (45, 210);
+
+/// The default tuning at the margin [`BLANK_BEFORE`] and [`DECLINE_BEFORE`]
+/// were measured at.
+fn at_margin_3() -> Tuning {
+    Tuning {
+        margin_px: 3,
+        ..Tuning::default()
+    }
+}
 
 /// The rect `detect` returns for `img` at `t`.
 fn crop(img: &Luma, t: &Tuning) -> Rect {
@@ -187,7 +202,7 @@ fn the_crop_keeps_the_page_and_no_row_of_the_browser_chrome_or_the_taskbar() {
 fn a_page_with_page_background_above_and_below_is_cropped_exactly_as_before() {
     let img = viewport_scene(BAND, BAND, Bands::Blank, None);
     assert_eq!(
-        crop(&img, &Tuning::default()),
+        crop(&img, &at_margin_3()),
         BLANK_BEFORE,
         "AC-6: with nothing to remove the viewport stage must move nothing"
     );
@@ -204,7 +219,7 @@ fn a_page_with_page_background_above_and_below_is_cropped_exactly_as_before() {
 fn where_no_viewport_can_be_located_the_crop_is_exactly_as_before() {
     let img = viewport_scene(BAND, BAND, Bands::Textured, Some(DECLINES_EVERY));
     assert_eq!(
-        crop(&img, &Tuning::default()),
+        crop(&img, &at_margin_3()),
         DECLINE_BEFORE,
         "AC-6: with the page margin broken every {DECLINES_EVERY} rows no viewport \
          can be located, and the stage must decline rather than guess"
