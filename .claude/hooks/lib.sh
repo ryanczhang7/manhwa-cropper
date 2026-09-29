@@ -371,7 +371,20 @@ normalize_rel() {
   return 0
 }
 
-# command_cwd <masked command>   The repo-relative directory that command's
+# dir_rel <absolute dir>   The repo-relative spelling of a directory - "" for
+# the root itself. Returns 1, printing nothing, when it is outside the repo.
+# The `/.` is what lets to_rel see the root as INSIDE the root, in either drive
+# spelling: without it `C:/repo` does not match `C:/repo/*`, and `/c/repo`
+# does not match `*/repo/*`, so a cd to the root read as leaving the repo.
+dir_rel() {
+  local d rel
+  d="$(printf '%s' "$1" | tr '\134' '/')"
+  rel="$(to_rel "${d%/}/.")"
+  [ -n "$rel" ] || return 1
+  normalize_rel "$rel"
+}
+
+# command_cwd <masked command> [<start>]   The repo-relative directory that command's
 # RELATIVE paths resolve against - "" for the repo root. Returns 1 when the
 # command changes directory somewhere the guard cannot account for: another
 # checkout, a scratch directory, $HOME, a variable, an option it does not
@@ -390,11 +403,17 @@ normalize_rel() {
 #
 # Fail open, as ever: returning 1 means relative candidates are skipped, not
 # that they are blocked.
+#
+# <start> is where the shell already is before the command runs: the hook
+# input's "cwd", as dir_rel resolved it, or OUTSIDE. It is not optional in
+# practice. Claude Code strips a leading `cd <dir> &&` when the shell is
+# already in <dir>, so an in-place edit of `src/a.rs` after `cd target/copy`
+# reaches the hook with no cd in it at all; reading that against the root refused an
+# edit to an ignored copy as a write to source (MC-049, 2026-09-28).
 command_cwd() {
-  local masked="$1" tgt cur="" rel joined lp lr
+  local masked="$1" tgt cur="${2:-}" rel
   # A bare `cd` goes home. Nothing after it is a repo path.
   printf '%s\n' "$masked" | grep -qE '(^|[|&;(])[[:space:]]*cd[[:space:]]*($|[|&;)])' && return 1
-  lr="$(lower "$(printf '%s' "${HARNESS_ROOT%/}" | tr '\134' '/')")"
   while IFS= read -r tgt; do
     [ -z "$tgt" ] && continue
     tgt="$(printf '%s' "$tgt" | unmask_shell_quotes)"
@@ -405,15 +424,12 @@ command_cwd() {
       *'$'*)   return 1 ;;   # a variable the guard cannot expand
     esac
     if path_is_absolute "$tgt"; then
-      lp="$(lower "$(printf '%s' "${tgt%/}" | tr '\134' '/')")"
-      if [ "$lp" = "$lr" ]; then cur=""; continue; fi
-      rel="$(to_rel "$tgt")"
-      if [ -z "$rel" ]; then cur="OUTSIDE"; else cur="$rel"; fi
+      cur="$(dir_rel "$tgt")" || cur="OUTSIDE"
       continue
     fi
     [ "$cur" = "OUTSIDE" ] && continue
-    joined="$(normalize_rel "${cur:+$cur/}$tgt")" || { cur="OUTSIDE"; continue; }
-    cur="$joined"
+    rel="$(normalize_rel "${cur:+$cur/}$tgt")" || { cur="OUTSIDE"; continue; }
+    cur="$rel"
   done <<< "$(printf '%s\n' "$masked" \
     | grep -oE '(^|[|&;(]|[[:space:]])cd[[:space:]]+[^|&;><[:space:]]+' \
     | sed -E 's/.*[[:space:]]cd[[:space:]]+|^cd[[:space:]]+|.*[|&;(]cd[[:space:]]+//' \
