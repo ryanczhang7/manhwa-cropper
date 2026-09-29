@@ -582,6 +582,26 @@ At 19 entries one miss is 5.3 %, against 5 % at 20. The held-out set has
 shrunk by five marked entries since MC-037, all moved for cause, and **new
 screenshots are how it grows back**. Held-out is what new files are for.
 
+### The held-out set is spent: MC-051, 2026-09-29
+
+[MC-051](../backlog/stories/MC-051.md) selected `Split::HeldOut` deliberately,
+once, at scored commit `d2876f5`, 2026-09-29 18:44 UTC, and says so in its own
+file. It ran over **19 marked and 7 flag** entries against furniture rows the
+user ruled blind. The result is in
+[`held-out-score.md`](held-out-score.md):
+- **0 clips on 19 of 19.**
+- **16 of 19 meet `EPIC-07`'s bar**, against 18 required, so the bar is not
+  met.
+- Of the flag entries, 5 were `Flagged` and 2 `Cropped`.
+
+**Read per file:** only the three failing entries, `2025-07-17 14_20_23.png`,
+`2025-08-03 11_27_49.png` and `Screenshot (68).png`. They are `tuning` for
+any later rule. Moving them in the manifest is a follow-up chore.
+
+**Spent:** every one of the 26 has now given its one score. Any later run over
+them is a **re-score on spent held-out**, labelled that way, and never
+`EPIC-07`'s held-out score. A fresh held-out score needs new screenshots.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
