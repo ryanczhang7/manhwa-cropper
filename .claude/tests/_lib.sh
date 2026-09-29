@@ -134,9 +134,15 @@ json_str() {
 
 # guard <fixture> <tool> <key> <value>   Runs the real phase-guard hook and
 # echoes the denial reason, or nothing when the write was allowed.
+#
+# GUARD_CWD, when set, is sent as the hook input's top-level "cwd": the
+# directory the session's shell is already in. Claude Code sends it on every
+# call, and strips a leading `cd <that dir> &&` from the command, so a command
+# can reach the hook with no `cd` at all while running far from the repo root.
 guard() {
-  local out r BS
-  out="$(printf '{"tool_name":"%s","tool_input":{"%s":"%s"}}' "$2" "$3" "$(json_str "$4")" \
+  local out r BS cwd=""
+  [ -n "${GUARD_CWD:-}" ] && cwd="$(printf ',"cwd":"%s"' "$(json_str "$GUARD_CWD")")"
+  out="$(printf '{"tool_name":"%s"%s,"tool_input":{"%s":"%s"}}' "$2" "$cwd" "$3" "$(json_str "$4")" \
     | CLAUDE_PROJECT_DIR="$1" bash "$REPO_ROOT/.claude/hooks/phase-guard.sh" 2>&1)"
   case "$out" in
     *'"permissionDecision":"deny"'*) ;;

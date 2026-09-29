@@ -131,8 +131,17 @@ case "$TOOL" in
     # relative path means nothing without it: `cd /tmp/scratch && rm -rf
     # gate-logs` names no repo path at all. An unaccountable cwd skips relative
     # candidates rather than blocking them - fail open.
+    #
+    # It starts from the session's cwd, not the root: the shell persists its
+    # directory between calls, and Claude Code drops a `cd` to where it
+    # already is, so the command itself may never say. No "cwd" in the input
+    # means the root, as before.
+    CWD_START=""; SESSION_CWD="$(json_get_string cwd || true)"
+    if [ -n "$SESSION_CWD" ]; then
+      CWD_START="$(dir_rel "$SESSION_CWD")" || CWD_START="OUTSIDE"
+    fi
     CWD_PREFIX=""; CWD_KNOWN=1
-    CWD_PREFIX="$(command_cwd "$MASKED")" || CWD_KNOWN=0
+    CWD_PREFIX="$(command_cwd "$MASKED" "$CWD_START")" || CWD_KNOWN=0
     while IFS= read -r target; do
       [ -z "$target" ] && continue
       # Judged while still masked: a metacharacter that survives to here was

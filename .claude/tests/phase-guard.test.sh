@@ -378,6 +378,36 @@ assert_blocked "$FIX" "cd 'src' && rm main.ts"      src/main.ts 'cd into a singl
 assert_allowed "$FIX" 'cd "/tmp/scratch" && rm -rf gate-logs' 'cd into a quoted path outside the repo'
 
 # ---------------------------------------------------------------------------
+describe "RED: relative paths start from the session's cwd, not the repo root"
+set_phase "$FIX" RED
+
+# Observed 2026-09-28 on MC-049. The shell had been left in target/m49orch, a
+# `git archive` copy inside the ignored target/. The agent wrote `cd <copy> &&
+# sed -i ... crates/core/src/flat.rs`; Claude Code dropped the `cd` as
+# redundant, and the hook received a bare `sed -i` plus "cwd": <copy>. The
+# guard read the path against the repo root and refused it as source. The same
+# edit with an absolute path was allowed.
+GUARD_CWD="$FIX/dist/copy" assert_allowed "$FIX" "sed -i 's/a/b/' src/main.ts" \
+  'sed -i on a relative path, shell already inside an ignored copy'
+GUARD_CWD="$FIX/dist/copy" assert_allowed "$FIX" 'echo x > src/main.ts' \
+  'redirect on a relative path, shell already inside an ignored copy'
+GUARD_CWD="/tmp/harness-scratch-xyz" assert_allowed "$FIX" 'rm -rf src' \
+  'relative rm, shell already outside the repo'
+
+# Sharper, not looser: the session cwd is where relative paths start, and an
+# explicit cd still moves them from there.
+GUARD_CWD="$FIX/src" assert_blocked "$FIX" 'echo x > main.ts' src/main.ts \
+  'relative redirect, shell already inside src'
+GUARD_CWD="$FIX/dist/copy" assert_blocked "$FIX" 'cd ../../src && touch new.ts' src/new.ts \
+  'relative cd from the session cwd back into src'
+GUARD_CWD="$FIX/dist/copy" assert_blocked "$FIX" "cd $FIX && sed -i 's/a/b/' src/main.ts" src/main.ts \
+  'absolute cd back to the root overrides the session cwd'
+GUARD_CWD="$FIX" assert_blocked "$FIX" "sed -i 's/a/b/' src/main.ts" src/main.ts \
+  'session cwd at the repo root'
+GUARD_CWD="$FIX/" assert_blocked "$FIX" "sed -i 's/a/b/' src/main.ts" src/main.ts \
+  'session cwd at the repo root, trailing slash'
+
+# ---------------------------------------------------------------------------
 describe "GREEN: tests are frozen, source is not"
 set_phase "$FIX" GREEN
 
