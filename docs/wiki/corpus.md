@@ -178,6 +178,32 @@ Nothing else moved: same `y` and `h`, same tags, no image touched, no
 **on** the mark's edge on these seven and on `13_45_59`'s right and
 `Screenshot (3538).png`'s left. It lands outside the mark everywhere else.
 
+### `2025-10-14 23_29_06.png`, widened to the art: the user, 2026-09-29
+
+This correction goes the other way: the mark was **too tight**. MC-049's
+Open question 3 asked whether the columns the crop keeps outside the mark are
+page. On this entry the crop (margin 0) was columns 1003–1542 and the mark
+1008–1535, so 5 columns on the left and 7 on the right sat outside the mark.
+The user was shown the full screenshot with the crop and mark drawn, and
+10x zooms of 40 columns around each side. They ruled: *"yes they're art,
+widen the mark"*.
+
+The measurement agrees. Luma over every second marked row, share within 10
+of the column's median:
+
+| Columns | What they are | Median | Share |
+|---|---|---|---|
+| 998–1002 | page, left | 255 | 1.00 |
+| 1003–1007 | added to the mark | 77–78 | 0.30–0.32 |
+| 1008–1011 | old mark edge, for comparison | 78–79 | 0.28–0.30 |
+| 1532–1535 | old mark edge, for comparison | 156–157 | 0.30–0.34 |
+| 1536–1542 | added to the mark | 156–157 | 0.27–0.31 |
+| 1543–1546 | page, right | 255 | 1.00 |
+
+`1008,188 528x1138` → `1003,188 540x1138`. The side edges are now exactly
+the art's first and last columns, which is also where the crop lands. `y`
+and `h` are unchanged.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from

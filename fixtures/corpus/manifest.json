@@ -28,7 +28,7 @@
       "tags": ["dark-theme", "black-gutter", "webp", "site:rolia-scans"],
       "split": "tuning" },
     { "file": "2025-10-14 23_29_06.png",
-      "expect": { "x": 1008, "y": 188, "w": 528, "h": 1138 },
+      "expect": { "x": 1003, "y": 188, "w": 540, "h": 1138 },
       "tags": ["white-gutter", "light-theme", "png", "site:demonicrevolution"],
       "split": "tuning" },
     { "file": "2025-10-14 23_30_20.png",
