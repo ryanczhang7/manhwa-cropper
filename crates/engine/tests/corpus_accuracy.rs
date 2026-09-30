@@ -130,6 +130,31 @@ const CONTROL_GROW_PX: u32 = 1;
 /// handful of entries would not mean anything.
 const MIN_ENTRIES: usize = 20;
 
+/// MC-062, the user's rulings of 2026-09-30 ("Skip named misses", then "Skip
+/// all four"): the entries AC-2's 90 % bar leaves out, because each is a miss
+/// already named as a known exception elsewhere in the corpus suites. In
+/// manifest order.
+///
+/// * `2025-02-27 22_46_15.png`: a flag entry the app crops, excluded by name
+///   since MC-026 (`corpus.rs`, `KNOWN_CROPPED_FLAGS`).
+/// * `2025-03-03 11_00_13.png`, `2025-05-12 20_48_42.png`: flag entries the
+///   app crops, moved from held-out by MC-062 and ruled known misses (MC-051:
+///   the "Cropped 2" of its 7 held-out flag entries).
+/// * `2025-07-17 14_20_23.png`: a marked entry the detector flags
+///   `Ambiguous`, MC-056's known exception (MC-051: `h09`, failed its bar).
+///
+/// **Exact in both directions**: AC-2 fails if a listed entry is no longer in
+/// the `tuning` corpus or is no longer a miss, so the story that fixes one has
+/// to take it off this list, and it counts again. Everything else still
+/// counts, `Screenshot (93).jpg` and `Screenshot (1720).png` included. Over the
+/// 59 `tuning` entries after MC-062 the bar reads 53 of 55.
+const KNOWN_MISSES: [&str; 4] = [
+    "2025-02-27 22_46_15.png",
+    "2025-03-03 11_00_13.png",
+    "2025-05-12 20_48_42.png",
+    "2025-07-17 14_20_23.png",
+];
+
 // --- One pass over the corpus -----------------------------------------------
 
 /// One corpus entry, its pixel dimensions, and what the real pipeline did with
@@ -458,7 +483,15 @@ fn table(rows: &[Scored]) -> String {
             row.got,
             cols,
             rows_txt,
-            if row.miss.is_none() { "right" } else { "MISS" },
+            // MC-062: a known miss is still shown, and marked as left out of
+            // AC-2's bar.
+            if row.miss.is_none() {
+                "right"
+            } else if KNOWN_MISSES.contains(&row.name.as_str()) {
+                "KNOWN"
+            } else {
+                "MISS"
+            },
             row.miss.as_deref().unwrap_or(""),
         );
     }
@@ -629,15 +662,34 @@ fn at_least_nine_corpus_screenshots_in_ten_are_right_on_the_column_axis() {
     let (_out, tuning, rows, rendered) = default_pass();
     let band = slack(&tuning);
 
-    let total = rows.len();
+    // MC-062: the known misses, exact in both directions. Every listed entry
+    // must be a `tuning` entry here, and still a miss; `left` is measured.
+    let known_and_missed: Vec<&str> = KNOWN_MISSES
+        .into_iter()
+        .filter(|name| rows.iter().any(|r| r.name == *name && r.miss.is_some()))
+        .collect();
+    assert_eq!(
+        known_and_missed,
+        KNOWN_MISSES.to_vec(),
+        "AC-2's known misses (KNOWN_MISSES, the user's rulings of 2026-09-30, \
+         MC-062) must each still be a `tuning` entry and still a miss. One absent \
+         from `left` is gone from the corpus or is right now: take it off the \
+         list, and it counts toward the bar again.\n\n{rendered}"
+    );
+
+    let counted: Vec<&Scored> = rows
+        .iter()
+        .filter(|r| !KNOWN_MISSES.contains(&r.name.as_str()))
+        .collect();
+    let total = counted.len();
     assert!(
         total >= MIN_ENTRIES,
         "AC-2 needs at least {MIN_ENTRIES} entries for a percentage to mean \
-         anything; the corpus loaded {total}"
+         anything; the corpus loaded {total} besides the known misses"
     );
 
-    let right = rows.iter().filter(|r| r.miss.is_none()).count();
-    let misses: Vec<String> = rows
+    let right = counted.iter().filter(|r| r.miss.is_none()).count();
+    let misses: Vec<String> = counted
         .iter()
         .filter_map(|r| r.miss.as_ref().map(|why| format!("  {}: {why}", r.name)))
         .collect();
@@ -651,12 +703,20 @@ fn at_least_nine_corpus_screenshots_in_ten_are_right_on_the_column_axis() {
          its expected rect on all four sides and its left and right edges sit \
          inside the mark's, grown by {band} px (margin_px {} + \
          {SLACK_OVER_MARGIN}); a flag is right when the entry asked to be left \
-         alone. The row deltas in the table are NOT part of this count - they \
-         are MC-032's.\n\nMisses:\n{}\n\n{rendered}",
+         alone. The {} known misses (KNOWN_MISSES: {KNOWN_MISSES:?}) are left \
+         out of both counts, by the user's rulings of 2026-09-30; they are still \
+         in the table. The row deltas in the table are NOT part of this count - \
+         they are MC-032's.\n\nMisses counted:\n{}\n\n{rendered}",
         fraction * 100.0,
         RIGHT_FRACTION * 100.0,
         tuning.margin_px,
+        KNOWN_MISSES.len(),
         misses.join("\n")
+    );
+    println!(
+        "AC-2: {right} of {total} right ({:.1}%), {} known misses left out",
+        fraction * 100.0,
+        KNOWN_MISSES.len()
     );
 }
 

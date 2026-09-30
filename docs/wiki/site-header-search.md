@@ -641,8 +641,10 @@ This spike does not choose. The options, each with what it would take:
    allows it only as an optimisation over a rule that works without it. This
    spike shows no such general rule exists yet on this evidence, so this
    option has nothing to sit on top of.
-3. **Learned detection.** Out of the brief's scope today (no learned model,
-   decision 3); named for completeness.
+3. **Learned detection.** Not opened: `product-brief.md` (the 2026-09-21
+   amendment) makes it a separate decision with its own cost. It needs the
+   grown corpus most of all, and under the offline constraint the model ships
+   inside the exe.
 
 Separately, and not blocking: **`2025-08-05 00_11_13.webp`'s mark includes
 the browser bar's bottom border (row 114)**. Whether to correct it is a

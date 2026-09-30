@@ -347,13 +347,35 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// same rows `tests/corpus_viewport_stage.rs` holds. They are not originals,
 /// so [`is_stage_measured_entry`] keeps them out of [`COLUMNS_BEFORE`] and
 /// [`ORIGINALS_BEFORE`] as it does MC-053's.
-const STAGE_MEASURED: [(&str, u32, u32); 6] = [
+///
+/// **MC-062 adds the 16 marked entries among the 23 spent held-out entries**,
+/// moved to `tuning` by the user on 2026-09-30, interleaved in manifest order.
+/// Same provenance, measured on `7c36b5d` (crates unchanged since `d2876f5`)
+/// in MC-062's RED on a scratch copy with the move applied; the same rows
+/// `tests/corpus_viewport_stage.rs` holds. Not originals either.
+const STAGE_MEASURED: [(&str, u32, u32); 22] = [
+    ("2025-03-04 11_09_29.png", 115, 1400),
+    ("2025-03-07 00_41_10.png", 115, 1399),
+    ("2025-03-07 01_10_37.png", 115, 1399),
     ("2025-07-17 14_20_23.png", 167, 1400),
     ("2025-07-17 14_41_58.png", 167, 1400),
     ("2025-07-17 14_55_10.png", 167, 1400),
+    ("2025-08-03 11_13_19.png", 115, 1400),
     ("2025-08-03 11_27_49.png", 115, 1400),
+    ("2025-08-03 20_54_19.png", 115, 1400),
+    ("2025-08-04 23_24_37.png", 115, 1400),
+    ("2025-08-07 15_07_56.png", 115, 1400),
+    ("2025-08-07 15_47_10.png", 124, 1400),
+    ("2025-08-07 15_57_50.png", 115, 1400),
+    ("2025-09-29 14_33_15.png", 167, 1400),
+    ("Screenshot (56).png", 167, 1392),
+    ("Screenshot (59).png", 167, 1392),
     ("Screenshot (68).png", 167, 1392),
     ("Screenshot (73).png", 167, 1392),
+    ("Screenshot (1720).png", 133, 1392),
+    ("Screenshot (3605).png", 137, 1392),
+    ("Screenshot (3606).png", 137, 1392),
+    ("Screenshot (3625).png", 137, 1392),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -637,8 +659,8 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all twenty-five: section 4's nineteen, MC-053's three and \
-         MC-056's three"
+        "the control must see all forty-one: section 4's nineteen, MC-053's three, \
+         MC-056's three and MC-062's sixteen"
     );
     assert_eq!(
         not_cropped,
@@ -969,13 +991,14 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        29,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 29 marked tuning entries \
-         (23 until MC-053 moved three, 26 until MC-056 moved three more)"
+        45,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 45 marked tuning entries \
+         (23 until MC-053 moved three, 26 until MC-056 moved three more, 29 until \
+         MC-062 moved the 16 marked among the 23 spent held-out entries)"
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 29 marked tuning entries at \
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 45 marked tuning entries at \
          both margins (top and bottom only at margin 0). {} clip:\n{}",
         clips.len(),
         clips.join("\n")

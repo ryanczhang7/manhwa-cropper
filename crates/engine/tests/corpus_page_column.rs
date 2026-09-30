@@ -90,6 +90,36 @@ const MC056_THREE: [&str; 3] = [
     "Screenshot (68).png",
 ];
 
+/// MC-062's sixteen: the marked entries among the 23 spent held-out entries
+/// the user moved to `tuning` on 2026-09-30 ("move them to practice"), in
+/// manifest order. Like MC-053's and MC-056's three they are **not**
+/// originals and join no originals list here; they join every test over all
+/// marked `tuning` entries.
+const MC062_SIXTEEN: [&str; 16] = [
+    "2025-03-04 11_09_29.png",
+    "2025-03-07 00_41_10.png",
+    "2025-03-07 01_10_37.png",
+    "2025-08-03 11_13_19.png",
+    "2025-08-03 20_54_19.png",
+    "2025-08-04 23_24_37.png",
+    "2025-08-07 15_07_56.png",
+    "2025-08-07 15_47_10.png",
+    "2025-08-07 15_57_50.png",
+    "2025-09-29 14_33_15.png",
+    "Screenshot (56).png",
+    "Screenshot (59).png",
+    "Screenshot (1720).png",
+    "Screenshot (3605).png",
+    "Screenshot (3606).png",
+    "Screenshot (3625).png",
+];
+
+/// Whether `name` is one of the marked `tuning` entries added after the 23
+/// originals: MC-053's three, MC-056's three or MC-062's sixteen.
+fn is_not_an_original(name: &str) -> bool {
+    THE_THREE.contains(&name) || MC056_THREE.contains(&name) || MC062_SIXTEEN.contains(&name)
+}
+
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 3): the mark
 /// edges the user ruled **art** after a close-up although the predicate reads
 /// them as page background, `(file, side)`. `2025-07-17 14_20_23.png`'s mark
@@ -500,8 +530,9 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        29,
-        "MC-053 (MC-055) AC-2 is over the 29 marked tuning entries (26 until MC-056 moved three)"
+        45,
+        "MC-053 (MC-055) AC-2 is over the 45 marked tuning entries (26 until MC-056 moved \
+         three, 29 until MC-062 moved sixteen)"
     );
     // MC-056: exact against KNOWN_NOT_CROPPED, by name. `not_cropped` rows are
     // `name: outcome`; the name is everything before the first ": ".
@@ -522,8 +553,8 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 56,
-        "MC-053 (MC-055) AC-2 checks 56 sides: 29 entries less MC-056's one known exception"
+        sides, 88,
+        "MC-053 (MC-055) AC-2 checks 88 sides: 45 entries less MC-056's one known exception"
     );
     assert!(
         failing.is_empty(),
@@ -638,10 +669,8 @@ fn mc027s_rule_frozen_here_reproduces_the_shipped_page_column_on_the_originals()
     let mut differ = Vec::new();
     let mut compared = 0usize;
     for (entry, _) in marked() {
-        // MC-056's three are not originals either.
-        if THE_THREE.contains(&entry.name().as_str())
-            || MC056_THREE.contains(&entry.name().as_str())
-        {
+        // MC-056's three and MC-062's sixteen are not originals either.
+        if is_not_an_original(&entry.name()) {
             continue;
         }
         compared += 1;
@@ -793,8 +822,9 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .collect();
     assert_eq!(
         entries.len(),
-        29,
-        "the control is over the 29 marked tuning entries (26 until MC-056 moved three)"
+        45,
+        "the control is over the 45 marked tuning entries (26 until MC-056 moved three, \
+         29 until MC-062 moved sixteen)"
     );
     assert_eq!(
         ruled_art_read,
@@ -833,8 +863,8 @@ fn the_twenty_three_original_crops_do_not_move_by_a_pixel_at_either_margin() {
     let mut seen = Vec::new();
     for (entry, _) in marked() {
         let name = entry.name();
-        // MC-056's three are not originals either.
-        if THE_THREE.contains(&name.as_str()) || MC056_THREE.contains(&name.as_str()) {
+        // MC-056's three and MC-062's sixteen are not originals either.
+        if is_not_an_original(&name) {
             continue;
         }
         seen.push(name.clone());
