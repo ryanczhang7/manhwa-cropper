@@ -102,9 +102,9 @@ explanation.
     gate | format      | optional | . | cargo fmt --all --check
     gate | lint        | required | . | cargo clippy --workspace --all-targets -- -D warnings
     gate | typecheck   | required | . | cargo check --workspace --all-targets
-    gate | unit        | required | . | cargo test --workspace
+    gate | unit        | required | . | cargo test --workspace --no-fail-fast
     gate | coverage    | required | . | cargo llvm-cov --workspace --fail-under-lines 95 --ignore-filename-regex 'crates[/\\]app[/\\]src[/\\](main|gui)\.rs'
-    gate | integration | optional | . | cargo test --workspace --release -- --ignored
+    gate | integration | optional | . | cargo test --workspace --release --no-fail-fast -- --ignored
     gate | build       | required | . | cargo build --release --workspace
     gate | mutation    | optional | . | cargo mutants --workspace
 
