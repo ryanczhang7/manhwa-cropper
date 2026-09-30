@@ -103,6 +103,13 @@
 //!   `2026-01-05 13_49_39.png`, both at **0.00324973**: their strip's flat
 //!   fraction is 0.846750, and at any band from there up AC-2 fails on them.
 //!   The next entry up is `2026-01-05 13_33_41.png` at 0.009935.
+//!
+//!   **Re-measured by MC-062, recorded on the user's ruling of 2026-09-30
+//!   ("Record it").** MC-062 moved 23 spent held-out entries into `tuning`,
+//!   and one of them binds lower: `Screenshot (56).png` at **0.00265363**
+//!   (`Screenshot (59).png` is at 0.00349161; the MC-026 pair re-measures at
+//!   0.00324973). So the ceiling is now **0.0026536**. `ambiguity_band` is
+//!   unchanged at 0.0025, which is still below it.
 //! * **Floor 0.0016667, from a control that stops firing.** The flat fraction
 //!   of a strip of `n` pixels can only take the values `k / n`, so a band
 //!   narrower than `1 / n` cannot contain one and the `NearlyChrome` verdict
@@ -112,12 +119,13 @@
 //!   `crates/core/tests/content.rs`, so `1 / 600 = 0.0016667` is the floor: at
 //!   or below it, AC-2's control - a strip inside the band that still reports
 //!   `ambiguous: true` - cannot be built at that size at all.
-//! * **Window `(0.0016667, 0.0032497)`, value 0.0025.** It is 1.50x the floor
-//!   and 1.30x below the ceiling, and within a percent of the window's
-//!   arithmetic centre (0.0024582). Its margin at the top is small in absolute
-//!   terms because the quantity itself is small; what matters is that it is
-//!   measured rather than assumed, and AC-2's control below drives the corpus
-//!   at 0.005 to show the cliff is real and only 1.3x away.
+//! * **Window `(0.0016667, 0.0026536)`, value 0.0025** (MC-062; it was
+//!   `(0.0016667, 0.0032497)` over the twenty-eight). It is 1.50x the floor
+//!   and **1.06x** below the ceiling (it was 1.30x), no longer near the
+//!   window's centre. Its margin at the top is small in absolute terms because
+//!   the quantity itself is small; what matters is that it is measured rather
+//!   than assumed, and AC-2's control below drives the corpus at 0.005 to show
+//!   the cliff is real and only 1.06x away.
 //! * **It is the one value in the window whose foot is a ratio of whole
 //!   pixels.** `chrome_flat_fraction - ambiguity_band` is 0.8475 = 339/400,
 //!   and `678f32 / 800f32` is bit for bit `0.85f32 - 0.0025f32`, so
@@ -135,7 +143,8 @@
 //! exactly on its foot, inside it, and at `chrome_flat_fraction` itself), and
 //! `crates/core/tests/decide.rs` carries the same pair through `detect`. This
 //! file adds the control the corpus itself can give, which the synthetic one
-//! cannot: that the cliff measured above is real, and 1.3x away.
+//! cannot: that the cliff measured above is real, and 1.06x away (1.3x
+//! before MC-062).
 
 // Included directly rather than through `common/mod.rs`, for the reason
 // `tests/corpus_manifest.rs` gives at the same line.
@@ -155,28 +164,66 @@ use cropper_engine::{Flag, Outcome, process_file};
 /// entry, `2025-02-27 22_46_15.png`, is cropped today and this story is not
 /// required to fix it - that is MC-019's 90% - so it is named below as an
 /// explicit exclusion rather than left to be inferred from a list of six.
-const STILL_FLAGGED: [&str; 6] = [
+///
+/// **MC-062 adds five**, in manifest order: the flag entries among the 23
+/// spent held-out entries the user moved to `tuning` on 2026-09-30 that are
+/// `Flagged` by `Detector(NoBorderFound)` on `7c36b5d` (crates unchanged since
+/// `d2876f5`), read out of one run in MC-062's RED on a scratch copy with the
+/// move applied. The other two of the seven moved flag entries are **cropped**
+/// there; they are named in [`KNOWN_CROPPED_FLAGS`].
+const STILL_FLAGGED: [&str; 11] = [
     "2025-03-03 11_06_04.png",
     "2025-03-03 11_24_19.png",
     "2025-05-12 22_55_40.png",
     "2025-05-12 22_58_53.png",
     "Screenshot (3455).png",
     "Screenshot (3465).png",
+    "2024-09-09 23_30_01.png",
+    "2024-09-09 23_55_27.png",
+    "2025-05-12 10_37_44.png",
+    "2025-05-13 00_21_02.png",
+    "2025-10-05 01_34_27.png",
 ];
 
-/// The one `"expect": "flag"` entry AC-4 deliberately does not pin.
-const NOT_THIS_STORYS_TO_FIX: &str = "2025-02-27 22_46_15.png";
+/// The `"expect": "flag"` entries AC-4 deliberately does not pin, because the
+/// app **crops** them. **Exact in both directions**: AC-4 fails if any other
+/// `tuning` flag entry is neither here nor in [`STILL_FLAGGED`], and fails if
+/// one named here is `Flagged` after all, so the story that fixes one has to
+/// move it into [`STILL_FLAGGED`].
+///
+/// * `2025-02-27 22_46_15.png`: MC-026's own exclusion, cropped since before
+///   EPIC-07 (MC-019's 90 %, not MC-026's to fix).
+/// * `2025-03-03 11_00_13.png` and `2025-05-12 20_48_42.png`: MC-062, the
+///   user's ruling of 2026-09-30 ("Known misses"). Both are `all-art` flag
+///   entries among the 23 spent held-out entries moved to `tuning`, and both
+///   are cropped (`0,1 542x1201` and `0,5 1892x4679` at margin 0). MC-051:
+///   they are the "Cropped 2" of its 7 held-out flag entries at `d2876f5`
+///   ("flags: of 7, Flagged 5, Cropped 2"; crates unchanged since). To be
+///   fixed later, not here.
+const KNOWN_CROPPED_FLAGS: [&str; 3] = [
+    "2025-02-27 22_46_15.png",
+    "2025-03-03 11_00_13.png",
+    "2025-05-12 20_48_42.png",
+];
 
-/// AC-2's corpus-side control. The band at which the two entries closest to
-/// `chrome_flat_fraction` become ambiguous again: their measured threshold is
-/// 0.00324973, so 0.005 is past the cliff and 0.0025 is short of it. Not a
-/// candidate value for anything - it is 1.3x the chosen band, and it is here
-/// to show the cliff is real.
+/// AC-2's corpus-side control. The band at which the entries closest to
+/// `chrome_flat_fraction` become ambiguous again: the lowest measured
+/// threshold is 0.00265363 (`Screenshot (56).png`, since MC-062; 0.00324973
+/// before), so 0.005 is past the cliff and 0.0025 is short of it. Not a
+/// candidate value for anything - it is here to show the cliff is real.
 const BAND_PAST_THE_CLIFF: f32 = 0.005;
 
-/// The two entries that go ambiguous again at [`BAND_PAST_THE_CLIFF`], and the
-/// only two of the twenty-eight that do.
-const AMBIGUOUS_PAST_THE_CLIFF: [&str; 2] = ["2026-01-05 13_45_59.png", "2026-01-05 13_49_39.png"];
+/// The entries that go ambiguous again at [`BAND_PAST_THE_CLIFF`], in manifest
+/// order. MC-026's two, and since MC-062 two of the 23 spent held-out entries
+/// moved to `tuning`, `Screenshot (56).png` (threshold 0.00265363, now the
+/// binding entry) and `Screenshot (59).png` (0.00349161) - recorded on the
+/// user's ruling of 2026-09-30 ("Record it"). `ambiguity_band` is unchanged.
+const AMBIGUOUS_PAST_THE_CLIFF: [&str; 4] = [
+    "2026-01-05 13_45_59.png",
+    "2026-01-05 13_49_39.png",
+    "Screenshot (56).png",
+    "Screenshot (59).png",
+];
 
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 2): the one
 /// marked `tuning` entry the detector flags `Ambiguous` at the default band,
@@ -527,15 +574,16 @@ fn no_marked_page_is_reported_ambiguous() {
 /// `crates/core/tests/content.rs` and `crates/core/tests/decide.rs` are where
 /// that is caught on a synthetic strip; what they cannot show is that the
 /// chosen band is measured rather than merely small. This drives the whole
-/// corpus at 0.005 - 1.3x the chosen band, and past the bisected cliff at
-/// 0.00324973 - and pins that **exactly two** entries become ambiguous again
-/// there, and which two.
+/// corpus at 0.005 - past the bisected cliff, 0.00265363 since MC-062
+/// (0.00324973 before) - and pins exactly which entries become ambiguous again
+/// there: [`AMBIGUOUS_PAST_THE_CLIFF`], four since MC-062 (the user's ruling of
+/// 2026-09-30, "Record it"; renamed from `the_two_pages_...`).
 ///
 /// So the band is not "somewhere below 0.05": it is immediately below a real
 /// boundary on real files, and a band raised even to 0.005 breaks AC-2.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
-fn the_two_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
+fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
     let t = Tuning::default();
     let past = Tuning {
         ambiguity_band: BAND_PAST_THE_CLIFF,
@@ -599,10 +647,12 @@ fn the_two_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band()
         turned,
         AMBIGUOUS_PAST_THE_CLIFF.map(String::from).to_vec(),
         "AC-2's control: the ambiguity path must still fire on real files one step \
-         above the chosen band - these two entries' offending strip sits 0.0032497 \
-         below chrome_flat_fraction, which is the measured ceiling the band was \
-         derived from. If this list is empty the feature is gone; if it is longer \
-         the cliff has moved and the derivation needs re-measuring.\n\n{printed}"
+         above the chosen band. The lowest of these entries' offending strips sits \
+         0.00265363 below chrome_flat_fraction (Screenshot (56).png, recorded by \
+         MC-062 on the user's ruling of 2026-09-30; 0.0032497 before), which is \
+         the measured ceiling the band sits under, 1.06x above it. If this list is \
+         empty the feature is gone; if it changes the cliff has moved and the \
+         derivation needs re-measuring. `left` is measured.\n\n{printed}"
     );
     assert_eq!(
         at_band,
@@ -689,8 +739,8 @@ fn the_no_border_predicate_fires_on_every_flagged_page_and_on_no_marked_page() {
     );
     assert!(
         flagged_with_one.is_empty(),
-        "AC-3's negative control: the same predicate must still FIRE on the six \
-         entries AC-4 pins, or the assertion above is passing because the predicate \
+        "AC-3's negative control: the same predicate must still FIRE on the \
+         entries AC-4 pins (STILL_FLAGGED, eleven since MC-062), or the assertion above is passing because the predicate \
          never fires rather than because these pages have a border. Entries that \
          stopped answering NoBorderFound: {flagged_with_one:?}\n\n{printed}"
     );
@@ -710,14 +760,25 @@ fn the_no_border_predicate_fires_on_every_flagged_page_and_on_no_marked_page() {
 /// `0,3 553x853` - and this story is not required to fix it. AC-4 asserts
 /// nothing about it, and this test says so in code so that nobody later reads
 /// the list of six as an oversight.
+///
+/// **MC-062** moves seven more flag entries into `tuning` and pins the five
+/// that are flagged. Before MC-062 a `tuning` flag entry that was neither
+/// pinned nor the named exclusion was silently skipped, which was harmless
+/// while there were none; now every `tuning` flag entry must be one or the
+/// other, so an entry the corpus says to leave alone and the app crops is
+/// named rather than skipped. Two of the seven are cropped, and the user ruled
+/// them known exceptions on 2026-09-30 ("Known misses"): the exclusion became
+/// the list [`KNOWN_CROPPED_FLAGS`], exact in both directions.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
-fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
+fn every_flag_entry_but_the_named_known_exceptions_is_still_flagged_for_no_border_found() {
     let t = Tuning::default();
     let tmp = scratch();
     let mut rows = Vec::new();
     let mut wrong = Vec::new();
     let mut seen = Vec::new();
+    let mut unpinned = Vec::new();
+    let mut still_cropped = Vec::new();
 
     for entry in tuning_only() {
         if entry.expect != Expect::Flag {
@@ -740,6 +801,15 @@ fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
             shown
         ));
         if !pinned {
+            if KNOWN_CROPPED_FLAGS.contains(&entry.name().as_str()) {
+                // The other direction: a known exception counts only while it
+                // is still cropped.
+                if matches!(result.outcome, Outcome::Cropped { .. }) {
+                    still_cropped.push(entry.name());
+                }
+            } else {
+                unpinned.push(format!("{}: {shown}", entry.name()));
+            }
             continue;
         }
         seen.push(entry.name());
@@ -756,7 +826,7 @@ fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
     }
 
     let printed = table(
-        "AC-4: process_file over the seven `expect: flag` entries",
+        "AC-4: process_file over the `expect: flag` tuning entries",
         &format!("{:<30} {:>7} {}", "file", "AC-4", "outcome"),
         &rows,
     );
@@ -764,25 +834,39 @@ fn the_six_pages_flagged_today_are_still_flagged_for_no_border_found() {
     assert_eq!(
         seen,
         STILL_FLAGGED.map(String::from).to_vec(),
-        "AC-4 must reach all six entries it pins, in manifest order. A name that \
-         has drifted turns this control into a test of five files or of \
-         none.\n\n{printed}"
+        "AC-4 must reach all {} entries it pins, in manifest order. A name that \
+         has drifted turns this control into a test of fewer files or of \
+         none.\n\n{printed}",
+        STILL_FLAGGED.len()
     );
     assert!(
         wrong.is_empty(),
         "AC-4: opening the two decision gates must not start cropping the pages the \
-         corpus says to leave alone. {} of the six changed; the first is {}.\n\n\
+         corpus says to leave alone. {} of the {} pinned changed; the first is {}.\n\n\
          {printed}\nall changes:\n{}",
         wrong.len(),
+        STILL_FLAGGED.len(),
         wrong[0],
         wrong.join("\n")
     );
     assert!(
-        rows.iter()
-            .any(|row| row.starts_with(NOT_THIS_STORYS_TO_FIX)),
-        "AC-4 deliberately excludes {NOT_THIS_STORYS_TO_FIX}, which is cropped today \
-         and is MC-019's 90% rather than this story's. The exclusion is only \
-         meaningful while the entry is still in the corpus.\n\n{printed}"
+        unpinned.is_empty(),
+        "AC-4, as MC-062 extends it: every `tuning` entry expecting `flag` is either \
+         pinned as flagged (STILL_FLAGGED) or is a named known exception \
+         (KNOWN_CROPPED_FLAGS, {KNOWN_CROPPED_FLAGS:?}). These are neither - the \
+         corpus says to leave them alone, and this is what the app does with them. \
+         An exception is the user's ruling, never this file's:\n{}\n\n{printed}",
+        unpinned.join("\n")
+    );
+    assert_eq!(
+        still_cropped,
+        KNOWN_CROPPED_FLAGS.map(String::from).to_vec(),
+        "AC-4 deliberately excludes KNOWN_CROPPED_FLAGS because the app crops them \
+         (2025-02-27 22_46_15.png since MC-026; the other two by the user's ruling \
+         of 2026-09-30, MC-062). Exact in both directions: each must still be in \
+         the corpus as a `tuning` flag entry and still be cropped. One missing from \
+         `left` is flagged now, or gone: move it into STILL_FLAGGED, or drop it. \
+         `left` is measured.\n\n{printed}"
     );
 }
 

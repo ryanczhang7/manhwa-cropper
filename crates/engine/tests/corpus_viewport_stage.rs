@@ -99,13 +99,36 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// (crates unchanged since `d2876f5`), read out of one run in MC-056's RED on
 /// a scratch copy with the move applied - not chosen. `14_20_23`, which the
 /// detector flags `Ambiguous`, still has a viewport: the stage locates it.
-const STAGE_MEASURED: [(&str, u32, u32); 6] = [
+///
+/// **MC-062 adds the 16 marked entries among the 23 spent held-out entries**,
+/// moved to `tuning` by the user on 2026-09-30, interleaved in manifest order.
+/// Section 4 never saw them either. Same provenance: what `locate` returns
+/// beside the page column on `7c36b5d` (crates unchanged since `d2876f5`),
+/// read out of one run in MC-062's RED on a scratch copy with the move
+/// applied - not chosen. The stage locates a viewport on all 16.
+const STAGE_MEASURED: [(&str, u32, u32); 22] = [
+    ("2025-03-04 11_09_29.png", 115, 1400),
+    ("2025-03-07 00_41_10.png", 115, 1399),
+    ("2025-03-07 01_10_37.png", 115, 1399),
     ("2025-07-17 14_20_23.png", 167, 1400),
     ("2025-07-17 14_41_58.png", 167, 1400),
     ("2025-07-17 14_55_10.png", 167, 1400),
+    ("2025-08-03 11_13_19.png", 115, 1400),
     ("2025-08-03 11_27_49.png", 115, 1400),
+    ("2025-08-03 20_54_19.png", 115, 1400),
+    ("2025-08-04 23_24_37.png", 115, 1400),
+    ("2025-08-07 15_07_56.png", 115, 1400),
+    ("2025-08-07 15_47_10.png", 124, 1400),
+    ("2025-08-07 15_57_50.png", 115, 1400),
+    ("2025-09-29 14_33_15.png", 167, 1400),
+    ("Screenshot (56).png", 167, 1392),
+    ("Screenshot (59).png", 167, 1392),
     ("Screenshot (68).png", 167, 1392),
     ("Screenshot (73).png", 167, 1392),
+    ("Screenshot (1720).png", 133, 1392),
+    ("Screenshot (3605).png", 137, 1392),
+    ("Screenshot (3606).png", 137, 1392),
+    ("Screenshot (3625).png", 137, 1392),
 ];
 
 /// The story's success condition: section 4 reproduced to the row on at least
@@ -224,13 +247,14 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     assert_eq!(
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
-        "MC-053's three and MC-056's three must be marked tuning entries, reached here \
-         in manifest order"
+        "MC-053's three, MC-056's three and MC-062's sixteen must be marked tuning \
+         entries, reached here in manifest order"
     );
     assert!(
         stage_moved.is_empty(),
-        "MC-053 / MC-056: on its six the stage must keep the rows it located on \
-         c004d96 (MC-053's) and c3fee28 (MC-056's) (STAGE_MEASURED).\n{}\n\n{printed}",
+        "MC-053 / MC-056 / MC-062: on its twenty-two the stage must keep the rows it \
+         located on c004d96 (MC-053's), c3fee28 (MC-056's) and 7c36b5d (MC-062's) \
+         (STAGE_MEASURED).\n{}\n\n{printed}",
         stage_moved.join("\n")
     );
     assert!(
