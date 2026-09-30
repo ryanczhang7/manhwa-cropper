@@ -9,7 +9,7 @@ that a JavaScript or Godot front end drives.
     gate | lint      | required | . | cargo clippy --workspace --all-targets -- -D warnings
     gate | typecheck | required | . | cargo check --workspace --all-targets
     gate | unit      | required | . | cargo test --workspace --no-fail-fast
-    gate | coverage  | required | . | cargo llvm-cov --workspace --fail-under-lines 100
+    gate | coverage  | required | . | cargo llvm-cov --workspace --no-fail-fast --fail-under-lines 100
     gate | build     | required | . | cargo build --release --workspace
     gate | mutation  | optional | . | cargo mutants
 
@@ -32,7 +32,11 @@ test *binary* with a failing test and never runs the rest, so a change that
 breaks five suites reports one, and the other four surface one re-run at a
 time. `--no-fail-fast` runs them all and still exits non-zero, so the gate
 still fails. On a passing run it changes nothing in the output, so evidence
-lines and floors read the same numbers. Found on manhwa-cropper's MC-057.
+lines and floors read the same numbers. Found on manhwa-cropper's MC-057;
+`coverage` followed in MC-058. `cargo llvm-cov` also offers `--ignore-run-fail`,
+which runs every test too but **exits 0** when tests fail and the report
+succeeds. On a required gate that is a failing test graded as a pass: never
+use it there.
 
 ## Evidence of work
 
