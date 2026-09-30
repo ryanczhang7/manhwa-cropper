@@ -1,4 +1,176 @@
-# The held-out score (MC-051)
+# The held-out scores
+
+`EPIC-07`'s bar, reported on held-out sets. Each set is scored once. The
+newest score comes first. The two scores are of the **same detector**: nothing
+changed under `crates/core`, `crates/engine/src`, `crates/app/src` or
+`Cargo.lock` between `d2876f5` and `1438b2b`. They are on different
+screenshots, and they sit side by side. Neither replaces the other.
+
+| | set | clips | meets the bar | verdict |
+|---|---|---|---|---|
+| [MC-063](../backlog/stories/MC-063.md), 2026-09-30, `1438b2b` | the fresh 25 (MC-062) | **3 of 25** | **21 of 25**, against 23 | **not met: a clip** |
+| [MC-051](../backlog/stories/MC-051.md), 2026-09-29, `d2876f5` | the first 19 marked, spent | 0 of 19 | 16 of 19, against 18 | not met |
+
+**The MC-063 score speaks for crops on known readers only.** The fresh set
+holds no unseen reader and no screenshot that should be left alone, so it
+says nothing about either. MC-051's unseen-reader result (`manhwaclan` 2 of 2
+met, `xbato` 0 of 1) is still the only unseen-reader evidence on record, and
+`xbato` is no longer unseen.
+
+## MC-063, 2026-09-30: the fresh held-out set
+
+[MC-063](../backlog/stories/MC-063.md) carries the working. This section
+carries the result and what it spends.
+
+### The verdict
+
+**A clip: 3 of 25. The furniture half is not met either: 21 of 25 meet the
+bar, against 23 required.** This is MC-063 AC-4 (c). Zero clips is absolute,
+so the clips decide the verdict whatever the furniture count.
+
+| | result | bar |
+|---|---|---|
+| clips | **3 of 25** | 0 (absolute) |
+| meets the bar (contains the mark, and no furniture) | **21 of 25** | at least 23 of 25 |
+| reader furniture absent | 25 of 25 | — |
+| browser and OS furniture absent (the scrollbar counts as browser) | 23 of 25 | — |
+| marked entries answered `Flagged` | 0 of 25 | — |
+| viewport located / declined | 24 / 1 | — |
+
+- **Scored commit:** `1438b2b`. Its crates are identical to `main` at
+  `0addc64`, and `git diff d2876f5 1438b2b -- crates/core crates/engine/src
+  crates/app/src Cargo.lock` is empty.
+- **Date:** 2026-09-30, 22:36:14 to 22:36:18 UTC.
+- **The bar:** 23 of 25 is the brief's 9 in 10 of 25 (22.5), rounded up. The
+  same arithmetic gave MC-051 its 18 of 19. The user confirmed 23 of 25
+  before the run.
+- **What the result says:**
+  - **All 3 clips are on the column axis.** No crop clips a row on any of the
+    25.
+  - **On 23 of 25 the rows are furniture-free.** The two that are not follow
+    their column failures (`f13` and `f18`, below).
+  - **"Reader furniture absent" is not a finding.** No site header or footer
+    was ruled on any fresh entry, because the screenshots are mid-chapter, so
+    this set did not test it.
+
+### The run
+
+- **Command:** `./target/release/run.exe`, run once, in the harness
+  directory
+  `C:\Users\ryanc\AppData\Local\Temp\claude\C--Users-ryanc-Projects-manhwa-cropper\c5832c1c-167d-43a7-bf8f-6d2bb3c7c672\scratchpad\mc063-harness`.
+  - The harness is outside the repository. It depends on `crates/core` and
+    `crates/engine` by path.
+  - It uses the repository's `Cargo.lock` and release profile.
+  - A second invocation exits 2 with `REFUSED: out/heldout-run.txt exists`.
+- **Harness source hash:**
+  `270a85cf445e8451535da1226a3ae0e8f63cf6db832b4e5b6cb26ce8388bfe87`.
+  - It is the sha256 of `cat Cargo.toml Cargo.lock src/lib.rs src/bin/*.rs`.
+  - It was recorded and committed (`753e9f1`) before the run.
+  - It was re-checked before and after the run.
+- **Held-out filter:** `src/lib.rs::held_out()` drops every manifest entry
+  whose `split` is not `held-out`, on the raw JSON, before any file is named
+  or decoded.
+  - It asserts 25 marked, 0 flag, and the per-reader counts.
+  - It asserts that each mark equals MC-062's frozen mark.
+- **Order of operations:**
+  - **AC-2b** ran first, through a separate function, `mc051_spent_ruled()`.
+    It reproduced MC-051's aggregate exactly on its 19 spent entries. That is
+    a reproduction on spent entries, not a score.
+  - **AC-2c's controls** fired on 25 of 25: a whole-image "crop" shows
+    furniture, and a mark shrunk by 10 rows clips.
+  - **The run** wrote its output file before its first crop.
+- **The crop** is `process_file` at `Tuning::default()`:
+  - for `Cropped`, the rect;
+  - for `Flagged`, the whole image.
+- **The viewport** is read from MC-048's stage directly, composed as
+  `corpus_viewport_stage.rs` composes it.
+
+The aggregate block, verbatim:
+
+```
+== AGGREGATE ==
+clips: 3 of 25
+meets the bar: 21 of 25 (bar: 0 clips and at least 23 of 25) -> NOT MET
+  reader furniture absent: 25 of 25
+  browser and OS furniture absent: 23 of 25
+viewport: marked located 24 / declined 1
+marked entries answered Flagged: 0 of 25
+per reader (entries, zero-clip, furniture-free, meets, viewport located):
+  demonicrevolution   2  2  2  2  2
+  rolia-scans         4  3  4  3  4
+  toongod            14 12 12 11 13
+  w-network           2  2  2  2  2
+  xbato               3  3  3  3  3
+
+This score speaks for crops on known readers only. The fresh set holds no unseen reader and no screenshot that should be left alone, so it says nothing about either.
+```
+
+There is no flag line and no unseen-reader line. The fresh set holds no flag
+entry and no unseen reader (the user's rulings of 2026-09-30, in MC-062).
+
+### The oracle
+
+- **The marks** are the user's 25, frozen in MC-062. Every mark runs the
+  visible height, from the browser bar's end (row 115, 133 or 167) to the
+  taskbar or just above it.
+- **The furniture rows** were frozen in MC-063 `## Notes` before any crop.
+  - **17 marks end on their group's usual bottom row.** For these, `T` is the
+    mark's top and `B` is the mark's bottom.
+  - **8 marks end short.** For these, the user ruled the bottom bars on the
+    *Fresh Screen Bars* page,
+    https://claude.ai/artifact/T3VoZKiExdC47F77ViAeBC. The page drew only the
+    user's own lines.
+- **Four of those 8 end on a browser horizontal scrollbar**, not a site
+  footer. The user ruled that the scrollbar is browser furniture: *"No, leave
+  it out."*
+- **No site header or footer** was ruled on any of the 25.
+- **Furniture-free** means `crop.y >= T` and `crop.y + crop.h <= B`, exact to
+  the row.
+
+### The four failing entries
+
+Open question 2 permits a per-file look at the failures only. These four are
+now `tuning` for any later rule. The 21 passing entries were not read per
+file.
+
+| id | file | reader | cause | crop rows | crop cols | T / B | mark rows | mark cols |
+|---|---|---|---|---|---|---|---|---|
+| `f09` | `2025-12-08 17_22_50.png` | `toongod` | **clip** on the right edge: 2 columns of art cut | 167..1400 | 1006..1537 | 167 / 1400 | 167..1400 | 1006..1539 |
+| `f13` | `2025-03-16 22_47_44.png` | `toongod` | browser scrollbar kept (the crop's bottom is past 1392); no clip | 115..1400 | 635..2557 | 115 / 1392 | 115..1392 | 635..1168 |
+| `f18` | `2025-03-06 12_48_06.png` | `toongod` | **clip**: the crop shares no column with the mark; browser chrome and taskbar kept | 0..1440 | 1828..2545 | 115 / 1399 | 115..1399 | 651..1168 |
+| `f20` | `2025-08-07 01_13_55.png` | `rolia-scans` | **clip** on the right edge: 6 columns of art cut | 115..1400 | 1022..1516 | 115 / 1400 | 115..1400 | 1022..1522 |
+
+What they say, without anyone having looked at the images:
+- **`f09` and `f20` are small right-edge cuts** with exact rows. `f20` is one
+  of the four the user ticked "diagonal" while marking. The user ruled that
+  the diagonal lies between panels and moves no edge.
+- **`f18` is a crop of the wrong region.** It is `Cropped`, not `Flagged`.
+  The crop runs the full height on the right of the screen, and the mark is
+  on the left half. MC-052's two split-screen screenshots had their marks
+  placed the same way, so a second window is one possible explanation. It is
+  not a finding.
+- **`f13`'s crop is too wide**, and it keeps the scrollbar. Its mark is also
+  on the left half.
+- **Diagnosing them is [MC-065](../backlog/stories/MC-065.md)'s job**, once
+  [MC-064](../backlog/stories/MC-064.md) has moved the four to `tuning`.
+
+### What has been spent
+
+- **The fresh set has been scored.** The 25 gave their one score at
+  `1438b2b`.
+- **A later run is a re-score.** Any later run over these 25 is a
+  **re-score on spent held-out**. It is labelled that way wherever it is
+  reported, and is **never** `EPIC-07`'s held-out score.
+- **Read entries are tuning.** `f09`, `f13`, `f18` and `f20` were read per
+  file, so they are `tuning` for any later rule. Moving them in the manifest
+  is [MC-064](../backlog/stories/MC-064.md).
+- **The other 21 stay `held-out` in the manifest**, but they are spent.
+- **A later held-out score needs a fresh draw with a new seed**, by MC-062's
+  procedure.
+
+## MC-051, 2026-09-29: the first held-out set (spent)
+
+The sections below are MC-051's record, unchanged.
 
 `EPIC-07`'s bar, reported once on the held-out set, the number v1 never had.
 This is a spike record: [MC-051](../backlog/stories/MC-051.md) carries the

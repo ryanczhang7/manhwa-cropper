@@ -825,6 +825,42 @@ flagged. Three things did not hold, and the user ruled on each:
 The one scored run on the fresh set is the next story, an MC-051-shaped
 spike. It selects `Split::HeldOut` once, and says so in its own file.
 
+#### The fresh set is spent: MC-063, 2026-09-30
+
+[MC-063](../backlog/stories/MC-063.md) selected `Split::HeldOut`
+deliberately, once, at scored commit `1438b2b`, 2026-09-30 22:36 UTC, and
+says so in its own file. Its crates are identical to `d2876f5`, so the
+detector is the one MC-051 scored. It ran over **25 marked and 0 flag**
+entries. `T` and `B` came from the marks, plus the user's blind ruling of the
+8 marks that end short. The user ruled that the browser's horizontal
+scrollbar is browser furniture. The result is in
+[`held-out-score.md`](held-out-score.md):
+- **3 clips of 25**, all on the column axis. The absolute half fails.
+- **21 of 25 meet `EPIC-07`'s bar**, against 23 required.
+- Reader furniture is absent on 25 of 25, and browser and OS furniture on 23
+  of 25. The viewport was located on 24 and declined on 1. None was
+  `Flagged`.
+
+**This score speaks for crops on known readers only.** The set holds no
+unseen reader and no screenshot that should be left alone, so it says
+nothing about either.
+
+**Read per file:** only the four failing entries.
+- `2025-12-08 17_22_50.png` (`f09`): clip.
+- `2025-03-16 22_47_44.png` (`f13`): scrollbar kept.
+- `2025-03-06 12_48_06.png` (`f18`): clip.
+- `2025-08-07 01_13_55.png` (`f20`): clip.
+
+These four are `tuning` for any later rule. The chore that moves them is
+[MC-064](../backlog/stories/MC-064.md), and the fix for the clips is
+[MC-065](../backlog/stories/MC-065.md).
+
+**Spent:** all 25 have given their one score. Any later run over them is a
+**re-score on spent held-out**, labelled that way, and never `EPIC-07`'s
+held-out score. That includes the 21 that stay `held-out` in the manifest. A
+later held-out score needs a fresh draw with a new seed, by the procedure
+above.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate

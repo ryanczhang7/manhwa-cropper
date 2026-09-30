@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065]
 ---
 
 ## Goal
@@ -93,6 +93,21 @@ required, with **0 clips on 19 of 19**. The three misses:
 - an unseen-reader (`xbato`) page the detector flagged rather than cropped.
 
 The held-out set is now spent. The next held-out score needs new screenshots.
+
+**The second held-out score, 2026-09-30 ([MC-063](../stories/MC-063.md),
+[`held-out-score.md`](../../wiki/held-out-score.md)): not met, with a
+clip.** It ran on MC-062's 25 fresh screenshots at scored commit `1438b2b`,
+whose detector is the same as at `d2876f5`:
+- **3 clips of 25**, all on the column axis, so the absolute half fails;
+- **21 of 25** meet the bar, against 23.
+
+It sits beside MC-051's 16 of 19 and does not replace it. **It speaks for
+crops on known readers only.** The fresh set holds no unseen reader and no
+screenshot that should be left alone, so it says nothing about either.
+
+**The goal stays open.** The user's words were that it *"should work on any
+reader"*. The fresh set is spent too, and the next held-out score needs a
+fresh draw with a new seed.
 
 ## Stories
 
@@ -288,6 +303,36 @@ only one that can start.
    page flags `Ambiguous` is a separate question. Held-out is spent: the next
    `EPIC-07` held-out score needs new screenshots, in a story shaped like
    MC-037.
+
+   **MC-063's verdict, 2026-09-30: item 4 is still not earned, and the fresh
+   set has clipped.** [MC-062](../stories/MC-062.md) drew and the user marked
+   25 fresh screenshots. [MC-063](../stories/MC-063.md) ran the same
+   detector (`1438b2b`, with crates identical to `d2876f5`) over them once.
+   The result: **3 clips of 25, and 21 of 25 meeting the bar against 23**
+   ([`held-out-score.md`](../../wiki/held-out-score.md)). The absolute half
+   fails for the first time on held-out.
+   - **All 3 clips are on the column axis.**
+     - Two are right-edge cuts, of 2 and 6 columns.
+     - One is a crop of a different region of the screen, the full height on
+       the right, where the mark is on the left.
+   - **No row clips on any of the 25.**
+   - **The fourth failure** is a crop too wide, which keeps the browser's
+     horizontal scrollbar. The user ruled the scrollbar browser furniture.
+
+   **It speaks for crops on known readers only.** The set holds no unseen
+   reader and no screenshot that should be left alone, so it says nothing
+   about either. MC-051's 16 of 19 stands beside it. The goal stays open.
+
+   The user's ruling on the clips: *"Write up and file"*. Two stories follow:
+   - **[MC-064](../stories/MC-064.md)** — *chore*: move the four entries read
+     per file to `tuning`.
+   - **[MC-065](../stories/MC-065.md)** — *fix*, `depends_on: [MC-064]`:
+     reproduce and remove the column-axis clips on those entries.
+
+   **Where the fix belongs.** The column axis is `EPIC-08`'s bar. Zero clips
+   is this epic's absolute, and these clips broke this epic's held-out score,
+   so the fix is filed here. The fresh set is spent. The next held-out score
+   needs a fresh draw with a new seed.
 
 ## Deliberately not in this epic
 
