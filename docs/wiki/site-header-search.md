@@ -279,3 +279,14 @@ the pass line in-sample, and AC-6's positive verdict is out of reach before
 any family is scored.** Open question 2 was answered on the premise that
 `(67)` costs one miss that the pass line allows for. The premise is false:
 it costs the three entries that share its header.
+
+**Decision (the user, 2026-09-30).** Put in plain words: the art box starts
+at 290, the art at 293, and rows 290..292 are blank page plus the thin grey
+line under the menu, the same pixels as on `(73)`, where they marked them as
+header. The options were fixing the box first, keeping it and finishing now
+(a negative for this reason alone), or leaving `(67)` out of the count (an
+amendment to the scored set). The user chose **"Fix the box first"**. That is
+[MC-060](../backlog/stories/MC-060.md), a chore that moves the mark's top to
+293 by `corpus.md`'s marking rule. This spike depends on it. When it merges,
+§4 is re-measured against the corrected mark, and no family is scored before
+then. §3 (the pass line and the selection rule) does not change.
