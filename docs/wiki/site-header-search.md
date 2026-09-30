@@ -57,7 +57,7 @@ value**, and they re-checked it on the page and saved 293 (document version 3,
 | 6 | `2026-01-05 13_33_41.png` | toongod | 233..1293 | none | none | MC-050 round 2 (`e05`) | 2026-09-24 |  |
 | 7 | `2026-01-05 13_45_59.png` | demonicrevolution | 204..1371 | none | none | MC-050 round 2 (`e06`) | 2026-09-24 |  |
 | 8 | `2026-01-05 13_49_39.png` | demonicrevolution | 286..1396 | none | none | MC-050 round 2 (`e07`) | 2026-09-24 |  |
-| 9 | `Screenshot (67).png` | kunmanga | 290..1388 | 293 | none | MC-050 round 2 (`e08`) | 2026-09-24 | header end 293 is below the mark top 290 |
+| 9 | `Screenshot (67).png` | kunmanga | 293..1388 | 293 | none | MC-050 round 2 (`e08`) | 2026-09-24 |  |
 | 10 | `Screenshot (70).jpg` | kunmanga | 298..1310 | 293 | none | MC-050 round 2 (`e09`) | 2026-09-24 |  |
 | 11 | `Screenshot (75).png` | toongod | 171..1379 | none | none | MC-050 round 2 (`e10`) | 2026-09-24 |  |
 | 12 | `Screenshot (93).jpg` | toongod | 212..1379 | none | none | MC-050 round 2 (`e11`) | 2026-09-24 |  |
@@ -90,11 +90,11 @@ reported on its own line and counts toward nothing). Per reader, scored:
 `2025-08-03 11_27_49.png` (`rolia-scans`), the one-row line at 115..116. No
 entry has a site footer.
 
-**`Screenshot (67).png` is the one conflict left:** its header is ruled to end
-at 293 and its mark starts at 290. Under zero clips a rule may not remove rows
-290..292, so that entry cannot be furniture-free by the exact test. The user
-chose (open question 2, 2026-09-30) to leave both as they are: it counts as a
-miss, and the pass line allows for it.
+**`Screenshot (67).png`'s conflict is resolved by [MC-060](../backlog/stories/MC-060.md).**
+Its header is ruled to end at 293, and its mark used to start at 290. §5
+shows why that could not stand, and the user had the mark moved to 293
+(merged 2026-09-30, PR #73). The table above reads the manifest after
+MC-060, and no entry now has a ruled header end below its mark's top.
 
 **The refusal check fires.** With `n05.json` withheld from `oracle/`:
 
@@ -150,45 +150,47 @@ reads); any learned model.
 
 **What AC-2 expects, to be measured and not assumed:** identity 23 to 25 of
 28 furniture-free, 0 clips; zero-clip ceiling 27 of 28 (`Screenshot (67)` the
-one miss).
+one miss). *(Written before MC-060. After it, the ceiling's expected miss is
+gone; §4 has both measurements.)*
 
 ## 4. The baseline and the ceiling (AC-2), and the scorer's controls (AC-5)
 
-`main` at `25bf5d7`, `Tuning::default()`. Output of `baseline` (after
-`crops`), verbatim; "free" is `yes`/`NO`, or `y/N` where the two counts
-differ ("set aside" / "with").
+`main` at `24e00c1` (MC-060 merged; the crop code is `25bf5d7`'s, and MC-060
+changed only the manifest), `Tuning::default()`. Output of `baseline` (after
+`crops`), verbatim. "free" is `yes`/`NO`, or `y/N` where the two counts
+differ ("set aside" / "with"); "decision" carries the crop's columns.
 
 ```
 == AC-2 (a): identity rule - main's crop, no new stage ==
 file                         reader                    mark        crop    hdr   clip   free decision      
-2025-08-05 00_11_13.webp     rolia-scans          114..1330     18..1440       -      0    yes crop          
-2025-08-05 00_11_27.webp     rolia-scans          118..1343     18..1440       -      0    yes crop          
-2025-10-14 23_29_06.png      demonicrevolution    188..1326    167..1400       -      0    yes crop          
-2025-10-14 23_30_20.png      demonicrevolution    171..1379    167..1400       -      0    yes crop          
-2025-10-20 15_37_25.png      toongod              228..1302    167..1400       -      0    yes crop          
-2026-01-05 13_33_41.png      toongod              233..1293    167..1400       -      0    yes crop          
-2026-01-05 13_45_59.png      demonicrevolution    204..1371    167..1400       -      0    yes crop          
-2026-01-05 13_49_39.png      demonicrevolution    286..1396    167..1400       -      0    yes crop          
-Screenshot (67).png          kunmanga             290..1388    167..1392     293      0     NO crop          
-Screenshot (70).jpg          kunmanga             298..1310    167..1392     293      0     NO crop          
-Screenshot (75).png          toongod              171..1379    167..1392       -      0    yes crop          
-Screenshot (93).jpg          toongod              212..1379    167..1392       -      0    yes crop          
-Screenshot (103).jpg         toongod              302..1146    167..1392       -      0    yes crop          
-Screenshot (1661).png        toongod              192..1277    133..1392       -      0    yes crop          
-Screenshot (2582).jpg        toongod              216..1224    133..1392       -      0    yes crop          
-Screenshot (2630).jpg        toongod              224..1113    133..1392       -      0    yes crop          
-Screenshot (2698).jpg        toongod              343..1085    133..1392       -      0    yes crop          
-Screenshot (2708).jpg        toongod              220..1322    133..1392       -      0    yes crop          
-Screenshot (2744).jpg        w-network            134..1298    133..1392       -      0    yes crop          
-Screenshot (3187).png        w-network            142..1379    137..1392       -      0    yes crop          
-Screenshot (3538).png        toongod              171..1330    137..1392       -      0    yes crop          
-2025-03-06 01_22_45.png      toongod              118..1362    115..1374       -      0    yes crop          
-2025-03-07 00_58_06.png      toongod              362..1290    115..1399       -      0    yes crop          
-2025-07-17 14_41_58.png      xbato                273..1369    167..1400       -      0    yes crop          
-2025-07-17 14_55_10.png      xbato                171..1395    167..1400       -      0    yes crop          
-2025-08-03 11_27_49.png      rolia-scans          118..1385    115..1400     116      0    y/N crop          
-Screenshot (68).png          kunmanga             392..1336    167..1392     319      0     NO crop          
-Screenshot (73).png          kunmanga             293..1379    167..1392     293      0     NO crop          
+2025-08-05 00_11_13.webp     rolia-scans          114..1330     18..1440       -      0    yes crop x 953..1593
+2025-08-05 00_11_27.webp     rolia-scans          118..1343     18..1440       -      0    yes crop x 1006..1539
+2025-10-14 23_29_06.png      demonicrevolution    188..1326    167..1400       -      0    yes crop x 1003..1543
+2025-10-14 23_30_20.png      demonicrevolution    171..1379    167..1400       -      0    yes crop x 1033..1513
+2025-10-20 15_37_25.png      toongod              228..1302    167..1400       -      0    yes crop x 1007..1539
+2026-01-05 13_33_41.png      toongod              233..1293    167..1400       -      0    yes crop x 1074..1472
+2026-01-05 13_45_59.png      demonicrevolution    204..1371    167..1400       -      0    yes crop x 1039..1506
+2026-01-05 13_49_39.png      demonicrevolution    286..1396    167..1400       -      0    yes crop x 1039..1506
+Screenshot (67).png          kunmanga             293..1388    167..1392     293      0     NO crop x 1010..1535
+Screenshot (70).jpg          kunmanga             298..1310    167..1392     293      0     NO crop x 1010..1535
+Screenshot (75).png          toongod              171..1379    167..1392       -      0    yes crop x 1073..1473
+Screenshot (93).jpg          toongod              212..1379    167..1392       -      0    yes crop x 1139..1406
+Screenshot (103).jpg         toongod              302..1146    167..1392       -      0    yes crop x 1073..1473
+Screenshot (1661).png        toongod              192..1277    133..1392       -      0    yes crop x 1073..1473
+Screenshot (2582).jpg        toongod              216..1224    133..1392       -      0    yes crop x 1006..1539
+Screenshot (2630).jpg        toongod              224..1113    133..1392       -      0    yes crop x 955..1591
+Screenshot (2698).jpg        toongod              343..1085    133..1392       -      0    yes crop x 953..1592
+Screenshot (2708).jpg        toongod              220..1322    133..1392       -      0    yes crop x 1074..1473
+Screenshot (2744).jpg        w-network            134..1298    133..1392       -      0    yes crop x 948..1596
+Screenshot (3187).png        w-network            142..1379    137..1392       -      0    yes crop x 984..1560
+Screenshot (3538).png        toongod              171..1330    137..1392       -      0    yes crop x 975..1571
+2025-03-06 01_22_45.png      toongod              118..1362    115..1374       -      0    yes crop x 643..1176
+2025-03-07 00_58_06.png      toongod              362..1290    115..1399       -      0    yes crop x 670..1150
+2025-07-17 14_41_58.png      xbato                273..1369    167..1400       -      0    yes crop x 928..1618
+2025-07-17 14_55_10.png      xbato                171..1395    167..1400       -      0    yes crop x 928..1618
+2025-08-03 11_27_49.png      rolia-scans          118..1385    115..1400     116      0    y/N crop x 1006..1539
+Screenshot (68).png          kunmanga             392..1336    167..1392     319      0     NO crop x 958..1587
+Screenshot (73).png          kunmanga             293..1379    167..1392     293      0     NO crop x 1003..1543
 identity: clips on 0/28; furniture-free 24/28 (set aside), 23/28 (with)
 pass line (0 clips on 28, >= 26 free, set aside): not met
 per reader: entries, zero-clip, free (set aside), free (with)
@@ -201,11 +203,10 @@ per reader: entries, zero-clip, free (set aside), free (with)
 out of scope: 2025-07-17 14_20_23.png crop 0..1440 flag Ambiguous, clip 0 (counts toward nothing)
 
 == AC-2 (b): the ceiling - crop exactly to the ruled rows ==
-  exact cut clips Screenshot (67).png: 293..1392 vs mark 290..1388 (3 rows)
-ceiling: exact cut clips 1/28; zero-clip ceiling furniture-free 27/28 (set aside), 27/28 (with)
+ceiling: exact cut clips 0/28; zero-clip ceiling furniture-free 28/28 (set aside), 28/28 (with)
 per reader: entries, ceiling free (set aside), ceiling free (with)
   demonicrevolution   4  4  4
-  kunmanga            4  3  3
+  kunmanga            4  4  4
   rolia-scans         3  3  3
   toongod            13 13 13
   w-network           2  2  2
@@ -224,8 +225,8 @@ FIRES (same entries, non-empty)
   **23 of 28** with. Inside the predicted 23 to 25. The misses are all four
   `kunmanga` entries, and, "with", the `rolia-scans` line. **The pass line is
   not met, so the spike does not stop here.**
-- **Ceiling (b):** the exact cut clips **1 of 28** (`Screenshot (67)`, 3
-  rows); the zero-clip ceiling is **27 of 28** both ways. As predicted.
+- **Ceiling (b):** the exact cut clips **0 of 28**; the zero-clip ceiling is
+  **28 of 28** both ways.
 - **AC-5, both controls fire.** Moving the ruled rows 10 inward clips 11 of
   28. The identity rule reports furniture on exactly the 5 entries whose ruled
   site bar lies inside today's crop.
@@ -235,7 +236,13 @@ FIRES (same entries, non-empty)
   crop's top that keeps 0 clips is **1 row** (`Screenshot (2744).jpg`, crop
   133, mark 134). It reaches no `kunmanga` header (the nearest needs 126 rows).
 
-## 5. Before any family: `Screenshot (67)` makes the pass line unreachable
+**Before MC-060** (the run §5 was read from, `(67)` marked from 290): the same
+table, except `(67)`'s mark was 290..1388, and the ceiling line read `exact cut
+clips 1/28` (`(67)`, 3 rows), `zero-clip ceiling furniture-free 27/28` both
+ways, `kunmanga 4 3 3`. Identity and both controls were identical. The crops
+did not change: MC-060 edited no source.
+
+## 5. Before any family: `Screenshot (67)`'s old mark made the pass line unreachable
 
 The pixel reading below was done before any rule family was defined or
 scored. It changes what AC-2's numbers mean.
@@ -290,3 +297,75 @@ amendment to the scored set). The user chose **"Fix the box first"**. That is
 293 by `corpus.md`'s marking rule. This spike depends on it. When it merges,
 §4 is re-measured against the corrected mark, and no family is scored before
 then. §3 (the pass line and the selection rule) does not change.
+
+## 6. The two families, defined before either is scored (AC-3)
+
+Both read only the luma image and `main`'s crop (rows `t .. b`, columns
+`x0 .. x1`), and only ever move the crop's **top** down. Neither names a reader
+or file, holds a per-site constant, reads colour, or learns. Common terms:
+
+- **`bg`**: the median luma of row `t` (the crop's first row) over the image's
+  full width.
+- **window**: rows `t .. min(t + D, b)`.
+
+**What the pixels showed while choosing them** (all four `kunmanga` entries,
+the pages of the other readers in §4's table): the site header is a full-width
+band of small marks (menu words, buttons, a chapter selector) closed by a
+full-width line one or two rows thick (luma 235 or 229 on white); the art begins
+on or just below that line and lies inside the column. On `(68)` a stroke of
+the art rises above its mark and touches the line (row 318; the ruled header
+end is 319, the mark 392). Mid-chapter pages of the other readers show nothing
+full-width between the crop's top and the art.
+
+### Family A: a full-width line above the art
+
+- **Line row** `y`: over the full width, at least `S` of the pixels lie within
+  10 of the row's own median, and that median differs from `bg` by at least
+  `δ`.
+- **Art row** `y`: at least `F` of the pixels in the crop's columns differ
+  from `bg` by more than 24.
+- `a` = the first art row in the window (the window's end when there is none).
+- **Candidate lines**: maximal runs of line rows, 1 to 3 rows long, starting
+  at `t + 1` or lower and before `a`.
+- **New top** = `min(e + 1, a)` for the lowest candidate run `s .. e`; `t`
+  when there is no candidate.
+- **Sweep, 72 members:** `D` ∈ {400, 250, 150}, `S` ∈ {0.90, 0.95, 0.98},
+  `δ` ∈ {8, 16}, `F` ∈ {0.30, 0.20, 0.10, 0.05}. **Declared order** (the
+  selection rule's step 4) is that nesting, `D` outermost, each list in the
+  order written: deepest search, loosest line and art tests first.
+
+### Family B: a band of small marks that ends at the art
+
+- **Foreground**: pixels in the window differing from `bg` by more than `τ`.
+  8-connected components over the full width; components under 4 pixels are
+  ignored.
+- **Art component**: one that reaches into the crop's columns and is at least
+  `H` rows tall (within the window).
+- `a` = the topmost row of any art component.
+- **Band evidence**: the number of non-art components lying wholly above `a`.
+- **New top** = `a` when an art component exists, `a > t`, and the band
+  evidence is at least `N`; otherwise `t`.
+- **Sweep, 54 members:** `D` ∈ {400, 250, 150}, `N` ∈ {1, 3, 6}, `H` ∈ {96,
+  48}, `τ` ∈ {40, 24, 16}. **Declared order**: that nesting, `D` outermost,
+  each list in the order written: deepest search, least evidence, tallest
+  art threshold first.
+
+### Why the declared order matters, and what is reported beside it
+
+Fitted on a set with no site header, as in the `kunmanga` fold, many members
+can tie on steps 1 to 3: 0 clips, every entry furniture-free, 0 rows trimmed.
+The fold's answer then rests on step 4 alone. The order above is chosen to
+prefer members that search deepest on the weakest evidence the other readers
+tolerate, since that is what "fitted without positives" can mean. So the
+fold's verdict does not depend on that choice alone, each fold also reports,
+**order-free**, how many of its tied-best members are furniture-free on the
+held-out reader, and what the **reverse** order would have selected. Only the
+declared order counts toward AC-6.
+
+### The controls (AC-4)
+
+- **Memorising:** per reader, one fixed number of rows trimmed below the
+  crop's top, chosen by the selection rule over `0 ..= 300` on that reader's
+  own entries. A reader it has no height for is trimmed by 0.
+- **Blind offset:** one fixed trim on every entry, chosen by the selection rule
+  over `0 ..= 300` on the fitting set. Expected in-sample: 1 row.
