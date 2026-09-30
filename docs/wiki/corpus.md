@@ -223,6 +223,34 @@ Because the art's own edge is flat black, the edge check still reads column
 one the user ruled art (`RULED_ART_EDGES` in `corpus_page_column.rs`), in
 both directions.
 
+### `Screenshot (67).png`, top edge moved down to the art: the user, 2026-09-30
+
+Found by MC-059 (`site-header-search.md` §5), filed as MC-060. The mark's top
+three rows, 290..292, are not art. Rows 290 and 291 are page white, and row
+292 is the thin grey line that closes `kunmanga`'s site header. The picture
+starts on row 293. Those rows are byte-identical over the full width to the
+same rows of `Screenshot (73).png`, where the user ruled the site header to
+end at 293. Measured over the mark's columns, 1012..1535 (share of pixels
+within 10, `uniform_tolerance`, of the row's median):
+
+| Row | Max departure from 255 | Median | Share within 10 of median |
+|---|---|---|---|
+| 288 | 0 | 255 | 1.00 |
+| 289 | 0 | 255 | 1.00 |
+| 290 | 0 | 255 | 1.00 |
+| 291 | 0 | 255 | 1.00 |
+| 292 | 20 | 235 | 1.00 |
+| 293 | 192 | 224 | 0.59 |
+| 294 | 246 | 240 | 0.19 |
+| 295 | 247 | 238 | 0.18 |
+
+The user was shown 8x zooms of rows 285..296 at the art's left edge (columns
+960..1119) and its middle (1200..1359), and ruled: *"No art there, move the
+box"*.
+
+`1012,290 523x1098` → `1012,293 523x1095`. Only the top edge moves; the
+bottom stays at 1388.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from
