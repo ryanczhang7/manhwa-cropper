@@ -91,9 +91,20 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// checks them exactly but apart from section 4: they are a regression guard
 /// on the stage's own answer, not a reproduction of MC-031's, and they do not
 /// count toward [`REPRODUCED_REQUIRED`].
-const STAGE_MEASURED: [(&str, u32, u32); 3] = [
+///
+/// **MC-056 adds its three**, moved from `held-out` by the user on 2026-09-29,
+/// interleaved in manifest order: `2025-07-17 14_20_23.png`, `2025-08-03
+/// 11_27_49.png` and `Screenshot (68).png`. Section 4 never saw them either.
+/// Their rows are what `locate` returns beside the page column on `c3fee28`
+/// (crates unchanged since `d2876f5`), read out of one run in MC-056's RED on
+/// a scratch copy with the move applied - not chosen. `14_20_23`, which the
+/// detector flags `Ambiguous`, still has a viewport: the stage locates it.
+const STAGE_MEASURED: [(&str, u32, u32); 6] = [
+    ("2025-07-17 14_20_23.png", 167, 1400),
     ("2025-07-17 14_41_58.png", 167, 1400),
     ("2025-07-17 14_55_10.png", 167, 1400),
+    ("2025-08-03 11_27_49.png", 115, 1400),
+    ("Screenshot (68).png", 167, 1392),
     ("Screenshot (73).png", 167, 1392),
 ];
 
@@ -213,12 +224,13 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     assert_eq!(
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
-        "MC-053's three must be marked tuning entries, reached here in manifest order"
+        "MC-053's three and MC-056's three must be marked tuning entries, reached here \
+         in manifest order"
     );
     assert!(
         stage_moved.is_empty(),
-        "MC-053: on its three the stage must keep the rows it located on c004d96 \
-         (STAGE_MEASURED); the column fix is not allowed to move the rows.\n{}\n\n{printed}",
+        "MC-053 / MC-056: on its six the stage must keep the rows it located on \
+         c004d96 (MC-053's) and c3fee28 (MC-056's) (STAGE_MEASURED).\n{}\n\n{printed}",
         stage_moved.join("\n")
     );
     assert!(

@@ -204,6 +204,25 @@ of the column's median:
 the art's first and last columns, which is also where the crop lands. `y`
 and `h` are unchanged.
 
+### `2025-07-17 14_20_23.png`, left edge widened to the art: the user, 2026-09-29
+
+Found by MC-056 when the entry moved to `tuning`. The edge check read the
+mark's first column, 967, as page background (share 0.999), which is the
+shape of MC-049's seven mark errors. The close-ups showed the opposite:
+- The page is dark grey (luma 23) up to column 961.
+- The picture's own black background starts at **962**. Columns 962–972
+  are flat black (median 0), and the mark began 5 columns inside it.
+
+The user was shown the context strip and 12x zooms at the mark's top, middle
+and bottom, and ruled: *"widen to 962"*.
+
+`967,171 609x1211` → `962,171 614x1211`. Only the left edge moves.
+
+Because the art's own edge is flat black, the edge check still reads column
+962 as background (share 1.0). The edge is therefore listed in that check as
+one the user ruled art (`RULED_ART_EDGES` in `corpus_page_column.rs`), in
+both directions.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from
@@ -582,6 +601,45 @@ At 19 entries one miss is 5.3 %, against 5 % at 20. The held-out set has
 shrunk by five marked entries since MC-037, all moved for cause, and **new
 screenshots are how it grows back**. Held-out is what new files are for.
 
+#### MC-056, 2026-09-29: the three MC-051 read per file move to `tuning`
+
+[MC-051](../backlog/stories/MC-051.md) scored held-out once and, under its
+Open question 2, read only its three failing entries per file:
+- `2025-07-17 14_20_23.png` (`xbato`): the detector flags it `Ambiguous`;
+- `2025-08-03 11_27_49.png` (`rolia-scans`): a one-row site header;
+- `Screenshot (68).png` (`kunmanga`): a same-tone site header.
+
+The next furniture rule is to be fitted on them, so they cannot stay
+`held-out`. [MC-056](../backlog/stories/MC-056.md) moved them. It also
+widened `14_20_23`'s mark (see "Corrected marks").
+
+**New counts:**
+- **tuning 36 : held-out 23**;
+- **marked 29 : 16**;
+- flags 7 : 7.
+
+**`xbato` and `kunmanga` now have no held-out entries**, so held-out spans 5
+readers: `toongod`, `w-network`, `demonicrevolution`, `rolia-scans` and
+`manhwaclan`. `manhwaclan` is still the one unseen reader, so
+`MIN_UNSEEN_SITES` (1) and `MIN_HELD_OUT_SITES` (4) hold unchanged.
+
+**`2025-07-17 14_20_23.png` is the one marked `tuning` entry the detector
+does not crop.** By the user's ruling (MC-056 Open question 2), it is the
+only name in a known-exceptions list in each of the eight corpus tests that
+require every marked `tuning` entry to be cropped or unambiguous. Each list
+fails in both directions: the story that makes it crop must empty them.
+
+#### `MIN_HELD_OUT_MARKED` lowered to 16 — MC-056, 2026-09-29
+
+The move leaves **16** marked held-out entries, under the floor of 19.
+**The user's ruling (MC-056 Open question 1): the floor drops to 16**, as it
+dropped to 19 before. The test is now
+`the_held_out_set_carries_at_least_sixteen_marked_entries`. At 16 entries, one
+miss is 6.3 %.
+
+The set is already spent (below), so the floor now guards only its shape.
+New screenshots are how it grows back.
+
 ### The held-out set is spent: MC-051, 2026-09-29
 
 [MC-051](../backlog/stories/MC-051.md) selected `Split::HeldOut` deliberately,
@@ -596,7 +654,8 @@ user ruled blind. The result is in
 
 **Read per file:** only the three failing entries, `2025-07-17 14_20_23.png`,
 `2025-08-03 11_27_49.png` and `Screenshot (68).png`. They are `tuning` for
-any later rule. Moving them in the manifest is a follow-up chore.
+any later rule. The follow-up chore that moves them is
+[MC-056](../backlog/stories/MC-056.md), done 2026-09-29 (above).
 
 **Spent:** every one of the 26 has now given its one score. Any later run over
 them is a **re-score on spent held-out**, labelled that way, and never
@@ -613,9 +672,16 @@ It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the
 detector — and only the person who drew it can rule on that.
 
-### Every accuracy number in EPIC-07 is majority one reader
+### Every accuracy number in EPIC-07 before MC-056 is majority one reader
 
-**`toongod` is 13 of the 26 marked tuning entries** — exactly half since
+**Since MC-056 (2026-09-29), `toongod` is 13 of the 29 marked tuning entries,
+45 %, and no longer a majority.** MC-056 moved in one `xbato`, one `kunmanga`
+and one `rolia-scans` entry. The other 16 are `demonicrevolution` 4,
+`kunmanga` 4, `xbato` 3, `rolia-scans` 3 and `w-network` 2. The history
+below is kept as it was written, and the numbers it lists were each measured
+while `toongod` was a majority.
+
+**`toongod` was 13 of the 26 marked tuning entries**, exactly half, after
 MC-053 moved in two `xbato` and one `kunmanga` entry on 2026-09-24. It was
 13 of 23 (57 %) after MC-052, and 11 of 21 (52 %) before it. The other 13 are
 now `demonicrevolution` 4, `kunmanga` 3, `w-network` 2, `rolia-scans` 2 and

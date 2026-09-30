@@ -905,7 +905,13 @@ fn the_loader_still_reports_path_expect_and_tags_exactly_as_the_manifest_gives_t
 /// leaves 19. At 19 one miss is 5.3 %. The held-out set has shrunk by five
 /// marked entries since MC-037, and new screenshots, not a lower floor, are
 /// how it grows back; `docs/wiki/corpus.md` records the ruling.
-const MIN_HELD_OUT_MARKED: usize = 19;
+///
+/// **Lowered to 16 by MC-056, on the user's ruling of 2026-09-29** (MC-056's
+/// Open question 1, "yes"). MC-051 took `EPIC-07`'s one held-out score and
+/// read its three failing entries per file; being read, they move to `tuning`,
+/// which leaves 16. At 16 one miss is 6.25 %. As before, new screenshots, not
+/// a lower floor, are how the set grows back.
+const MIN_HELD_OUT_MARKED: usize = 16;
 
 /// MC-037 AC-2. The detector has two jobs - crop the croppable and decline the
 /// rest - and a held-out set of rectangles alone measures one of them.
@@ -984,11 +990,11 @@ fn held_out_sites(entries: &[CorpusEntry]) -> BTreeSet<String> {
 // --- AC-1: the held-out set carries enough marked entries to mean something -
 
 #[test]
-fn the_held_out_set_carries_at_least_nineteen_marked_entries() {
+fn the_held_out_set_carries_at_least_sixteen_marked_entries() {
     let entries = corpus::load();
     let held = held_out(&entries);
 
-    // The vacuity guard. "At least nineteen" over an empty set fails loudly, but
+    // The vacuity guard. "At least sixteen" over an empty set fails loudly, but
     // every *other* held-out count in this file would be quietly measuring
     // nothing, and that is the state MC-036 deliberately left behind.
     assert!(
@@ -1009,7 +1015,8 @@ fn the_held_out_set_carries_at_least_nineteen_marked_entries() {
          least {MIN_HELD_OUT_MARKED}. This is MIN_ENTRIES' reasoning applied \
          to the half of the corpus that now carries the accuracy claim: at \
          twenty entries one miss is five percent (5.3 % at the nineteen the \
-         user ruled on 2026-09-24, MC-053), and below that the reported \
+         user ruled on 2026-09-24, MC-053; 6.25 % at the sixteen the user \
+         ruled on 2026-09-29, MC-056), and below that the reported \
          number is decided by which screenshot happened to land here. The \
          whole-corpus floor is a different question and stays green while this \
          one fails - a floor that only fires when the *total* drops is not \
@@ -1206,7 +1213,7 @@ fn at_least_one_held_out_reader_is_absent_from_the_pre_epic_07_set_and_from_tuni
 /// *unseen* until 2026-09-21; `xbato` appears nowhere in it although the
 /// recalled `PRE_EPIC_07_SITES` set named it. Both directions of that
 /// falsification are AC-3's subject on the corpus page.
-const READER_BY_FILE: [(&str, &str); 33] = [
+const READER_BY_FILE: [(&str, &str); 36] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1245,6 +1252,12 @@ const READER_BY_FILE: [(&str, &str); 33] = [
     ("2025-07-17 14_41_58.png", "xbato"),
     ("2025-07-17 14_55_10.png", "xbato"),
     ("Screenshot (73).png", "kunmanga"),
+    // MC-056: moved from `held-out` to `tuning` by the user's request of
+    // 2026-09-29, because MC-051 read all three per file. Their `site:` tag is
+    // the one they carried in held-out.
+    ("2025-07-17 14_20_23.png", "xbato"),
+    ("2025-08-03 11_27_49.png", "rolia-scans"),
+    ("Screenshot (68).png", "kunmanga"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1285,13 +1298,21 @@ const READER_BY_FILE: [(&str, &str); 33] = [
 /// row goes from `0, 0, 0, 3` to `2, 2, 0, 1` and `kunmanga`'s from
 /// `2, 2, 0, 2` to `3, 3, 0, 1`; no other row moves, and no reader is
 /// re-attributed.
+///
+/// **MC-056, 2026-09-29.** The user moved the three held-out entries MC-051
+/// read per file, all marked: `2025-07-17 14_20_23.png` (`xbato`), `2025-08-03
+/// 11_27_49.png` (`rolia-scans`) and `Screenshot (68).png` (`kunmanga`).
+/// `xbato` goes from `2, 2, 0, 1` to `3, 3, 0, 0`, `kunmanga` from `3, 3, 0, 1`
+/// to `4, 4, 0, 0` and `rolia-scans` from `2, 2, 0, 8` to `3, 3, 0, 7`; no
+/// other row moves, and no reader is re-attributed. `xbato` and `kunmanga`
+/// leave the held-out set entirely.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
     ("toongod", 17, 13, 4, 8),
     ("w-network", 5, 2, 3, 5),
     ("demonicrevolution", 4, 4, 0, 1),
-    ("rolia-scans", 2, 2, 0, 8),
-    ("kunmanga", 3, 3, 0, 1),
-    ("xbato", 2, 2, 0, 1),
+    ("rolia-scans", 3, 3, 0, 7),
+    ("kunmanga", 4, 4, 0, 0),
+    ("xbato", 3, 3, 0, 0),
     ("manhwaclan", 0, 0, 0, 2),
 ];
 
@@ -1325,7 +1346,7 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
 /// explodes over nine lines each, and a pin nobody can scan in one screen is a
 /// pin nobody re-reads.
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 26] = [
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 29] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1003, 188, 540, 1138),
@@ -1359,6 +1380,16 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 26] = [
     ("2025-07-17 14_41_58.png", 928, 273, 690, 1096),
     ("2025-07-17 14_55_10.png", 928, 171, 690, 1224),
     ("Screenshot (73).png", 1003, 293, 540, 1086),
+    // MC-056: the three entries the user moved from `held-out` on 2026-09-29,
+    // read per file by MC-051. `2025-08-03 11_27_49.png` and `Screenshot
+    // (68).png` keep the marks they carried there. `2025-07-17 14_20_23.png`'s
+    // left edge is **widened** from 967 to 962 by the user's ruling of
+    // 2026-09-29 (MC-056's Open question 3): the page's grey ends at column
+    // 961 and the art's own black background starts at 962. Was
+    // `967,171 609x1211`.
+    ("2025-07-17 14_20_23.png", 962, 171, 614, 1211),
+    ("2025-08-03 11_27_49.png", 1013, 118, 524, 1267),
+    ("Screenshot (68).png", 961, 392, 625, 944),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -1439,6 +1470,15 @@ fn every_tuning_entry_carries_the_reader_the_labeller_recorded_for_it() {
                 let sites = site_tags(entry);
                 if sites.len() != 1 || sites[0] != reader {
                     wrong.push(format!("{name} | {reader} | {sites:?}"));
+                }
+                // MC-056: a pinned row names a `tuning` entry. Until MC-056
+                // this was implied by the other direction below and never
+                // checked, so a row naming a `held-out` entry passed.
+                if entry.split != Split::Tuning {
+                    wrong.push(format!(
+                        "{name} | {reader} | split `{}`, not `tuning`",
+                        entry.split.as_str()
+                    ));
                 }
             }
         }
@@ -1549,6 +1589,11 @@ fn every_marked_tuning_entry_still_carries_the_rectangle_it_was_marked_with() {
             None => drifted.push(format!(
                 "{name}: pinned {pinned:?}, but no entry of that name is in the \
                  manifest at all"
+            )),
+            // MC-056: a pinned row names a `tuning` entry, checked, not implied.
+            Some(entry) if entry.split != Split::Tuning => drifted.push(format!(
+                "{name}: pinned {pinned:?}, but the entry is `{}`, not `tuning`",
+                entry.split.as_str()
             )),
             Some(entry) => match entry.expect {
                 Expect::Rect(actual) if actual == pinned => {}
