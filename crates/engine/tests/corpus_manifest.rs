@@ -1342,6 +1342,12 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// dark column 1591 was ruled page background after a look at the image.
 /// `docs/wiki/corpus.md`, "Corrected marks", records each old and new rect.
 ///
+/// **MC-060 is the first on the row axis.** `Screenshot (67).png`'s top edge
+/// held two rows of page white and the site header's closing line (rows
+/// 290..292); the user ruled on 2026-09-30, after 8x zooms, that the art
+/// starts on row 293. The mark goes from `1012,290 523x1098` to
+/// `1012,293 523x1095`, bottom unchanged; "Corrected marks" records it.
+///
 /// Written as `(file, x, y, w, h)` and rebuilt into a [`Rect`] where it is
 /// read: a literal `Rect { .. }` per row is twenty-one rectangles rustfmt
 /// explodes over nine lines each, and a pin nobody can scan in one screen is a
@@ -1355,7 +1361,12 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 29] = [
     ("2026-01-05 13_33_41.png", 1074, 233, 396, 1060),
     ("2026-01-05 13_45_59.png", 1040, 204, 466, 1167),
     ("2026-01-05 13_49_39.png", 1044, 286, 459, 1110),
-    ("Screenshot (67).png", 1012, 290, 523, 1098),
+    // MC-060: the top moves down 3 rows by the user's ruling of 2026-09-30,
+    // made on 8x zooms of rows 285..296: rows 290..292 are two rows of page
+    // white and the site header's grey line, and the art starts on row 293.
+    // Bottom unchanged at 1388. Was `1012,290 523x1098`; `corpus.md`,
+    // "Corrected marks".
+    ("Screenshot (67).png", 1012, 293, 523, 1095),
     ("Screenshot (70).jpg", 1016, 298, 519, 1012),
     ("Screenshot (75).png", 1077, 171, 393, 1208),
     ("Screenshot (93).jpg", 1143, 212, 246, 1167),
