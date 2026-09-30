@@ -151,3 +151,131 @@ reads); any learned model.
 **What AC-2 expects, to be measured and not assumed:** identity 23 to 25 of
 28 furniture-free, 0 clips; zero-clip ceiling 27 of 28 (`Screenshot (67)` the
 one miss).
+
+## 4. The baseline and the ceiling (AC-2), and the scorer's controls (AC-5)
+
+`main` at `25bf5d7`, `Tuning::default()`. Output of `baseline` (after
+`crops`), verbatim; "free" is `yes`/`NO`, or `y/N` where the two counts
+differ ("set aside" / "with").
+
+```
+== AC-2 (a): identity rule - main's crop, no new stage ==
+file                         reader                    mark        crop    hdr   clip   free decision      
+2025-08-05 00_11_13.webp     rolia-scans          114..1330     18..1440       -      0    yes crop          
+2025-08-05 00_11_27.webp     rolia-scans          118..1343     18..1440       -      0    yes crop          
+2025-10-14 23_29_06.png      demonicrevolution    188..1326    167..1400       -      0    yes crop          
+2025-10-14 23_30_20.png      demonicrevolution    171..1379    167..1400       -      0    yes crop          
+2025-10-20 15_37_25.png      toongod              228..1302    167..1400       -      0    yes crop          
+2026-01-05 13_33_41.png      toongod              233..1293    167..1400       -      0    yes crop          
+2026-01-05 13_45_59.png      demonicrevolution    204..1371    167..1400       -      0    yes crop          
+2026-01-05 13_49_39.png      demonicrevolution    286..1396    167..1400       -      0    yes crop          
+Screenshot (67).png          kunmanga             290..1388    167..1392     293      0     NO crop          
+Screenshot (70).jpg          kunmanga             298..1310    167..1392     293      0     NO crop          
+Screenshot (75).png          toongod              171..1379    167..1392       -      0    yes crop          
+Screenshot (93).jpg          toongod              212..1379    167..1392       -      0    yes crop          
+Screenshot (103).jpg         toongod              302..1146    167..1392       -      0    yes crop          
+Screenshot (1661).png        toongod              192..1277    133..1392       -      0    yes crop          
+Screenshot (2582).jpg        toongod              216..1224    133..1392       -      0    yes crop          
+Screenshot (2630).jpg        toongod              224..1113    133..1392       -      0    yes crop          
+Screenshot (2698).jpg        toongod              343..1085    133..1392       -      0    yes crop          
+Screenshot (2708).jpg        toongod              220..1322    133..1392       -      0    yes crop          
+Screenshot (2744).jpg        w-network            134..1298    133..1392       -      0    yes crop          
+Screenshot (3187).png        w-network            142..1379    137..1392       -      0    yes crop          
+Screenshot (3538).png        toongod              171..1330    137..1392       -      0    yes crop          
+2025-03-06 01_22_45.png      toongod              118..1362    115..1374       -      0    yes crop          
+2025-03-07 00_58_06.png      toongod              362..1290    115..1399       -      0    yes crop          
+2025-07-17 14_41_58.png      xbato                273..1369    167..1400       -      0    yes crop          
+2025-07-17 14_55_10.png      xbato                171..1395    167..1400       -      0    yes crop          
+2025-08-03 11_27_49.png      rolia-scans          118..1385    115..1400     116      0    y/N crop          
+Screenshot (68).png          kunmanga             392..1336    167..1392     319      0     NO crop          
+Screenshot (73).png          kunmanga             293..1379    167..1392     293      0     NO crop          
+identity: clips on 0/28; furniture-free 24/28 (set aside), 23/28 (with)
+pass line (0 clips on 28, >= 26 free, set aside): not met
+per reader: entries, zero-clip, free (set aside), free (with)
+  demonicrevolution   4  4  4  4
+  kunmanga            4  4  0  0
+  rolia-scans         3  3  3  2
+  toongod            13 13 13 13
+  w-network           2  2  2  2
+  xbato               2  2  2  2
+out of scope: 2025-07-17 14_20_23.png crop 0..1440 flag Ambiguous, clip 0 (counts toward nothing)
+
+== AC-2 (b): the ceiling - crop exactly to the ruled rows ==
+  exact cut clips Screenshot (67).png: 293..1392 vs mark 290..1388 (3 rows)
+ceiling: exact cut clips 1/28; zero-clip ceiling furniture-free 27/28 (set aside), 27/28 (with)
+per reader: entries, ceiling free (set aside), ceiling free (with)
+  demonicrevolution   4  4  4
+  kunmanga            4  3  3
+  rolia-scans         3  3  3
+  toongod            13 13 13
+  w-network           2  2  2
+  xbato               2  2  2
+
+== AC-5 control 1: ruled rows moved 10 rows inward (the clip check is live) ==
+clips on 11/28 (must be >= 1): FIRES ["2025-10-14 23_30_20.png", "2026-01-05 13_49_39.png", "Screenshot (67).png", "Screenshot (70).jpg", "Screenshot (75).png", "Screenshot (2744).jpg", "Screenshot (3187).png", "2025-03-06 01_22_45.png", "2025-07-17 14_55_10.png", "2025-08-03 11_27_49.png", "Screenshot (73).png"]
+
+== AC-5 control 2: the identity rule reports furniture exactly where a ruled site bar is inside today's crop ==
+ruled bar inside today's crop: ["Screenshot (67).png", "Screenshot (70).jpg", "2025-08-03 11_27_49.png", "Screenshot (68).png", "Screenshot (73).png"]
+identity reports furniture (with): ["Screenshot (67).png", "Screenshot (70).jpg", "2025-08-03 11_27_49.png", "Screenshot (68).png", "Screenshot (73).png"]
+FIRES (same entries, non-empty)
+```
+
+- **Identity (a):** 0 clips on 28; furniture-free **24 of 28** set aside,
+  **23 of 28** with. Inside the predicted 23 to 25. The misses are all four
+  `kunmanga` entries, and, "with", the `rolia-scans` line. **The pass line is
+  not met, so the spike does not stop here.**
+- **Ceiling (b):** the exact cut clips **1 of 28** (`Screenshot (67)`, 3
+  rows); the zero-clip ceiling is **27 of 28** both ways. As predicted.
+- **AC-5, both controls fire.** Moving the ruled rows 10 inward clips 11 of
+  28. The identity rule reports furniture on exactly the 5 entries whose ruled
+  site bar lies inside today's crop.
+- `2025-07-17 14_20_23.png`: flagged `Ambiguous`, crop is the whole image,
+  0 clips; counts toward nothing.
+- **Blind offset, read off this table:** the largest fixed trim below the
+  crop's top that keeps 0 clips is **1 row** (`Screenshot (2744).jpg`, crop
+  133, mark 134). It reaches no `kunmanga` header (the nearest needs 126 rows).
+
+## 5. Before any family: `Screenshot (67)` makes the pass line unreachable
+
+The pixel reading below was done before any rule family was defined or
+scored. It changes what AC-2's numbers mean.
+
+**The `kunmanga` header ends the same way on every entry.** A full-width
+line of luma about 235 closes it (rows 292..293 on `(67)`, `(70)`, `(73)`;
+317..318 on `(68)`), and on `(67)`, `(70)` and `(73)` the art starts on row
+293 inside the column (`rows` dump; `compare`, column deviation from white).
+
+**`(67)` and `(73)` are byte-identical over the full width on rows 281..292**
+(both PNG; `compare "(67)" "(73)" 284 296 1012 1535`):
+
+```
+  290  col-dev (67)   0 | (73)   0   full-width max|a-b|   0, pixels >8: 0
+  291  col-dev (67)   0 | (73)   0   full-width max|a-b|   0, pixels >8: 0
+  292  col-dev (67)  20 | (73)  20   full-width max|a-b|   0, pixels >8: 0
+  293  col-dev (67) 192 | (73) 199   full-width max|a-b| 175, pixels >8: 458
+```
+
+Over rows 167..292 they differ only on rows 194..219 and 246..280, the menu
+text and the chapter selector. `(70)` (JPEG) matches `(67)` to within 9 luma
+levels on rows 284..292.
+
+**What that forces.** The user ruled `(73)`'s header to end at 293, so rows
+290..292 are header there, and a furniture-free crop of `(73)` must start at
+exactly 293 (its mark starts at 293). `(67)`'s mark claims the same rows,
+290..292, which hold no art (column deviation 0 on 290..291, the header's
+line on 292), so a zero-clip crop of `(67)` must start at or above 290. A
+rule that reads where the header ends sees the same rows on both entries and
+the art beginning on the same row, so it gives both the same top. Then:
+
+- if it removes the header on `(70)` or `(73)`, it cuts rows 290..292 from
+  `(67)`'s mark: **a clip, and zero clips is absolute**;
+- if it does not, the most it can add to the identity rule's 24 is `(68)`:
+  **25 of 28, under the 26 the pass line needs**.
+
+Only a rule keyed to `(73)`'s menu text, or to the art's own content, could
+split the two. Neither is a furniture rule, and the first is per-file
+knowledge. **So with `(67)`'s mark as it is, no reader-agnostic rule can meet
+the pass line in-sample, and AC-6's positive verdict is out of reach before
+any family is scored.** Open question 2 was answered on the premise that
+`(67)` costs one miss that the pass line allows for. The premise is false:
+it costs the three entries that share its header.
