@@ -47,6 +47,14 @@
 //! screenshot it appeared in, while `architecture.md` describes the flag as
 //! "an edge strip was **nearly** chrome-like".
 //!
+//! That judgement is the strip's, and it stays here unchanged. What the
+//! *decision* makes of it narrowed in MC-069: a close call flags the page only
+//! if the final crop includes at least one of the strip's pixels, which
+//! [`detect`](crate::decide::detect) decides, since only it knows the final
+//! crop. The browser scrollbar, a 15 px strip at a real screenshot's right
+//! edge, sits just inside the band on two readers, and the crop already lies
+//! wholly left of it; the user's answer was "Ignore if crop excludes it".
+//!
 //! One side strip that passes all three is still not chrome (MC-066): the
 //! **page margin**, where it runs flat from the image's edge to the page and
 //! its strong line is the page's own edge, on a page whose other edge is not
@@ -106,7 +114,8 @@ pub struct ContentBox {
     /// Whether some strip was *nearly* chrome-like: a candidate on extent and
     /// on the content it would leave behind, missing on flatness alone by less
     /// than [`Tuning::ambiguity_band`]. It was kept; this says the call was
-    /// close. MC-007 turns it into a flag.
+    /// close. MC-007 turns it into a flag - since MC-069, only when the final
+    /// crop includes part of that strip.
     pub ambiguous: bool,
 }
 
@@ -118,9 +127,22 @@ pub struct ContentBox {
 /// the module documentation above.
 #[must_use]
 pub fn content_box(img: &Luma, within: Rect, t: &Tuning) -> ContentBox {
+    content_box_near(img, within, t).0
+}
+
+/// [`content_box`], and beside it the rect of every strip it judged *nearly*
+/// chrome-like, in the order it judged them.
+///
+/// [`ContentBox::ambiguous`] is exactly "this list is not empty". The rects
+/// are what [`detect`](crate::decide::detect) needs to narrow that to the
+/// decision (MC-069): a close call matters only if the final crop includes
+/// part of the strip it was made on. They are carried here rather than as a
+/// field of [`ContentBox`] because that struct's fields are its public
+/// contract, destructured whole by the suites that pin it.
+pub(crate) fn content_box_near(img: &Luma, within: Rect, t: &Tuning) -> (ContentBox, Vec<Rect>) {
     let mut rect = within;
     let mut removed = Vec::new();
-    let mut ambiguous = false;
+    let mut near = Vec::new();
 
     loop {
         let mut peeled = false;
@@ -134,18 +156,22 @@ pub fn content_box(img: &Luma, within: Rect, t: &Tuning) -> ContentBox {
                     removed.push(side);
                     peeled = true;
                 }
-                Verdict::NearlyChrome => ambiguous = true,
+                Verdict::NearlyChrome(strip) => near.push(strip),
                 Verdict::Content => {}
             }
         }
         if !peeled {
             // A pass that removes nothing would remove nothing next time
             // either, and every removal shrinks the rect, so this terminates.
-            return ContentBox {
-                rect,
-                removed,
-                ambiguous,
-            };
+            let ambiguous = !near.is_empty();
+            return (
+                ContentBox {
+                    rect,
+                    removed,
+                    ambiguous,
+                },
+                near,
+            );
         }
     }
 }
@@ -155,8 +181,10 @@ enum Verdict {
     /// The strip is chrome. This is what is left of the rect without it.
     Chrome(Rect),
     /// The strip is a chrome candidate that missed on flatness alone, by less
-    /// than the ambiguity band. It stays, and the result is ambiguous.
-    NearlyChrome,
+    /// than the ambiguity band. It stays, and the result is ambiguous. This is
+    /// the strip, which [`detect`](crate::decide::detect) compares against the
+    /// final crop (MC-069).
+    NearlyChrome(Rect),
     /// There is no strip on this side, or there is one and it is content.
     Content,
 }
@@ -190,7 +218,7 @@ fn judge(img: &Luma, rect: Rect, side: Side, t: &Tuning) -> Verdict {
         }
         Verdict::Chrome(remainder)
     } else if flat >= t.chrome_flat_fraction - t.ambiguity_band {
-        Verdict::NearlyChrome
+        Verdict::NearlyChrome(strip)
     } else {
         Verdict::Content
     }
