@@ -125,21 +125,23 @@ const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 /// scratch copy with only the four `split` values changed. Every MC-064
 /// exception in this file holds its entry to exactly this crop.
 ///
-/// MC-065 took `f20` (`2025-08-07 01_13_55.png`) and `f09`
-/// (`2025-12-08 17_22_50.png`) off this list and off [`KNOWN_CLIPS`] (its AC-1
-/// and AC-2): with their right edges fixed, AC-1 and AC-2 here judge them like
-/// every other entry, so their crops may carry no page background either.
-const MC064_CROPS: [(&str, [u32; 4]); 2] = [
+/// MC-065 took `f20` (`2025-08-07 01_13_55.png`) off this list and off
+/// [`KNOWN_CLIPS`] (its AC-2): with its right edge fixed, AC-1 and AC-2 here
+/// judge it like every other entry, so its crop may carry no page background
+/// either. `f09` (`2025-12-08 17_22_50.png`) stays at its MC-064 pin for
+/// MC-067 (MC-065 `## Amendments`, 2026-10-01).
+const MC064_CROPS: [(&str, [u32; 4]); 3] = [
     ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
     ("2025-03-16 22_47_44.png", [635, 115, 1922, 1285]),
+    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
 ];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
-/// as known"*): AC-2's known clips, the [`MC064_CROPS`] entry whose crop does
+/// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
 /// not contain the mark. **Exact in both directions**: AC-2 fails if any
 /// other crop clips, and fails if a listed entry's crop is not its pin.
-/// MC-065 took `f20` and `f09` off; `f18` stays for MC-066.
-const KNOWN_CLIPS: [&str; 1] = ["2025-03-06 12_48_06.png"];
+/// MC-065 took `f20` off; `f18` stays for MC-066 and `f09` for MC-067.
+const KNOWN_CLIPS: [&str; 2] = ["2025-03-06 12_48_06.png", "2025-12-08 17_22_50.png"];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,

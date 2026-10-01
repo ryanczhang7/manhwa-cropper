@@ -1,33 +1,34 @@
-//! MC-065 AC-1 and AC-2: the two fresh screenshots whose right page edge was
-//! cut short keep it, at both margins, and stay inside the browser viewport.
+//! MC-065 AC-2: the fresh screenshot whose flat white right page edge was cut
+//! short keeps it, at both margins, and stays inside the browser viewport.
 //!
-//! - `f09`, `2025-12-08 17_22_50.png` (`toongod`): MC-063 cropped columns
-//!   1006..1537 against a mark of 1006..1539 (end exclusive): 2 columns of the
-//!   art's near-black outer edge cut.
-//! - `f20`, `2025-08-07 01_13_55.png` (`rolia-scans`): cropped 1022..1516
-//!   against 1022..1522: 6 columns of the page's own white paper cut.
+//! - `f20`, `2025-08-07 01_13_55.png` (`rolia-scans`): MC-063 cropped columns
+//!   1022..1516 against a mark of 1022..1522 (end exclusive): 6 columns of the
+//!   page's own white paper cut.
 //!
-//! Both marks stand by the user's rulings of 2026-09-30 (MC-065 `## Notes`).
-//! The generated reproductions of both causes, and the claim about where in
-//! the pipeline they live, are `crates/core/tests/page_column_site_edge.rs`
-//! (AC-4).
+//! The mark stands by the user's ruling of 2026-09-30 (MC-065 `## Notes`).
+//! The generated reproduction of the cause, and the claim about where in the
+//! pipeline it lives, are `crates/core/tests/page_column_site_edge.rs` (AC-4).
+//!
+//! `f09` (`2025-12-08 17_22_50.png`), MC-065's former AC-1, moved to MC-067
+//! (MC-065 `## Amendments`, 2026-10-01): no luma rule keeps its fringe without
+//! also widening `Screenshot (3538).png`. Its test and premise were deleted
+//! here, their record is in MC-065's `## Handoff`, and MC-067's RED rebuilds
+//! them. Until then `f09` keeps its MC-064 pins in the other corpus suites.
 //!
 //! # What is settled, read out and never re-derived
 //!
-//! - The marks, MC-062's frozen table ([`F09`], [`F20`]); the premise test
-//!   checks the manifest still carries them, and that both are `tuning`.
-//! - The furniture rows, MC-063's frozen oracle: `f09` 167 / 1400, `f20`
-//!   115 / 1400 (end exclusive). A crop row outside them is a browser or
-//!   taskbar row.
+//! - The mark, MC-062's frozen table ([`F20`]); the premise test checks the
+//!   manifest still carries it, and that the entry is `tuning`.
+//! - The furniture rows, MC-063's frozen oracle: 115 / 1400 (end exclusive).
+//!   A crop row outside them is a browser or taskbar row.
 //! - Zero clips is absolute.
 //!
 //! # What is measured, and pinned here as the story's premise
 //!
 //! The story's `## Context` table, re-measured in RED from the pixels (luma
-//! BT.601 over the mark's rows): the column just past each mark is the site's
-//! background, one exact value (`f09` 1539 = 11, `f20` 1522 = 25), and the
-//! mark's last column is not (`f09` 1538 mean 42.8 / spread 58.1, `f20` 1521
-//! 253.7 / 2.4). [`the_column_past_each_mark_is_one_site_value_and_the_marks_last_column_is_not`]
+//! BT.601 over the mark's rows): the column just past the mark is the site's
+//! background, one exact value (1522 = 25), and the mark's last column is not
+//! (1521 mean 253.7 / spread 2.4). [`the_column_past_f20s_mark_is_one_site_value_and_its_last_column_is_not`]
 //! checks both halves, so the premise is a test and not a sentence.
 //!
 //! `#[ignore]`d like every corpus suite; the `integration` gate runs it:
@@ -36,8 +37,8 @@
 //! cargo test -p cropper-engine --release --test corpus_right_edge -- --ignored
 //! ```
 //!
-//! **Held-out discipline.** These two entries only. They are `tuning` since
-//! MC-064; no other fresh screenshot is decoded here.
+//! **Held-out discipline.** This one entry only. It is `tuning` since MC-064;
+//! no other fresh screenshot is decoded here.
 
 // Included directly rather than through `common/mod.rs`, for the reason
 // `tests/corpus_manifest.rs` gives at the same line.
@@ -48,7 +49,7 @@ use corpus::{CorpusEntry, Expect, Split};
 use cropper_core::{Luma, Rect, Tuning};
 use cropper_engine::{Outcome, process_file};
 
-/// One of the story's two entries, as the story settles it.
+/// The story's entry, as the story settles it.
 struct Settled {
     /// MC-063's id for it.
     id: &'static str,
@@ -66,16 +67,6 @@ struct Settled {
     /// the story's table: (mean, mean absolute deviation about the mean).
     art_edge: (f64, f64),
 }
-
-/// `f09`: AC-1.
-const F09: Settled = Settled {
-    id: "f09",
-    file: "2025-12-08 17_22_50.png",
-    mark: [1006, 167, 533, 1233],
-    rows: (167, 1400),
-    site: 11,
-    art_edge: (42.8, 58.1),
-};
 
 /// `f20`: AC-2.
 const F20: Settled = Settled {
@@ -212,84 +203,82 @@ fn column_stats(img: &Luma, x: u32, rows: std::ops::Range<u32>) -> (f64, f64, us
 
 // --- The premises -----------------------------------------------------------
 
-/// Both entries are `tuning` (MC-064) and carry the settled marks (MC-062's
-/// frozen table). Green on arrival: a guard on the oracle, so that AC-1 and
-/// AC-2 below cannot be passed by a manifest edit.
+/// `f20` is `tuning` (MC-064) and carries its settled mark (MC-062's frozen
+/// table). Green on arrival: a guard on the oracle, so that AC-2 below cannot
+/// be passed by a manifest edit.
 #[test]
 #[ignore = "integration: reads the corpus manifest"]
-fn both_entries_are_tuning_and_carry_their_settled_marks() {
-    for s in [&F09, &F20] {
-        let e = entry(s);
-        assert_eq!(
-            e.split,
-            Split::Tuning,
-            "{} ({}) must be tuning",
-            s.file,
-            s.id
-        );
-        assert_eq!(
-            e.expect,
-            Expect::Rect(s.mark()),
-            "{} ({}): the mark is MC-062's frozen table and the user's ruling of \
-             2026-09-30 that it stands; never edit the manifest to pass AC-1 or AC-2",
-            s.file,
-            s.id
-        );
-    }
+fn f20_is_tuning_and_carries_its_settled_mark() {
+    let s = &F20;
+    let e = entry(s);
+    assert_eq!(
+        e.split,
+        Split::Tuning,
+        "{} ({}) must be tuning",
+        s.file,
+        s.id
+    );
+    assert_eq!(
+        e.expect,
+        Expect::Rect(s.mark()),
+        "{} ({}): the mark is MC-062's frozen table and the user's ruling of \
+         2026-09-30 that it stands; never edit the manifest to pass AC-2",
+        s.file,
+        s.id
+    );
 }
 
 /// The story's measured table, as a premise with its own control: over the
-/// mark's rows, the column just past each mark is the site's background, **one
-/// exact value**; the mark's last column is not, and its mean and spread are
-/// the table's to 0.1.
+/// mark's rows, the column just past `f20`'s mark is the site's background,
+/// **one exact value**; the mark's last column is not, and its mean and spread
+/// are the table's to 0.1.
 #[test]
-#[ignore = "integration: decodes two corpus entries"]
-fn the_column_past_each_mark_is_one_site_value_and_the_marks_last_column_is_not() {
+#[ignore = "integration: decodes a corpus entry"]
+fn the_column_past_f20s_mark_is_one_site_value_and_its_last_column_is_not() {
+    let s = &F20;
     let mut wrong = Vec::new();
-    for s in [&F09, &F20] {
-        let e = entry(s);
-        let img = luma(&e);
-        let mark = s.mark();
-        let rows = mark.y..mark.y + mark.h;
-        let site = column_stats(&img, s.right_end(), rows.clone());
-        let art = column_stats(&img, s.right_end() - 1, rows);
-        println!(
-            "{} {}: column {} mean {:.2} spread {:.2} distinct {} | column {} mean {:.2} \
-             spread {:.2} distinct {}",
+    let e = entry(s);
+    let img = luma(&e);
+    let mark = s.mark();
+    let rows = mark.y..mark.y + mark.h;
+    let site = column_stats(&img, s.right_end(), rows.clone());
+    let art = column_stats(&img, s.right_end() - 1, rows);
+    println!(
+        "{} {}: column {} mean {:.2} spread {:.2} distinct {} | column {} mean {:.2} \
+         spread {:.2} distinct {}",
+        s.id,
+        s.file,
+        s.right_end() - 1,
+        art.0,
+        art.1,
+        art.2,
+        s.right_end(),
+        site.0,
+        site.1,
+        site.2
+    );
+    if site.2 != 1 || site.0 != f64::from(s.site) {
+        wrong.push(format!(
+            "{}: column {} should be the single value {}; mean {:.2}, {} distinct values",
             s.id,
-            s.file,
+            s.right_end(),
+            s.site,
+            site.0,
+            site.2
+        ));
+    }
+    if art.2 == 1 || (art.0 - s.art_edge.0).abs() > 0.1 || (art.1 - s.art_edge.1).abs() > 0.1 {
+        wrong.push(format!(
+            "{}: the mark's last column {} should be the table's mean {} / spread {} and \
+             not one value; measured {:.2} / {:.2}, {} distinct",
+            s.id,
             s.right_end() - 1,
+            s.art_edge.0,
+            s.art_edge.1,
             art.0,
             art.1,
-            art.2,
-            s.right_end(),
-            site.0,
-            site.1,
-            site.2
-        );
-        if site.2 != 1 || site.0 != f64::from(s.site) {
-            wrong.push(format!(
-                "{}: column {} should be the single value {}; mean {:.2}, {} distinct values",
-                s.id,
-                s.right_end(),
-                s.site,
-                site.0,
-                site.2
-            ));
-        }
-        if art.2 == 1 || (art.0 - s.art_edge.0).abs() > 0.1 || (art.1 - s.art_edge.1).abs() > 0.1 {
-            wrong.push(format!(
-                "{}: the mark's last column {} should be the table's mean {} / spread {} and \
-                 not one value; measured {:.2} / {:.2}, {} distinct",
-                s.id,
-                s.right_end() - 1,
-                s.art_edge.0,
-                s.art_edge.1,
-                art.0,
-                art.1,
-                art.2
-            ));
-        }
+            art.2
+        ));
     }
     assert!(
         wrong.is_empty(),
@@ -298,28 +287,7 @@ fn the_column_past_each_mark_is_one_site_value_and_the_marks_last_column_is_not(
     );
 }
 
-// --- AC-1 and AC-2 ----------------------------------------------------------
-
-/// AC-1: `f09` keeps its right edge. At both margins the crop contains the
-/// mark on all four sides - its right edge at column 1539 or beyond, end
-/// exclusive - and its rows lie within 167..1400.
-#[test]
-#[ignore = "integration: decodes a corpus entry"]
-fn f09_keeps_the_arts_near_black_right_edge_at_both_margins() {
-    let wrong = violations(&F09);
-    assert!(
-        wrong.is_empty(),
-        "MC-065 AC-1: {} ({}) must keep its mark {:?} whole, right edge at {} or beyond, \
-         rows within {}..{}, at both margins:\n{}",
-        F09.file,
-        F09.id,
-        F09.mark,
-        F09.right_end(),
-        F09.rows.0,
-        F09.rows.1,
-        wrong.join("\n")
-    );
-}
+// --- AC-2 -------------------------------------------------------------------
 
 /// AC-2: `f20` keeps its right edge. At both margins the crop contains the
 /// mark - its right edge at column 1522 or beyond, end exclusive - and its

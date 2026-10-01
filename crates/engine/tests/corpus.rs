@@ -252,11 +252,14 @@ const KNOWN_AMBIGUOUS: [&str; 1] = ["2025-07-17 14_20_23.png"];
 /// anything but its pin - so the story that fixes one has to take it off, and
 /// cannot leave a stale exception behind.
 ///
-/// MC-065 took `f20` (`2025-08-07 01_13_55.png`) and `f09`
-/// (`2025-12-08 17_22_50.png`) off (its AC-1 and AC-2): their right edges are
-/// fixed there, and these tests judge them like every other entry. `f18`
-/// stays for MC-066.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [("2025-03-06 12_48_06.png", [1828, 0, 717, 1440])];
+/// MC-065 took `f20` (`2025-08-07 01_13_55.png`) off (its AC-2): its right
+/// edge is fixed there, and these tests judge it like every other entry.
+/// `f18` stays for MC-066, and `f09` (`2025-12-08 17_22_50.png`) stays at its
+/// MC-064 pin for MC-067 (MC-065 `## Amendments`, 2026-10-01).
+const KNOWN_CLIPS: [(&str, [u32; 4]); 2] = [
+    ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
+    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
+];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {

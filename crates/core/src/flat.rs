@@ -262,6 +262,15 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 //    already stopped the widening - the band still decides, as MC-027
 //    settled.
 //
+//    One more column is page although it is flat over the viewport too
+//    (MC-065): one whose band median is neither the page background tone
+//    nor the tone of the margin beyond it, where that margin is a site of
+//    one exact value - the first column past it that holds a single value
+//    on every row of the band. A margin of one exact value has that value in
+//    every one of its columns, so a flat column of another tone, carrying
+//    the page's tone on, is the page's own paper. `2025-08-07 01_13_55.png`'s
+//    white strip (255) beside a site of 25 is the case.
+//
 // A widening that reaches either end of the rect falls under the interior
 // rule above exactly as the run itself does.
 //
@@ -366,7 +375,7 @@ fn extend_to_the_margin(img: &Luma, within: Rect, band: Rect, run: Rect, t: &Tun
     let mut first = run.x;
     let mut edge = margin.over_band(first).0;
     while first > within.x {
-        match margin.belongs(first - 1, edge) {
+        match margin.belongs(first - 1, edge, false) {
             Some(median) => {
                 first -= 1;
                 edge = median;
@@ -377,7 +386,7 @@ fn extend_to_the_margin(img: &Luma, within: Rect, band: Rect, run: Rect, t: &Tun
     let mut last = run.x + run.w - 1;
     let mut edge = margin.over_band(last).0;
     while last + 1 < within.x + within.w {
-        match margin.belongs(last + 1, edge) {
+        match margin.belongs(last + 1, edge, true) {
             Some(median) => {
                 last += 1;
                 edge = median;
@@ -433,27 +442,55 @@ impl Margin<'_> {
     /// column whose edge column has band median `edge`, is part of the page;
     /// `None` when it is the margin. The three branches are the section
     /// comment's, in its order.
-    fn belongs(&self, x: u32, edge: u8) -> Option<u8> {
+    ///
+    /// `outward` is the direction of the widening: `true` to the right.
+    fn belongs(&self, x: u32, edge: u8, outward: bool) -> Option<u8> {
         let (median, background) = self.over_band(x);
         let continues = median.abs_diff(edge) <= self.tol;
+        let at_tone = self
+            .tone
+            .is_some_and(|tone| median.abs_diff(tone) <= self.tol);
         // 1. The margin's tone and not the page's.
-        if let Some(tone) = self.tone
-            && median.abs_diff(tone) <= self.tol
-            && !continues
-        {
+        if at_tone && !continues {
             return None;
         }
         // 2. Not page background over the band.
         if !background {
             return Some(median);
         }
-        // 3. Flat over the band, but the page's tone carried on, and not page
-        //    background over the viewport's rows.
+        // 3. Flat over the band, but the page's tone carried on, and either
+        //    not page background over the viewport's rows, or of neither the
+        //    margin's tone nor the tone of the single-value site beyond it
+        //    (MC-065).
         if !continues {
             return None;
         }
         let (_, flat) = column_background(self.img, x, self.view()?, self.tol);
-        (!flat).then_some(median)
+        let not_the_site = || !at_tone && self.site_differs(x, median, outward);
+        (!flat || not_the_site()).then_some(median)
+    }
+
+    /// Whether the margin beyond column `x`, read outward, is a site of one
+    /// exact value whose tone is not `median`'s (MC-065): the first column
+    /// past `x` that holds one value on every row of the band exists, and
+    /// that value lies more than `uniform_tolerance` from `median`.
+    ///
+    /// A flat column at the page's tone cannot be such a site's margin: a
+    /// margin of one exact value has that value in every one of its columns,
+    /// and this column is neither that value nor within tolerance of it.
+    fn site_differs(&self, x: u32, median: u8, outward: bool) -> bool {
+        let width = self.img.width;
+        let single = |c: u32| {
+            let at = |y: u32| self.img.data[(y * width + c) as usize];
+            let first = at(self.band.start);
+            self.band.clone().all(|y| at(y) == first).then_some(first)
+        };
+        let site = if outward {
+            (x + 1..self.within.x + self.within.w).find_map(single)
+        } else {
+            (self.within.x..x).rev().find_map(single)
+        };
+        site.is_some_and(|value| value.abs_diff(median) > self.tol)
     }
 }
 
