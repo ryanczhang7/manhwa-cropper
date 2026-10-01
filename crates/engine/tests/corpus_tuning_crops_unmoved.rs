@@ -288,11 +288,26 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
         [632, 115, 1928, 1288],
         [635, 115, 1922, 1285],
     ),
+    //
+    // MC-065 re-pins `f20` (`2025-08-07 01_13_55.png`), whose right edge it
+    // fixes. Its rows were MC-064's measured clip, `[1019, 115, 500, 1285]` /
+    // `[1022, 115, 494, 1285]`. The rows below are **forced by the criteria,
+    // not chosen or guessed**. At margin 0 the crop must contain the mark
+    // (MC-065 AC-2), its rows must lie within the furniture rows (115..1400,
+    // MC-063's frozen oracle), and no column outside the mark may be page
+    // background (`corpus_sides.rs` AC-1, unloosened by MC-065 AC-3). The
+    // column just past the mark (1522) is the site's single-valued background
+    // (spread 0.0), and so is the column just before it. That leaves exactly
+    // the mark, `1022,115 500x1285`. At margin 3 `margin::expand` widens the
+    // columns by 3 on each side, and the rows stay clamped to the viewport,
+    // which the same row bound requires.
     (
         "2025-08-07 01_13_55.png",
-        [1019, 115, 500, 1285],
-        [1022, 115, 494, 1285],
+        [1019, 115, 506, 1285],
+        [1022, 115, 500, 1285],
     ),
+    // `f09` (`2025-12-08 17_22_50.png`) keeps MC-064's rows, its measured
+    // clip: MC-065 moved it to MC-067 (MC-065 `## Amendments`, 2026-10-01).
     (
         "2025-12-08 17_22_50.png",
         [1003, 167, 537, 1233],

@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067]
 ---
 
 ## Goal
@@ -338,6 +338,11 @@ only one that can start.
 
      In both, the site's background is a column of one exact value, so luma
      separates the page from the site, and colour stays out of scope.
+     **Narrowed 2026-10-01** (MC-065 `## Amendments`): by luma, `f09`'s
+     fringe is the same as `Screenshot (3538).png`'s, which the user wants
+     left out. So MC-065 ships `f20` alone, and `f09` moves to
+     **[MC-067](../stories/MC-067.md)**, *fix*, `depends_on: [MC-065]`,
+     which carries the colour question.
    - **[MC-066](../stories/MC-066.md)** — *fix*, `depends_on: [MC-064]`: the
      two second-window screenshots.
      - `f18`: the app cropped a YouTube window beside the reader.
