@@ -8,7 +8,7 @@
 //! brightness), MC-065's former second case, moved to MC-067 with `f09`
 //! (MC-065 `## Amendments`, 2026-10-01). Its cause test, control and premise
 //! were deleted here; their record is in MC-065's `## Handoff`, and MC-067's
-//! RED rebuilds them.
+//! RED rebuilt them in `page_column_dark_fringe.rs`.
 //!
 //! # The bug, and where it lives
 //!

@@ -254,12 +254,15 @@ const KNOWN_AMBIGUOUS: [&str; 1] = ["2025-07-17 14_20_23.png"];
 ///
 /// MC-065 took `f20` (`2025-08-07 01_13_55.png`) off (its AC-2): its right
 /// edge is fixed there, and these tests judge it like every other entry.
-/// `f09` (`2025-12-08 17_22_50.png`) stays at its MC-064 pin for MC-067
-/// (MC-065 `## Amendments`, 2026-10-01).
 ///
 /// MC-066 took `f18` (`2025-03-06 12_48_06.png`) off (its AC-1): its crop is
 /// the reader's window now, and these tests judge it like every other entry.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [("2025-12-08 17_22_50.png", [1006, 167, 531, 1233])];
+///
+/// MC-067 took `f09` (`2025-12-08 17_22_50.png`) off (its AC-1): it keeps its
+/// art's near-black right edge, and these tests judge it like every other
+/// entry. Its pin was `[1006, 167, 531, 1233]`. The list is empty, and stays
+/// exact in both directions: no known clip is left.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {

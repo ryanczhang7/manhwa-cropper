@@ -12,8 +12,9 @@
 //! `f09` (`2025-12-08 17_22_50.png`), MC-065's former AC-1, moved to MC-067
 //! (MC-065 `## Amendments`, 2026-10-01): no luma rule keeps its fringe without
 //! also widening `Screenshot (3538).png`. Its test and premise were deleted
-//! here, their record is in MC-065's `## Handoff`, and MC-067's RED rebuilds
-//! them. Until then `f09` keeps its MC-064 pins in the other corpus suites.
+//! here, their record is in MC-065's `## Handoff`, and MC-067's RED rebuilt
+//! them in `corpus_dark_fringe.rs`, after the user ruled on 2026-10-01 that
+//! 3538 may grow by the same fringe.
 //!
 //! # What is settled, read out and never re-derived
 //!

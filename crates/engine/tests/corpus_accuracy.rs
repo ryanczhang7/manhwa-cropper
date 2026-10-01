@@ -164,12 +164,15 @@ const MIN_ENTRIES: usize = 20;
 /// **MC-066 takes two off** (its AC-1 and AC-2): `f18` (`2025-03-06
 /// 12_48_06.png`) and `f13` (`2025-03-16 22_47_44.png`), whose crops it keeps
 /// inside the reader's window. They count toward the bar again.
-const KNOWN_MISSES: [&str; 5] = [
+///
+/// **MC-067 takes one off** (its AC-1): `2025-12-08 17_22_50.png` (`f09`),
+/// which keeps its art's near-black right edge. It counts toward the bar
+/// again.
+const KNOWN_MISSES: [&str; 4] = [
     "2025-02-27 22_46_15.png",
     "2025-03-03 11_00_13.png",
     "2025-05-12 20_48_42.png",
     "2025-07-17 14_20_23.png",
-    "2025-12-08 17_22_50.png",
 ];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
@@ -187,14 +190,18 @@ const KNOWN_MISSES: [&str; 5] = [
 ///
 /// MC-066 took `f18` and `f13` off this list and off both of those (its AC-1
 /// and AC-2).
-const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-12-08 17_22_50.png", [1006, 167, 531, 1233])];
+///
+/// MC-067 took `f09` off this list and off both of those (its AC-1); its pin
+/// was `[1006, 167, 531, 1233]`. The list is empty, and stays exact.
+const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
 /// crop clips the mark, AC-1's only known exceptions. **Exact in both
 /// directions**: AC-1 fails if any other crop clips, and fails if a listed
 /// entry's crop is anything but its pin in [`MC064_CROPS`]. MC-065 took
-/// `f20` off and MC-066 took `f18` off (its AC-1); `f09` stays for MC-067.
-const KNOWN_CLIPS: [&str; 1] = ["2025-12-08 17_22_50.png"];
+/// `f20` off, MC-066 took `f18` off (its AC-1) and MC-067 took `f09` off (its
+/// AC-1). The list is empty: no known clip is left.
+const KNOWN_CLIPS: [&str; 0] = [];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
