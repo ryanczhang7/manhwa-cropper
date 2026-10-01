@@ -278,15 +278,36 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
     // 01_13_55.png`, `2025-12-08 17_22_50.png`) and `2025-03-16 22_47_44.png`
     // keeps the browser scrollbar: these rows pin that, as `main` produces it,
     // and the zero-clip suites name them as known exceptions. MC-065 moves them.
+    // (MC-065 and MC-066 re-pinned three of them; see below.)
+    //
+    // MC-066 re-pins `f18` (`2025-03-06 12_48_06.png`) and `f13` (`2025-03-16
+    // 22_47_44.png`), the two split screens whose crop it keeps inside the
+    // reader's window. Their rows were MC-064's measured crops, `f18`
+    // `[1825, 0, 723, 1440]` / `[1828, 0, 717, 1440]` (the second window only)
+    // and `f13` `[632, 115, 1928, 1288]` / `[635, 115, 1922, 1285]` (both
+    // windows). The rows below are **forced by the criteria, not chosen or
+    // guessed** (MC-066 `## Test plan`):
+    // - columns at margin 0: the crop must contain the mark (MC-066 AC-1,
+    //   AC-2), and no column outside the mark may be page background
+    //   (`corpus_sides.rs` AC-1, unloosened by MC-066 AC-3). The column just
+    //   left of each mark and the column just right of it (`f18` 650 and
+    //   1168, `f13` 634 and 1168) are the page margin, one value (11) on
+    //   every row of the mark, so the columns are exactly the mark's;
+    // - rows at both margins: exactly the furniture rows (MC-063's frozen
+    //   oracle), `f18` 115..1399 (AC-1: contains the mark's rows and lies
+    //   within them) and `f13` 115..1392 (AC-2: contains the mark's rows, ends
+    //   at 1392 or above; top 115 by `corpus_viewport.rs`'s row bound, which
+    //   MC-064 measured and MC-066 keeps);
+    // - columns at margin 3: `margin::expand` widens them by 3 on each side.
     (
         "2025-03-06 12_48_06.png",
-        [1825, 0, 723, 1440],
-        [1828, 0, 717, 1440],
+        [648, 115, 523, 1284],
+        [651, 115, 517, 1284],
     ),
     (
         "2025-03-16 22_47_44.png",
-        [632, 115, 1928, 1288],
-        [635, 115, 1922, 1285],
+        [632, 115, 539, 1277],
+        [635, 115, 533, 1277],
     ),
     //
     // MC-065 re-pins `f20` (`2025-08-07 01_13_55.png`), whose right edge it
@@ -323,6 +344,48 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
 /// this one is cropped at either, so the story that fixes it has to move it
 /// from this list into [`MAIN_CROPS`] with the crop it then measures.
 const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+
+/// MC-066 AC-3: MC-052's two split-screen entries, named. They are the other
+/// split screens on the corpus - the same reader beside a second window, on
+/// the same days - and MC-066 changes how a page column is found beside a
+/// second window, so they are the entries most likely to move. Their rows in
+/// [`MAIN_CROPS`] are `(file, [x, y, w, h] at margin_px 3, at margin_px 0)`
+/// exactly as MC-054 measured them on `3449baa`, and they must stay exactly
+/// that: a story may not re-measure them into a new pin.
+const MC052_SPLIT_SCREENS: [(&str, [u32; 4], [u32; 4]); 2] = [
+    (
+        "2025-03-06 01_22_45.png",
+        [640, 115, 539, 1259],
+        [643, 115, 533, 1259],
+    ),
+    (
+        "2025-03-07 00_58_06.png",
+        [667, 115, 486, 1284],
+        [670, 115, 480, 1284],
+    ),
+];
+
+/// MC-066 AC-3: MC-052's two split-screen entries are named in this check and
+/// held to their measured crops. [`MAIN_CROPS`] must carry each of them at
+/// exactly its [`MC052_SPLIT_SCREENS`] row, so that the corpus test below
+/// fails if either moves, and a re-pin of either fails here. No decode: this
+/// reads the two tables only, so it runs in the `unit` gate.
+#[test]
+fn mc052s_two_split_screens_are_pinned_at_their_measured_crops() {
+    for (file, m3, m0) in MC052_SPLIT_SCREENS {
+        let pinned: Vec<([u32; 4], [u32; 4])> = MAIN_CROPS
+            .iter()
+            .filter(|(name, _, _)| *name == file)
+            .map(|&(_, a, b)| (a, b))
+            .collect();
+        assert_eq!(
+            pinned,
+            vec![(m3, m0)],
+            "MC-066 AC-3: MC-052's split screen {file} must be pinned exactly once in \
+             MAIN_CROPS at its measured crops (margin_px 3, margin_px 0) - it must not move"
+        );
+    }
+}
 
 /// The marked `tuning` entries, in manifest order. Never `held-out`.
 fn marked() -> Vec<CorpusEntry> {

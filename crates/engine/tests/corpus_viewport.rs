@@ -361,7 +361,16 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// values changed. `2025-03-16 22_47_44.png`'s viewport runs to the image's
 /// last row (1440). The fourth, `2025-03-06 12_48_06.png`, is
 /// [`STAGE_DECLINED`]. Not originals either.
-const STAGE_MEASURED: [(&str, u32, u32); 25] = [
+///
+/// **MC-066 re-measures `2025-03-16 22_47_44.png` (`f13`) and adds `2025-03-06
+/// 12_48_06.png` (`f18`)**, off [`STAGE_DECLINED`]. Their rows are **forced by
+/// MC-066's criteria, not measured or chosen**: each crop's rows must be exactly
+/// its furniture rows (MC-063's frozen oracle: `f18` 115..1399, `f13`
+/// 115..1392) at margins 0 and 3 (MC-066 AC-1, AC-2), and
+/// `corpus_sides.rs::the_top_and_bottom_edges_move_by_exactly_the_margin_change`
+/// (unloosened, MC-066 AC-3) allows that only where `locate`, beside this
+/// page column, returns exactly those rows - an uncut side moves by the margin.
+const STAGE_MEASURED: [(&str, u32, u32); 26] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -384,7 +393,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 25] = [
     ("Screenshot (3605).png", 137, 1392),
     ("Screenshot (3606).png", 137, 1392),
     ("Screenshot (3625).png", 137, 1392),
-    ("2025-03-16 22_47_44.png", 115, 1440),
+    ("2025-03-06 12_48_06.png", 115, 1399),
+    ("2025-03-16 22_47_44.png", 115, 1392),
     ("2025-08-07 01_13_55.png", 115, 1400),
     ("2025-12-08 17_22_50.png", 167, 1400),
 ];
@@ -400,7 +410,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 25] = [
 /// decline itself, exactly. Its crop is held in
 /// `tests/corpus_tuning_crops_unmoved.rs` and by [`KNOWN_CLIPS`]. Not an
 /// original either.
-const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
+///
+/// MC-066 took it off (its AC-1, AC-3): its page column is the reader's page,
+/// and [`STAGE_MEASURED`] holds the rows the stage must locate beside it. The
+/// list is empty, and stays exact.
+const STAGE_DECLINED: [&str; 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
@@ -418,13 +432,12 @@ const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
 /// either margin.
 ///
 /// MC-065 took `2025-08-07 01_13_55.png` (`f20`) off (its AC-2): with its
-/// right edge fixed, this test judges it like every other entry. `f18` stays
-/// for MC-066.
-const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 1] = [(
-    "2025-03-06 12_48_06.png",
-    [1825, 0, 723, 1440],
-    [1828, 0, 717, 1440],
-)];
+/// right edge fixed, this test judges it like every other entry.
+///
+/// MC-066 took `2025-03-06 12_48_06.png` (`f18`) off (its AC-1): its crop is
+/// the reader's window, and this test judges it like every other entry. The
+/// list is empty, and stays exact in both directions.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped at either margin -
@@ -719,9 +732,9 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all forty-four: section 4's nineteen, MC-053's three, \
-         MC-056's three, MC-062's sixteen and three of MC-064's four (the fourth is \
-         STAGE_DECLINED)"
+        "the control must see all forty-five: section 4's nineteen, MC-053's three, \
+         MC-056's three, MC-062's sixteen and MC-064's four (MC-066 took the fourth \
+         off STAGE_DECLINED)"
     );
     assert_eq!(
         not_cropped,

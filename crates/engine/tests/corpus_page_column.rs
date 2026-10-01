@@ -145,11 +145,11 @@ fn is_not_an_original(name: &str) -> bool {
 /// MC-064's RED, on a scratch copy with only the four `split` values changed.
 /// **Exact in both directions**: AC-2 fails if any other side lets page
 /// background in, if this one stops doing so, or if its crop is not the pin.
-const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 1] = [(
-    "2025-03-16 22_47_44.png",
-    Side::Right,
-    [635, 115, 1922, 1285],
-)];
+///
+/// MC-066 took `f13` off (its AC-2 and AC-3): its crop ends inside the
+/// reader's window, and AC-2 judges its sides like every other entry's. The
+/// list is empty, and stays exact in both directions.
+const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 0] = [];
 
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 3): the mark
 /// edges the user ruled **art** after a close-up although the predicate reads

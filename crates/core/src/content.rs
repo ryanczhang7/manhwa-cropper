@@ -47,6 +47,13 @@
 //! screenshot it appeared in, while `architecture.md` describes the flag as
 //! "an edge strip was **nearly** chrome-like".
 //!
+//! One side strip that passes all three is still not chrome (MC-066): the
+//! **page margin**, where it runs flat from the image's edge to the page and
+//! its strong line is the page's own edge, on a page whose other edge is not
+//! also a strip's. Peeling it would leave a rect the page column reaches one
+//! end of, and stage 3c would refuse that rect and return it whole.
+//! `page_margin` below has the rule and the reason.
+//!
 //! # Arithmetic
 //!
 //! Both shares are compared against `f32` fields of [`Tuning`], and both are
@@ -62,6 +69,7 @@
 //! that choice: every fixture is far from the threshold on either convention.
 
 use crate::edges::{col_profile, row_profile, strong_lines};
+use crate::flat::locate_column;
 use crate::{Luma, Rect, Tuning};
 
 /// Which edge of a rect a strip was taken from.
@@ -177,11 +185,55 @@ fn judge(img: &Luma, rect: Rect, side: Side, t: &Tuning) -> Verdict {
 
     let flat = flat_fraction(img, strip, t.uniform_tolerance);
     if flat >= t.chrome_flat_fraction {
+        if page_margin(img, rect, remainder, side, t) {
+            return Verdict::Content;
+        }
         Verdict::Chrome(remainder)
     } else if flat >= t.chrome_flat_fraction - t.ambiguity_band {
         Verdict::NearlyChrome
     } else {
         Verdict::Content
+    }
+}
+
+/// Whether the chrome-like strip on `side` of `rect`, whose removal leaves
+/// `remainder`, is the **page margin** rather than chrome (MC-066): a side
+/// strip whose strong line is the page column's own edge, on a page whose
+/// other edge is not also a strip's.
+///
+/// A flat page margin that runs from the image's edge to the page, narrower
+/// than [`Tuning::chrome_max_extent`], passes all three conditions above: it
+/// is flat, it is small enough, and the page is left behind. Its first strong
+/// line is not a chrome border but the page's edge, so the page column
+/// [`page_column`](crate::flat::page_column) locates over `rect` starts (on
+/// [`Side::Left`]) or ends (on [`Side::Right`]) exactly where the strip does.
+///
+/// Peeling it does harm only when the page's **other** edge is not where the
+/// opposite strip ends too. Then the peel leaves a rect whose page column
+/// reaches one end and not the other, and stage 3c's interior rule - a page
+/// column reaching an end of the rect has no margin on that side - hands the
+/// whole rect back, the page and whatever lies past its far margin together
+/// (`f13`: the second browser window). Where the page is bounded by a strip
+/// on both sides, both are peeled and the content box is the page, which is
+/// MC-005's contract for a page between two flat bands and is unchanged.
+///
+/// Only the column axis has a page column; a top or bottom strip is never
+/// the page margin here.
+fn page_margin(img: &Luma, rect: Rect, remainder: Rect, side: Side, t: &Tuning) -> bool {
+    let opposite = match side {
+        Side::Left => Side::Right,
+        Side::Right => Side::Left,
+        Side::Top | Side::Bottom => return false,
+    };
+    let Some(column) = locate_column(img, rect, t) else {
+        return false;
+    };
+    let (start, end) = (column.x, column.x + column.w);
+    // Where the opposite strip would end, if that side has one.
+    let far = strip_depth(img, rect, opposite, t).map(|depth| split(rect, opposite, depth).1);
+    match side {
+        Side::Left => start == remainder.x && far.is_none_or(|far| end != far.x + far.w),
+        _ => end == remainder.x + remainder.w && far.is_none_or(|far| start != far.x),
     }
 }
 
