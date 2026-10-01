@@ -106,7 +106,15 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// beside the page column on `7c36b5d` (crates unchanged since `d2876f5`),
 /// read out of one run in MC-062's RED on a scratch copy with the move
 /// applied - not chosen. The stage locates a viewport on all 16.
-const STAGE_MEASURED: [(&str, u32, u32); 22] = [
+///
+/// **MC-064 adds three of its four**, the fresh entries MC-063 read per file,
+/// moved to `tuning` by the user's ruling of 2026-09-30, last in manifest
+/// order. Section 4 never saw them either. Same provenance: what `locate`
+/// returns beside the page column on `43e8e61` (crates unchanged since
+/// `d2876f5`), read out of one run in MC-064's RED on a scratch copy with only
+/// the four `split` values changed - not chosen. On the fourth the stage
+/// declines: [`STAGE_DECLINED`].
+const STAGE_MEASURED: [(&str, u32, u32); 25] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -129,7 +137,20 @@ const STAGE_MEASURED: [(&str, u32, u32); 22] = [
     ("Screenshot (3605).png", 137, 1392),
     ("Screenshot (3606).png", 137, 1392),
     ("Screenshot (3625).png", 137, 1392),
+    ("2025-03-16 22_47_44.png", 115, 1440),
+    ("2025-08-07 01_13_55.png", 115, 1400),
+    ("2025-12-08 17_22_50.png", 167, 1400),
 ];
+
+/// MC-064: the marked `tuning` entry on which the stage, handed the
+/// pipeline's page column, **declines** (`locate` returns `None`), measured
+/// the same way as [`STAGE_MEASURED`]'s MC-064 rows: `2025-03-06
+/// 12_48_06.png`, one of the four fresh entries MC-063 read per file, whose
+/// page column is `1828,0 717x1440`, beside the art and the whole image
+/// height. Section 4 never saw it, so it is not one of [`DECLINES`], which
+/// claims to be section 5e's. **Exact**: this readout fails if the stage
+/// locates a viewport on it, and fails if it is not a marked `tuning` entry.
+const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
@@ -179,6 +200,7 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     let mut skipped = Vec::new();
     let mut stage_seen = Vec::new();
     let mut stage_moved = Vec::new();
+    let mut declined_seen = Vec::new();
 
     for entry in marked() {
         let name = entry.name();
@@ -201,6 +223,16 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
             stage_seen.push(name.clone());
             rows.push(format!(
                 "{name:<26} measured by the stage {top}..{bottom}  got {got:?} (MC-053's)"
+            ));
+            continue;
+        }
+        if STAGE_DECLINED.contains(&name.as_str()) {
+            if got.is_some() {
+                stage_moved.push(format!("{name}: expected None (declines), got {got:?}"));
+            }
+            declined_seen.push(name.clone());
+            rows.push(format!(
+                "{name:<26} measured by the stage: declines  got {got:?} (MC-064's)"
             ));
             continue;
         }
@@ -247,14 +279,21 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     assert_eq!(
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
-        "MC-053's three, MC-056's three and MC-062's sixteen must be marked tuning \
-         entries, reached here in manifest order"
+        "MC-053's three, MC-056's three, MC-062's sixteen and three of MC-064's four \
+         must be marked tuning entries, reached here in manifest order"
+    );
+    assert_eq!(
+        declined_seen,
+        STAGE_DECLINED.map(String::from).to_vec(),
+        "MC-064's STAGE_DECLINED must be marked tuning entries, reached here in \
+         manifest order"
     );
     assert!(
         stage_moved.is_empty(),
-        "MC-053 / MC-056 / MC-062: on its twenty-two the stage must keep the rows it \
-         located on c004d96 (MC-053's), c3fee28 (MC-056's) and 7c36b5d (MC-062's) \
-         (STAGE_MEASURED).\n{}\n\n{printed}",
+        "MC-053 / MC-056 / MC-062 / MC-064: on its twenty-five the stage must keep the \
+         rows it located on c004d96 (MC-053's), c3fee28 (MC-056's), 7c36b5d (MC-062's) \
+         and 43e8e61 (MC-064's) (STAGE_MEASURED), and must still decline where it \
+         declined on 43e8e61 (STAGE_DECLINED).\n{}\n\n{printed}",
         stage_moved.join("\n")
     );
     assert!(

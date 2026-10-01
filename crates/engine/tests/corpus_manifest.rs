@@ -1268,8 +1268,9 @@ fn no_held_out_reader_is_absent_from_both_the_pre_epic_07_set_and_tuning() {
 /// falsification are AC-3's subject on the corpus page.
 ///
 /// Fifty-nine since MC-062, which moved all 23 spent held-out entries the
-/// same way, by the user's answer of 2026-09-30.
-const READER_BY_FILE: [(&str, &str); 59] = [
+/// same way, by the user's answer of 2026-09-30. Sixty-three since MC-064,
+/// which moved the four fresh entries MC-063 read per file.
+const READER_BY_FILE: [(&str, &str); 63] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1341,6 +1342,14 @@ const READER_BY_FILE: [(&str, &str); 59] = [
     ("Screenshot (3605).png", "toongod"),
     ("Screenshot (3606).png", "toongod"),
     ("Screenshot (3625).png", "w-network"),
+    // MC-064: the four fresh entries MC-063 read per file, moved to `tuning`
+    // by the user's ruling of 2026-09-30 ("Write up and file"), in manifest
+    // order. Their `site:` tag is the one they carried in held-out, read out
+    // of the manifest, not retyped.
+    ("2025-03-06 12_48_06.png", "toongod"),
+    ("2025-03-16 22_47_44.png", "toongod"),
+    ("2025-08-07 01_13_55.png", "rolia-scans"),
+    ("2025-12-08 17_22_50.png", "toongod"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1399,11 +1408,18 @@ const READER_BY_FILE: [(&str, &str); 59] = [
 /// `rolia-scans` 4, `xbato` 3, `demonicrevolution` 2, `w-network` 2.
 /// `kunmanga` does not move. `manhwaclan` leaves the held-out set entirely and
 /// gains its first `tuning` entries. No reader is re-attributed.
+///
+/// **MC-064, 2026-09-30.** The user moved the four fresh entries MC-063 read
+/// per file ("Write up and file"), all marked: `2025-03-06 12_48_06.png`,
+/// `2025-03-16 22_47_44.png` and `2025-12-08 17_22_50.png` (`toongod`) and
+/// `2025-08-07 01_13_55.png` (`rolia-scans`). `toongod` goes from
+/// `25, 18, 7, 14` to `28, 21, 7, 11` and `rolia-scans` from `10, 9, 1, 4` to
+/// `11, 10, 1, 3`; no other row moves, and no reader is re-attributed.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 25, 18, 7, 14),
+    ("toongod", 28, 21, 7, 11),
     ("w-network", 10, 4, 6, 2),
     ("demonicrevolution", 5, 5, 0, 2),
-    ("rolia-scans", 10, 9, 1, 4),
+    ("rolia-scans", 11, 10, 1, 3),
     ("kunmanga", 4, 4, 0, 0),
     ("xbato", 3, 3, 0, 3),
     ("manhwaclan", 2, 2, 0, 0),
@@ -1449,7 +1465,10 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// **MC-062 moves no mark.** It adds the 16 marked entries among the 23 spent
 /// held-out entries, as they stood, and pins its own 25 fresh marks in
 /// [`FRESH_HELD_OUT`].
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 45] = [
+///
+/// **MC-064 moves no mark.** It adds the four fresh entries MC-063 read per
+/// file, with the marks [`FRESH_HELD_OUT`] freezes for them.
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 49] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1003, 188, 540, 1138),
@@ -1518,6 +1537,13 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 45] = [
     ("Screenshot (3605).png", 1007, 174, 530, 1113),
     ("Screenshot (3606).png", 1010, 161, 527, 1175),
     ("Screenshot (3625).png", 948, 240, 645, 1126),
+    // MC-064: the four fresh entries MC-063 read per file, moved to `tuning`
+    // on 2026-09-30, with the marks they carried in held-out, unchanged, read
+    // out of the manifest at `43e8e61` (they equal FRESH_HELD_OUT's rows).
+    ("2025-03-06 12_48_06.png", 651, 115, 517, 1284),
+    ("2025-03-16 22_47_44.png", 635, 115, 533, 1277),
+    ("2025-08-07 01_13_55.png", 1022, 115, 500, 1285),
+    ("2025-12-08 17_22_50.png", 1006, 167, 533, 1233),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2034,6 +2060,28 @@ const SPENT_HELD_OUT: [&str; 23] = [
     "Screenshot (3625).png",
 ];
 
+/// MC-064 AC-1. The four of [`FRESH_HELD_OUT`] that MC-063 read per file after
+/// taking its score (`f18`, `f13`, `f20`, `f09`), in manifest order. Being
+/// read, they are `tuning` for any later rule, and MC-065 is fitted on them;
+/// the user's ruling of 2026-09-30 was *"Write up and file"*. The other 21
+/// fresh entries stay `held-out` (MC-064's Open question 2, *"Leave them"*).
+const MC064_READ_PER_FILE: [&str; 4] = [
+    "2025-03-06 12_48_06.png",
+    "2025-03-16 22_47_44.png",
+    "2025-08-07 01_13_55.png",
+    "2025-12-08 17_22_50.png",
+];
+
+/// MC-064 AC-1: after the move, `tuning` holds this many marked entries and
+/// this many flag entries (45 + 14 before MC-064; 29 + 7 before MC-062).
+const TUNING_MARKED: usize = 49;
+const TUNING_FLAGS: usize = 14;
+
+/// MC-064 AC-1: after the move, `held-out` holds this many marked entries,
+/// no flag entry, across this many readers (25 marked before MC-064).
+const HELD_OUT_MARKED: usize = 21;
+const HELD_OUT_READERS: usize = 5;
+
 /// The tags MC-062 AC-2 requires of a fresh entry, sorted: `dark-theme`,
 /// `png`, `site:<site>`, and the gutter tag the user's gap answer gives.
 fn fresh_tags(fresh: &Fresh) -> Vec<String> {
@@ -2114,11 +2162,19 @@ fn every_freshly_drawn_screenshot_is_one_held_out_entry_with_the_users_mark_and_
             ));
             continue;
         };
-        if entry.split != Split::HeldOut {
+        // MC-064: the four MC-063 read per file are `tuning`, and only those
+        // four. A fifth fresh entry turning `tuning` fails here by name.
+        let want_split = if MC064_READ_PER_FILE.contains(&fresh.file) {
+            Split::Tuning
+        } else {
+            Split::HeldOut
+        };
+        if entry.split != want_split {
             wrong.push(format!(
-                "{}: split `{}`, needs `held-out`",
+                "{}: split `{}`, needs `{}`",
                 fresh.file,
-                entry.split.as_str()
+                entry.split.as_str(),
+                want_split.as_str()
             ));
         }
         match entry.expect {
@@ -2146,7 +2202,8 @@ fn every_freshly_drawn_screenshot_is_one_held_out_entry_with_the_users_mark_and_
         wrong,
         Vec::<String>::new(),
         "MC-062 AC-2: each of the 25 drawn screenshots must be exactly one \
-         `held-out` manifest entry whose `expect` is the box the user marked on \
+         `held-out` manifest entry - `tuning` for exactly the four MC-063 read \
+         per file and MC-064 moved, MC064_READ_PER_FILE - whose `expect` is the box the user marked on \
          2026-09-30 (frozen; the read-back table in MC-062's `## Notes`) and \
          whose tags are exactly `dark-theme`, `png`, its `site:` and the gutter \
          the user's gap answer gives (`white-gutter` for light, `black-gutter` \
@@ -2191,5 +2248,54 @@ fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw(
          `tuning` now (the user, 2026-09-30: \"move them to practice\"), and \
          `held-out` means only the screenshots nothing has been run on: \
          MC-062's 25. Each row names an entry that breaks one or the other"
+    );
+}
+
+// --- MC-064 AC-1: the four MC-063 read per file are tuning; the rest stay ---
+
+#[test]
+fn the_four_entries_mc063_read_per_file_are_tuning_and_the_other_twenty_one_stay_held_out() {
+    let entries = corpus::load();
+
+    // The fresh entries that are `tuning`, in manifest order, must be exactly
+    // the four, by name: not "four of them", which a swap would satisfy.
+    let fresh_tuning: Vec<String> = entries
+        .iter()
+        .filter(|e| e.split == Split::Tuning && FRESH_HELD_OUT.iter().any(|f| f.file == e.name()))
+        .map(|e| e.name())
+        .collect();
+
+    let count = |split: Split, marked: bool| {
+        entries
+            .iter()
+            .filter(|e| e.split == split && matches!(e.expect, Expect::Rect(_)) == marked)
+            .count()
+    };
+    let measured = format!(
+        "fresh tuning {fresh_tuning:?} | tuning {} marked + {} flag | held-out \
+         {} marked + {} flag across {} readers",
+        count(Split::Tuning, true),
+        count(Split::Tuning, false),
+        count(Split::HeldOut, true),
+        count(Split::HeldOut, false),
+        held_out_sites(&entries).len(),
+    );
+    let recorded = format!(
+        "fresh tuning {MC064_READ_PER_FILE:?} | tuning {TUNING_MARKED} marked + \
+         {TUNING_FLAGS} flag | held-out {HELD_OUT_MARKED} marked + \
+         {MIN_HELD_OUT_FLAGS} flag across {HELD_OUT_READERS} readers"
+    );
+
+    assert_eq!(
+        measured, recorded,
+        "MC-064 AC-1: the four fresh entries MC-063 read per file - `f18` \
+         2025-03-06 12_48_06, `f13` 2025-03-16 22_47_44, `f20` 2025-08-07 \
+         01_13_55 and `f09` 2025-12-08 17_22_50 - are `tuning` (the user, \
+         2026-09-30: \"Write up and file\"), and no other fresh entry is: the \
+         other 21 stay `held-out` (\"Leave them\"). So `tuning` holds 49 marked \
+         and 14 flag entries (45 + 14 until MC-064 moved four), and `held-out` \
+         21 marked and 0 flag across 5 readers (25 until MC-064). Their \
+         `expect` and tags are MC-062's frozen FRESH_HELD_OUT rows, checked by \
+         the fresh-set test"
     );
 }

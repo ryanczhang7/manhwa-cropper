@@ -118,6 +118,56 @@ const MARGIN_BEFORE_MC049: u32 = 3;
 /// this list.
 const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 
+/// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
+/// of each of the four fresh entries MC-063 read per file, `(file, [x, y, w,
+/// h])`, in manifest order. **Measured, not chosen**: read out of one run on
+/// `43e8e61` (release; crates unchanged since `d2876f5`) in MC-064's RED, on a
+/// scratch copy with only the four `split` values changed. Every MC-064
+/// exception in this file holds its entry to exactly this crop.
+const MC064_CROPS: [(&str, [u32; 4]); 4] = [
+    ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
+    ("2025-03-16 22_47_44.png", [635, 115, 1922, 1285]),
+    ("2025-08-07 01_13_55.png", [1022, 115, 494, 1285]),
+    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
+];
+
+/// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
+/// as known"*): AC-2's known clips, the three of [`MC064_CROPS`] whose crop
+/// does not contain the mark. **Exact in both directions**: AC-2 fails if any
+/// other crop clips, and fails if a listed entry's crop is not its pin.
+const KNOWN_CLIPS: [&str; 3] = [
+    "2025-03-06 12_48_06.png",
+    "2025-08-07 01_13_55.png",
+    "2025-12-08 17_22_50.png",
+];
+
+/// MC-064, the same ruling: AC-1's known page-background sides, `(file,
+/// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
+/// keeping the browser's scrollbar, while the mark ends at 1167; columns the
+/// crop keeps beyond the mark on its right read as page background - measured
+/// in MC-064's RED, 1 of 98 sides. **Exact in both directions**:
+/// AC-1 fails if any other side carries page background, if this one stops
+/// doing so, or if the entry's crop is not its pin in [`MC064_CROPS`].
+const KNOWN_BACKGROUND_SIDES: [(&str, &str); 1] = [("2025-03-16 22_47_44.png", "right")];
+
+/// MC-064: every one of `names` whose crop in `got` is not exactly its pin in
+/// [`MC064_CROPS`], as a row naming both. `got` is `(file, crop or None)` for
+/// every marked entry the test reached.
+fn mc064_crops_moved(got: &[(String, Option<Rect>)], names: &[&str]) -> Vec<String> {
+    MC064_CROPS
+        .iter()
+        .filter(|(file, _)| names.contains(file))
+        .filter_map(|&(file, [x, y, w, h])| {
+            let pinned = Some(Rect { x, y, w, h });
+            match got.iter().find(|(name, _)| name == file) {
+                None => Some(format!("{file}: not a marked `tuning` entry here")),
+                Some((_, crop)) if *crop == pinned => None,
+                Some((_, crop)) => Some(format!("{file}: crop {crop:?}, pinned {pinned:?}")),
+            }
+        })
+        .collect()
+}
+
 // --- Harness ------------------------------------------------------------------
 
 /// The marked `tuning` entries, in manifest order. Tuning only - see
@@ -230,6 +280,10 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
     let mut widened_missed = Vec::new();
     let mut entries = 0usize;
     let mut not_cropped = Vec::new();
+    // MC-064: every crop, and every `(file, side)` carrying page background,
+    // compared with KNOWN_BACKGROUND_SIDES below, exactly.
+    let mut got_all: Vec<(String, Option<Rect>)> = Vec::new();
+    let mut background_sides: Vec<(String, &str)> = Vec::new();
 
     for (entry, mark) in marked() {
         entries += 1;
@@ -258,21 +312,30 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
                 // it went into `failing_sides` twice; any entry other than the
                 // known exception still fails AC-1, now on that comparison.
                 not_cropped.push(entry.name());
+                got_all.push((entry.name(), None));
                 continue;
             }
         };
+        got_all.push((entry.name(), Some(crop)));
 
         let (left_cols, right_cols) = outside_columns(crop, mark);
         let left_bg: Vec<u32> = left_cols.iter().copied().filter(|&x| bg(x)).collect();
         let right_bg: Vec<u32> = right_cols.iter().copied().filter(|&x| bg(x)).collect();
+        let known = |side: &str| KNOWN_BACKGROUND_SIDES.contains(&(entry.name().as_str(), side));
         if !left_bg.is_empty() {
+            background_sides.push((entry.name(), "left"));
+        }
+        if !right_bg.is_empty() {
+            background_sides.push((entry.name(), "right"));
+        }
+        if !left_bg.is_empty() && !known("left") {
             failing_sides.push(format!(
                 "{} left: page-background columns {left_bg:?} outside the mark's {}",
                 entry.name(),
                 mark.x
             ));
         }
-        if !right_bg.is_empty() {
+        if !right_bg.is_empty() && !known("right") {
             failing_sides.push(format!(
                 "{} right: page-background columns {right_bg:?} outside the mark's {}",
                 entry.name(),
@@ -354,10 +417,38 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
          still not be: if a fix makes it crop, empty the list. `left` is the \
          entries not cropped.\n\n{printed}"
     );
+    // MC-064: the known page-background sides, exact in both directions, and
+    // their entries held to their measured crops.
+    let known_read: Vec<(String, &str)> = background_sides
+        .iter()
+        .filter(|(name, side)| KNOWN_BACKGROUND_SIDES.contains(&(name.as_str(), *side)))
+        .cloned()
+        .collect();
+    assert_eq!(
+        known_read,
+        KNOWN_BACKGROUND_SIDES
+            .map(|(name, side)| (name.to_string(), side))
+            .to_vec(),
+        "MC-064: every known page-background side (KNOWN_BACKGROUND_SIDES, the user's \
+         ruling of 2026-09-30) must still carry page background - if a fix clears one, \
+         take it off the list. `left` is measured.\n\n{printed}"
+    );
+    let known_names: Vec<&str> = KNOWN_BACKGROUND_SIDES
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
+    let moved = mc064_crops_moved(&got_all, &known_names);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each entry with a known page-background side must still be cropped to \
+         exactly its pin in MC064_CROPS:\n{}\n\n{printed}",
+        moved.join("\n")
+    );
     assert!(
         failing_sides.is_empty(),
         "AC-1: the crop must carry no page background outside the mark, on either \
-         side. {} of {} sides do (margin_px is {}); the first is {}.\n\nAll:\n{}\n\n{printed}",
+         side, except MC-064's known sides (KNOWN_BACKGROUND_SIDES). {} of {} sides \
+         do (margin_px is {}); the first is {}.\n\nAll:\n{}\n\n{printed}",
         failing_sides.len(),
         2 * entries,
         t.margin_px,
@@ -385,18 +476,22 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
     let mut clips = Vec::new();
     let mut narrowed_clips = Vec::new();
     let mut cropped_count = 0usize;
+    let mut got_all: Vec<(String, Option<Rect>)> = Vec::new();
 
     for (entry, mark) in marked() {
         let crop = match cropped(&entry, &t, &tmp) {
             Ok(rect) => rect,
             Err(outcome) => {
                 rows.push(format!("{:<30} {outcome}", entry.name()));
+                got_all.push((entry.name(), None));
                 continue;
             }
         };
+        got_all.push((entry.name(), Some(crop)));
         cropped_count += 1;
         let holds = contains(crop, mark);
-        if !holds {
+        // MC-064: a known clip is held to its pinned crop below instead.
+        if !holds && !KNOWN_CLIPS.contains(&entry.name().as_str()) {
             clips.push(format!(
                 "{}: crop {},{} {}x{} does not contain the mark {},{} {}x{}",
                 entry.name(),
@@ -416,7 +511,9 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
             ..crop
         };
         let narrowed_holds = contains(narrowed, mark);
-        if !narrowed_holds {
+        // MC-064: a known clip clips narrowed or not, so it would make the
+        // control easier to meet; it is left out of the count.
+        if !narrowed_holds && !KNOWN_CLIPS.contains(&entry.name().as_str()) {
             narrowed_clips.push(entry.name());
         }
         rows.push(format!(
@@ -445,11 +542,20 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
         cropped_count > 0,
         "AC-2 compared nothing: no marked entry was cropped\n\n{printed}"
     );
+    let moved = mc064_crops_moved(&got_all, &KNOWN_CLIPS);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must \
+         still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, take \
+         it off the list and let AC-2 judge it:\n{}\n\n{printed}",
+        moved.join("\n")
+    );
     assert!(
         clips.is_empty(),
         "AC-2: a crop that cuts into the page a person marked is the worst defect \
          this product has, and with margin_px {} nothing but the locator stands \
-         between the art and the cut. {} of {cropped_count} clip; the first is {}.\n\n\
+         between the art and the cut. {} of {cropped_count} clip besides MC-064's \
+         known clips (KNOWN_CLIPS); the first is {}.\n\n\
          All:\n{}\n\n{printed}",
         t.margin_px,
         clips.len(),

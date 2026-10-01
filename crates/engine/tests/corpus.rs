@@ -236,6 +236,54 @@ const AMBIGUOUS_PAST_THE_CLIFF: [&str; 4] = [
 /// exception behind.
 const KNOWN_AMBIGUOUS: [&str; 1] = ["2025-07-17 14_20_23.png"];
 
+/// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
+/// as known"*): the three fresh entries MC-063 read per file whose crop clips
+/// the mark, moved to `tuning` by MC-064, `(file, [x, y, w, h])` at
+/// `Tuning::default()` (margin_px 0) - the only margin the two zero-clip tests
+/// here run at. In manifest order. **Measured, not chosen**: read out of one
+/// run of `process_file` on `43e8e61` (release; crates unchanged since
+/// `d2876f5`) in MC-064's RED, on a scratch copy with only the four `split`
+/// values changed. They are MC-063's recorded crops: `f18` columns 1828..2545
+/// rows 0..1440, `f20` 1022..1516 rows 115..1400, `f09` 1006..1537 rows
+/// 167..1400 (end exclusive). MC-065 fixes them.
+///
+/// **Exact in both directions**: each test naming this list fails if any
+/// *other* marked `tuning` entry clips, and fails if a listed entry's crop is
+/// anything but its pin - so the story that fixes one has to take it off, and
+/// cannot leave a stale exception behind.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 3] = [
+    ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
+    ("2025-08-07 01_13_55.png", [1022, 115, 494, 1285]),
+    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
+];
+
+/// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
+fn known_clip(name: &str) -> Option<Rect> {
+    KNOWN_CLIPS
+        .iter()
+        .find(|(file, _)| *file == name)
+        .map(|&(_, [x, y, w, h])| Rect { x, y, w, h })
+}
+
+/// MC-064: every [`KNOWN_CLIPS`] entry whose measured crop is not exactly its
+/// pin, as a row naming both. `got` is `(file, crop or None)` for every marked
+/// entry the test reached. A listed entry not reached at all is reported too.
+fn known_clips_moved(got: &[(String, Option<Rect>)]) -> Vec<String> {
+    KNOWN_CLIPS
+        .iter()
+        .filter_map(|&(file, _)| {
+            let pinned = known_clip(file);
+            match got.iter().find(|(name, _)| name == file) {
+                None => Some(format!(
+                    "{file}: a known clip that is not a marked tuning entry here"
+                )),
+                Some((_, crop)) if *crop == pinned => None,
+                Some((_, crop)) => Some(format!("{file}: crop {crop:?}, pinned {pinned:?}")),
+            }
+        })
+        .collect()
+}
+
 /// AC-5's control: how far in each side a marked rect is pulled to build a
 /// rect that genuinely clips it. Any positive number would do; ten pixels is
 /// far larger than `margin_px` so no expansion can hide it.
@@ -901,15 +949,29 @@ fn no_crop_clips_a_marked_page() {
     let mut clips = Vec::new();
     let mut cropped = 0usize;
     let mut control_missed = Vec::new();
+    let mut got_all: Vec<(String, Option<Rect>)> = Vec::new();
 
     for (entry, rect) in marked() {
         let output = tmp.path().join(entry.name());
         let result = process_file(&entry.path, &output, &t);
+        got_all.push((
+            entry.name(),
+            match &result.outcome {
+                Outcome::Cropped { rect: got, .. } => Some(*got),
+                _ => None,
+            },
+        ));
         let shown = match &result.outcome {
             Outcome::Cropped { rect: got, .. } => {
                 cropped += 1;
                 if contains(*got, rect) {
                     format!("Cropped {},{} {}x{}  contains", got.x, got.y, got.w, got.h)
+                } else if known_clip(&entry.name()).is_some() {
+                    // MC-064: a known clip, held to its pinned crop below.
+                    format!(
+                        "Cropped {},{} {}x{}  CLIPS (KNOWN)",
+                        got.x, got.y, got.w, got.h
+                    )
                 } else {
                     clips.push(format!(
                         "{}: cropped to {},{} {}x{} which does not contain the marked \
@@ -963,14 +1025,24 @@ fn no_crop_clips_a_marked_page() {
          assertion below cannot detect a clip either",
         rows.len()
     );
+    let moved = known_clips_moved(&got_all);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must \
+         still be cropped to exactly its pinned rect - if a fix moves one, take it \
+         off the list and let this test judge it:\n{}\n\n{printed}",
+        moved.join("\n")
+    );
     assert!(
         clips.is_empty(),
         "AC-5: a crop that does not contain the page a person marked is the worst \
          defect this product has, and opening the size gate is what could cause \
-         one. {} of {} cropped entries clip; the first is {}.\n\n{printed}\n\
+         one. {} of {} cropped entries clip besides MC-064's {} known clips; the \
+         first is {}.\n\n{printed}\n\
          all clips:\n{}",
         clips.len(),
         cropped,
+        KNOWN_CLIPS.len(),
         clips[0],
         clips.join("\n")
     );
@@ -1231,13 +1303,18 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
     let mut clips = Vec::new();
     let mut control_missed = Vec::new();
     let mut cropped = 0usize;
+    let mut got_all: Vec<(String, Option<Rect>)> = Vec::new();
 
     for (entry, mark) in marked() {
         let held = |rect: Rect| rect.x <= mark.x && rect.x + rect.w >= mark.x + mark.w;
-        match produced(&entry, &t, &tmp) {
+        let got = produced(&entry, &t, &tmp);
+        got_all.push((entry.name(), got));
+        match got {
             Some(rect) => {
                 cropped += 1;
                 let ok = held(rect);
+                // MC-064: a known clip is held to its pinned crop below instead.
+                let known = known_clip(&entry.name()).is_some();
                 rows.push(format!(
                     "{:<30} {:>13} {:>13} {:>7} {:>7} {:>7}",
                     entry.name(),
@@ -1246,9 +1323,13 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
                     i64::from(mark.x) - i64::from(rect.x),
                     (i64::from(rect.x) + i64::from(rect.w))
                         - (i64::from(mark.x) + i64::from(mark.w)),
-                    if ok { "holds" } else { "CLIPS" }
+                    match (ok, known) {
+                        (true, _) => "holds",
+                        (false, true) => "KNOWN",
+                        (false, false) => "CLIPS",
+                    }
                 ));
-                if !ok {
+                if !ok && !known {
                     clips.push(format!(
                         "{}: cropped to columns {}..{}, which does not contain the \
                          marked {}..{}",
@@ -1307,13 +1388,22 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
          either",
         rows.len()
     );
+    let moved = known_clips_moved(&got_all);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must \
+         still be cropped to exactly its pinned rect - if a fix moves one, take it \
+         off the list and let this test judge it:\n{}\n\n{printed}",
+        moved.join("\n")
+    );
     assert!(
         clips.is_empty(),
         "AC-5: a crop whose left or right edge cuts into the page a person marked \
          is the worst defect this product has, and locating those two edges is \
-         exactly what this story does. {} of {cropped} cropped entries clip; the \
-         first is {}.\n\n{printed}\nall clips:\n{}",
+         exactly what this story does. {} of {cropped} cropped entries clip \
+         besides MC-064's {} known clips; the first is {}.\n\n{printed}\nall clips:\n{}",
         clips.len(),
+        KNOWN_CLIPS.len(),
         clips[0],
         clips.join("\n")
     );

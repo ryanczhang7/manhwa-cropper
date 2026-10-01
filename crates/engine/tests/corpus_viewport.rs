@@ -353,7 +353,15 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// Same provenance, measured on `7c36b5d` (crates unchanged since `d2876f5`)
 /// in MC-062's RED on a scratch copy with the move applied; the same rows
 /// `tests/corpus_viewport_stage.rs` holds. Not originals either.
-const STAGE_MEASURED: [(&str, u32, u32); 22] = [
+///
+/// **MC-064 adds three of its four**, the fresh entries MC-063 read per file,
+/// moved to `tuning` by the user's ruling of 2026-09-30, last in manifest
+/// order. Same provenance, measured on `43e8e61` (crates unchanged since
+/// `d2876f5`) in MC-064's RED on a scratch copy with only the four `split`
+/// values changed. `2025-03-16 22_47_44.png`'s viewport runs to the image's
+/// last row (1440). The fourth, `2025-03-06 12_48_06.png`, is
+/// [`STAGE_DECLINED`]. Not originals either.
+const STAGE_MEASURED: [(&str, u32, u32); 25] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -376,6 +384,49 @@ const STAGE_MEASURED: [(&str, u32, u32); 22] = [
     ("Screenshot (3605).png", 137, 1392),
     ("Screenshot (3606).png", 137, 1392),
     ("Screenshot (3625).png", 137, 1392),
+    ("2025-03-16 22_47_44.png", 115, 1440),
+    ("2025-08-07 01_13_55.png", 115, 1400),
+    ("2025-12-08 17_22_50.png", 167, 1400),
+];
+
+/// MC-064: the marked `tuning` entry on which `viewport::locate`, handed the
+/// pipeline's page column, **declines** - so there are no viewport rows for
+/// [`viewport_entries`]' predicate to judge it by, as there are none for the
+/// two [`WEBPS`]. `2025-03-06 12_48_06.png`, one of the four fresh entries
+/// MC-063 read per file: its page column is `1828,0 717x1440`, the whole
+/// height, beside the art rather than on it, and `locate` returns `None`.
+/// Measured on `43e8e61` in MC-064's RED on a scratch copy with only the four
+/// `split` values changed; `tests/corpus_viewport_stage.rs` asserts the
+/// decline itself, exactly. Its crop is held in
+/// `tests/corpus_tuning_crops_unmoved.rs` and by [`KNOWN_CLIPS`]. Not an
+/// original either.
+const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
+
+/// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
+/// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
+/// finds clipping, `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at
+/// margin_px 0)`, in manifest order. **Measured, not chosen**: one run of
+/// `process_file` on `43e8e61` (release; crates unchanged since `d2876f5`) in
+/// MC-064's RED, on a scratch copy with only the four `split` values changed.
+/// Both clip at margin 3 on a side; at margin 0 that test counts only the
+/// rows, which hold. The third of MC-063's clips, `2025-12-08 17_22_50.png`,
+/// is **not** here: its crop at margin 3 (`1003,167 537x1233`) contains the
+/// mark, and at margin 0 its 2-column clip is on a side, which that test does
+/// not count - so it does not fail this test, and naming it would be an
+/// exception nothing needs. **Exact in both directions**: the test fails if
+/// any other entry clips, and fails if a listed entry's crop is not its pin at
+/// either margin.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 2] = [
+    (
+        "2025-03-06 12_48_06.png",
+        [1825, 0, 723, 1440],
+        [1828, 0, 717, 1440],
+    ),
+    (
+        "2025-08-07 01_13_55.png",
+        [1019, 115, 500, 1285],
+        [1022, 115, 494, 1285],
+    ),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -391,7 +442,7 @@ const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 /// and AC-3 (`tests/corpus_page_column.rs`), not MC-048's or MC-052's, so the
 /// column and whole-rect pins in this file skip them.
 fn is_stage_measured_entry(name: &str) -> bool {
-    STAGE_MEASURED.iter().any(|(file, _, _)| *file == name)
+    STAGE_MEASURED.iter().any(|(file, _, _)| *file == name) || STAGE_DECLINED.contains(&name)
 }
 
 // --- Harness ----------------------------------------------------------------
@@ -489,6 +540,7 @@ fn viewport_entries() -> Vec<(CorpusEntry, Rect, u32, u32)> {
         .map(|(entry, _)| entry.name())
         .filter(|name| !WEBPS.contains(&name.as_str()))
         .filter(|name| !is_reader_window_entry(name))
+        .filter(|name| !STAGE_DECLINED.contains(&name.as_str()))
         .collect();
     let tables: Vec<(&str, u32, u32)> = VIEWPORT.iter().chain(&STAGE_MEASURED).copied().collect();
     assert_eq!(
@@ -498,8 +550,19 @@ fn viewport_entries() -> Vec<(CorpusEntry, Rect, u32, u32)> {
             .map(|(name, _, _)| name.to_string())
             .collect::<Vec<_>>(),
         "VIEWPORT then STAGE_MEASURED must list exactly the marked tuning entries \
-         other than the two WebPs and MC-052's two split-screen shots \
-         (READER_WINDOW), in manifest order"
+         other than the two WebPs, MC-052's two split-screen shots \
+         (READER_WINDOW) and MC-064's STAGE_DECLINED, in manifest order"
+    );
+    // MC-064: STAGE_DECLINED names marked tuning entries, so that a stale name
+    // there cannot quietly shrink the set above.
+    let declined_seen: Vec<&str> = STAGE_DECLINED
+        .into_iter()
+        .filter(|name| marked.iter().any(|(entry, _)| entry.name() == *name))
+        .collect();
+    assert_eq!(
+        declined_seen,
+        STAGE_DECLINED.to_vec(),
+        "MC-064's STAGE_DECLINED must name marked tuning entries"
     );
     marked
         .into_iter()
@@ -659,8 +722,9 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all forty-one: section 4's nineteen, MC-053's three, \
-         MC-056's three and MC-062's sixteen"
+        "the control must see all forty-four: section 4's nineteen, MC-053's three, \
+         MC-056's three, MC-062's sixteen and three of MC-064's four (the fourth is \
+         STAGE_DECLINED)"
     );
     assert_eq!(
         not_cropped,
@@ -946,8 +1010,16 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // KNOWN_NOT_CROPPED at both margins below. Before MC-056 it was a clip;
     // any entry other than the known exception still fails, on that comparison.
     let mut not_cropped: Vec<(String, u32)> = Vec::new();
+    // MC-064: each KNOWN_CLIPS entry's crop at each margin, `(file, margin_px,
+    // crop)`, compared with its pins below.
+    let mut known_got: Vec<(String, u32, Option<Rect>)> = Vec::new();
     for t in both_margins() {
         for (entry, mark) in &entries {
+            let known = KNOWN_CLIPS.iter().any(|(file, _, _)| *file == entry.name());
+            if known {
+                known_got.push((entry.name(), t.margin_px, crop_at(entry, &tmp, &t).ok()));
+                continue;
+            }
             match crop_at(entry, &tmp, &t) {
                 Ok(rect) => {
                     let (top, bottom) = row_cuts(rect, *mark);
@@ -991,15 +1063,34 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        45,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 45 marked tuning entries \
+        49,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 49 marked tuning entries \
          (23 until MC-053 moved three, 26 until MC-056 moved three more, 29 until \
-         MC-062 moved the 16 marked among the 23 spent held-out entries)"
+         MC-062 moved the 16 marked among the 23 spent held-out entries, 45 until \
+         MC-064 moved four)"
+    );
+    // MC-064: the known clips, each at its pinned crop at both margins.
+    let known_want: Vec<(String, u32, Option<Rect>)> = both_margins()
+        .iter()
+        .flat_map(|t| {
+            KNOWN_CLIPS.map(|(name, m3, m0)| {
+                let [x, y, w, h] = if t.margin_px == 3 { m3 } else { m0 };
+                (name.to_string(), t.margin_px, Some(Rect { x, y, w, h }))
+            })
+        })
+        .collect();
+    assert_eq!(
+        known_got, known_want,
+        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must be a \
+         marked tuning entry still cropped to exactly its pin at both margins - if a fix \
+         moves one, take it off the list and let this test judge it. `(file, margin_px, \
+         crop)`, `left` measured"
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 45 marked tuning entries at \
-         both margins (top and bottom only at margin 0). {} clip:\n{}",
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 49 marked tuning entries at \
+         both margins (top and bottom only at margin 0), besides MC-064's known clips \
+         (KNOWN_CLIPS). {} clip:\n{}",
         clips.len(),
         clips.join("\n")
     );
