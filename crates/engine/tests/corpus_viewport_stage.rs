@@ -114,7 +114,17 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// `d2876f5`), read out of one run in MC-064's RED on a scratch copy with only
 /// the four `split` values changed - not chosen. On the fourth the stage
 /// declines: [`STAGE_DECLINED`].
-const STAGE_MEASURED: [(&str, u32, u32); 25] = [
+///
+/// **MC-066 re-measures `2025-03-16 22_47_44.png` (`f13`) and adds `2025-03-06
+/// 12_48_06.png` (`f18`)**, off [`STAGE_DECLINED`]. Their rows are **forced by
+/// MC-066's criteria, not measured or chosen**: each crop's rows must be exactly
+/// its furniture rows (MC-063's frozen oracle: `f18` 115..1399, `f13`
+/// 115..1392) at margins 0 and 3 (MC-066 AC-1, AC-2), and
+/// `corpus_sides.rs::the_top_and_bottom_edges_move_by_exactly_the_margin_change`
+/// (unloosened, MC-066 AC-3) allows that only where `locate`, beside the page
+/// column composed as here, returns exactly those rows - an uncut side moves
+/// by the margin.
+const STAGE_MEASURED: [(&str, u32, u32); 26] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -137,7 +147,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 25] = [
     ("Screenshot (3605).png", 137, 1392),
     ("Screenshot (3606).png", 137, 1392),
     ("Screenshot (3625).png", 137, 1392),
-    ("2025-03-16 22_47_44.png", 115, 1440),
+    ("2025-03-06 12_48_06.png", 115, 1399),
+    ("2025-03-16 22_47_44.png", 115, 1392),
     ("2025-08-07 01_13_55.png", 115, 1400),
     ("2025-12-08 17_22_50.png", 167, 1400),
 ];
@@ -150,7 +161,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 25] = [
 /// height. Section 4 never saw it, so it is not one of [`DECLINES`], which
 /// claims to be section 5e's. **Exact**: this readout fails if the stage
 /// locates a viewport on it, and fails if it is not a marked `tuning` entry.
-const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
+///
+/// MC-066 took it off (its AC-1, AC-3): [`STAGE_MEASURED`] holds the rows the
+/// stage must locate beside its page column now. The list is empty, and stays
+/// exact.
+const STAGE_DECLINED: [&str; 0] = [];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
@@ -290,10 +305,11 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     );
     assert!(
         stage_moved.is_empty(),
-        "MC-053 / MC-056 / MC-062 / MC-064: on its twenty-five the stage must keep the \
-         rows it located on c004d96 (MC-053's), c3fee28 (MC-056's), 7c36b5d (MC-062's) \
-         and 43e8e61 (MC-064's) (STAGE_MEASURED), and must still decline where it \
-         declined on 43e8e61 (STAGE_DECLINED).\n{}\n\n{printed}",
+        "MC-053 / MC-056 / MC-062 / MC-064 / MC-066: on its twenty-six the stage must keep \
+         the rows it located on c004d96 (MC-053's), c3fee28 (MC-056's), 7c36b5d \
+         (MC-062's) and 43e8e61 (MC-064's), and locate the rows MC-066's criteria force \
+         on f18 and f13 (STAGE_MEASURED), and must still decline where it declined \
+         (STAGE_DECLINED).\n{}\n\n{printed}",
         stage_moved.join("\n")
     );
     assert!(

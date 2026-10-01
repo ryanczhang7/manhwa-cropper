@@ -130,18 +130,19 @@ const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 /// judge it like every other entry, so its crop may carry no page background
 /// either. `f09` (`2025-12-08 17_22_50.png`) stays at its MC-064 pin for
 /// MC-067 (MC-065 `## Amendments`, 2026-10-01).
-const MC064_CROPS: [(&str, [u32; 4]); 3] = [
-    ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
-    ("2025-03-16 22_47_44.png", [635, 115, 1922, 1285]),
-    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
-];
+///
+/// MC-066 took `f18` (`2025-03-06 12_48_06.png`) and `f13` (`2025-03-16
+/// 22_47_44.png`) off this list, off [`KNOWN_CLIPS`] and off
+/// [`KNOWN_BACKGROUND_SIDES`] (its AC-1 to AC-3): their crops are the reader's
+/// window now, and AC-1 and AC-2 here judge them like every other entry.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-12-08 17_22_50.png", [1006, 167, 531, 1233])];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
 /// not contain the mark. **Exact in both directions**: AC-2 fails if any
 /// other crop clips, and fails if a listed entry's crop is not its pin.
-/// MC-065 took `f20` off; `f18` stays for MC-066 and `f09` for MC-067.
-const KNOWN_CLIPS: [&str; 2] = ["2025-03-06 12_48_06.png", "2025-12-08 17_22_50.png"];
+/// MC-065 took `f20` off and MC-066 took `f18` off; `f09` stays for MC-067.
+const KNOWN_CLIPS: [&str; 1] = ["2025-12-08 17_22_50.png"];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
@@ -150,7 +151,11 @@ const KNOWN_CLIPS: [&str; 2] = ["2025-03-06 12_48_06.png", "2025-12-08 17_22_50.
 /// in MC-064's RED, 1 of 98 sides. **Exact in both directions**:
 /// AC-1 fails if any other side carries page background, if this one stops
 /// doing so, or if the entry's crop is not its pin in [`MC064_CROPS`].
-const KNOWN_BACKGROUND_SIDES: [(&str, &str); 1] = [("2025-03-16 22_47_44.png", "right")];
+///
+/// MC-066 took `f13` off (its AC-2 and AC-3): its crop ends inside the
+/// reader's window, and AC-1 judges its sides like every other entry's. The
+/// list is empty, and stays exact in both directions.
+const KNOWN_BACKGROUND_SIDES: [(&str, &str); 0] = [];
 
 /// MC-064: every one of `names` whose crop in `got` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `got` is `(file, crop or None)` for
