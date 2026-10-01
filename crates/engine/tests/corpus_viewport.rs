@@ -416,18 +416,15 @@ const STAGE_DECLINED: [&str; 1] = ["2025-03-06 12_48_06.png"];
 /// exception nothing needs. **Exact in both directions**: the test fails if
 /// any other entry clips, and fails if a listed entry's crop is not its pin at
 /// either margin.
-const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 2] = [
-    (
-        "2025-03-06 12_48_06.png",
-        [1825, 0, 723, 1440],
-        [1828, 0, 717, 1440],
-    ),
-    (
-        "2025-08-07 01_13_55.png",
-        [1019, 115, 500, 1285],
-        [1022, 115, 494, 1285],
-    ),
-];
+///
+/// MC-065 took `2025-08-07 01_13_55.png` (`f20`) off (its AC-2): with its
+/// right edge fixed, this test judges it like every other entry. `f18` stays
+/// for MC-066.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 1] = [(
+    "2025-03-06 12_48_06.png",
+    [1825, 0, 723, 1440],
+    [1828, 0, 717, 1440],
+)];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped at either margin -

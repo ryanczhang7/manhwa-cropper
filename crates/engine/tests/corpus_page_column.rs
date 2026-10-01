@@ -151,20 +151,6 @@ const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 1] = [(
     [635, 115, 1922, 1285],
 )];
 
-/// MC-064, the user's ruling of 2026-09-30 (*"Known exception"*, put to the
-/// user because this story's `## Out of scope` forbids correcting a mark): the
-/// mark edges of MC-064's four that the metric control reads as page
-/// background, `(file, side)`. `2025-08-07 01_13_55.png`'s right edge, column
-/// 1521, has share 0.988 (measured in MC-064's RED on a scratch copy with the
-/// move applied), against [`PAGE_BACKGROUND_SHARE`]: either the box runs a few
-/// columns into the page or the app is wrong, and MC-065 decides which and
-/// clears it either way. **Not** one of [`MC049_MARK_ERRORS`] (marks a story
-/// corrected) or [`RULED_ART_EDGES`] (edges the user ruled art after a
-/// close-up): nobody has looked at this one. **Exact in both directions**: the
-/// metric control fails if any other edge reads as background, and fails if
-/// this one stops reading so.
-const MC064_BACKGROUND_EDGES: [(&str, Side); 1] = [("2025-08-07 01_13_55.png", Side::Right)];
-
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 3): the mark
 /// edges the user ruled **art** after a close-up although the predicate reads
 /// them as page background, `(file, side)`. `2025-07-17 14_20_23.png`'s mark
@@ -173,7 +159,17 @@ const MC064_BACKGROUND_EDGES: [(&str, Side); 1] = [("2025-08-07 01_13_55.png", S
 /// predicate reads it as background (share 1.000 in MC-056's RED). **Exact in
 /// both directions**: the metric control fails if any other edge outside
 /// MC-049's seven reads as background, and fails if this one stops reading so.
-const RULED_ART_EDGES: [(&str, Side); 1] = [("2025-07-17 14_20_23.png", Side::Left)];
+///
+/// MC-065 adds `2025-08-07 01_13_55.png`'s right edge (`f20`), by the user's
+/// ruling of 2026-09-30 (*"agreed, box stands"*, MC-065 `## Notes`): column
+/// 1521 is the page's own white paper, one flat shade (share 0.988 in MC-064's
+/// RED), and the site's dark background starts at 1522. It was MC-064's
+/// `MC064_BACKGROUND_EDGES`, the list for an edge nobody had looked at; that
+/// list held only this edge, and MC-065 AC-2 deletes it.
+const RULED_ART_EDGES: [(&str, Side); 2] = [
+    ("2025-07-17 14_20_23.png", Side::Left),
+    ("2025-08-07 01_13_55.png", Side::Right),
+];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped - the detector flags
@@ -900,14 +896,6 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .iter()
         .filter(|(name, side)| !MC049_MARK_ERRORS.contains(&(name.as_str(), *side)))
         .filter(|(name, side)| !RULED_ART_EDGES.contains(&(name.as_str(), *side)))
-        .filter(|(name, side)| !MC064_BACKGROUND_EDGES.contains(&(name.as_str(), *side)))
-        .collect();
-    // MC-064: the other direction for its known edge. It must still read as
-    // page background; one that stops is a stale exception.
-    let mc064_read: Vec<(&str, Side)> = exceptions
-        .iter()
-        .map(|(name, side)| (name.as_str(), *side))
-        .filter(|edge| MC064_BACKGROUND_EDGES.contains(edge))
         .collect();
     // MC-056: the other direction for the edges the user ruled art. Each must
     // still read as page background; one that stops is a stale exception.
@@ -923,14 +911,6 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
          29 until MC-062 moved sixteen, 45 until MC-064 moved four)"
     );
     assert_eq!(
-        mc064_read,
-        MC064_BACKGROUND_EDGES.to_vec(),
-        "MC-064: every known mark edge of its four that reads as page background \
-         (MC064_BACKGROUND_EDGES, the user's ruling of 2026-09-30) must still read so \
-         here - if one no longer does, the exception is stale and must be removed. \
-         `left` is measured.\n\n{printed}"
-    );
-    assert_eq!(
         ruled_art_read,
         RULED_ART_EDGES.to_vec(),
         "MC-056: every mark edge the user ruled art (RULED_ART_EDGES) must still read \
@@ -943,8 +923,7 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
          are art, so the predicate must call both not page background on at least \
          {METRIC_CONTROL_REQUIRED} of {} entries (it did on {ok}), and may call a \
          mark edge background only on MC-049's seven mark errors, the edges the \
-         user ruled art (RULED_ART_EDGES, MC-056) and MC-064's known edge \
-         (MC064_BACKGROUND_EDGES) (it also did on \
+         user ruled art (RULED_ART_EDGES, MC-056 and MC-065) (it also did on \
          {unexplained:?}).\n\n{printed}",
         entries.len()
     );

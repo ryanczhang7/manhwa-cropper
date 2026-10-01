@@ -155,15 +155,17 @@ const MIN_ENTRIES: usize = 20;
 /// scrollbar (right loose by 1381 px beyond the band). Each is held to its
 /// measured crop by [`MC064_CROPS`]. Over the 63 `tuning` entries after MC-064
 /// the bar still reads 53 of 55.
-const KNOWN_MISSES: [&str; 8] = [
+///
+/// **MC-065 takes two off** (its AC-1 and AC-2): `2025-08-07 01_13_55.png`
+/// (`f20`) and `2025-12-08 17_22_50.png` (`f09`), whose right edges it fixes.
+/// They count toward the bar again. `f13` and `f18` stay for MC-066.
+const KNOWN_MISSES: [&str; 6] = [
     "2025-02-27 22_46_15.png",
     "2025-03-03 11_00_13.png",
     "2025-05-12 20_48_42.png",
     "2025-07-17 14_20_23.png",
     "2025-03-06 12_48_06.png",
     "2025-03-16 22_47_44.png",
-    "2025-08-07 01_13_55.png",
-    "2025-12-08 17_22_50.png",
 ];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
@@ -174,22 +176,21 @@ const KNOWN_MISSES: [&str; 8] = [
 /// MC-064 exceptions - [`KNOWN_CLIPS`] in AC-1 and the four in
 /// [`KNOWN_MISSES`] in AC-2 - hold each entry to exactly this crop, so a fix
 /// that moves one has to take it off both lists.
-const MC064_CROPS: [(&str, [u32; 4]); 4] = [
+///
+/// MC-065 took `f20` (`2025-08-07 01_13_55.png`) and `f09`
+/// (`2025-12-08 17_22_50.png`) off this list and off both of those (its AC-1
+/// and AC-2).
+const MC064_CROPS: [(&str, [u32; 4]); 2] = [
     ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
     ("2025-03-16 22_47_44.png", [635, 115, 1922, 1285]),
-    ("2025-08-07 01_13_55.png", [1022, 115, 494, 1285]),
-    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
 ];
 
-/// MC-064, the user's ruling of 2026-09-30: the three of [`MC064_CROPS`] whose
-/// crop clips the mark, AC-1's only known exceptions. **Exact in both
+/// MC-064, the user's ruling of 2026-09-30: the [`MC064_CROPS`] entry whose
+/// crop clips the mark, AC-1's only known exception. **Exact in both
 /// directions**: AC-1 fails if any other crop clips, and fails if a listed
-/// entry's crop is anything but its pin in [`MC064_CROPS`].
-const KNOWN_CLIPS: [&str; 3] = [
-    "2025-03-06 12_48_06.png",
-    "2025-08-07 01_13_55.png",
-    "2025-12-08 17_22_50.png",
-];
+/// entry's crop is anything but its pin in [`MC064_CROPS`]. MC-065 took
+/// `f20` and `f09` off; `f18` stays for MC-066.
+const KNOWN_CLIPS: [&str; 1] = ["2025-03-06 12_48_06.png"];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
