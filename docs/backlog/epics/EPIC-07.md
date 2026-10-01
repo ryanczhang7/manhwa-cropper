@@ -369,8 +369,8 @@ only one that can start.
 
    **Real-use `Ambiguous` answers: [MC-069](../stories/MC-069.md)** — *fix*,
    `depends_on: [MC-068]`. 14 screenshots the app left uncropped when the
-   user ran it (Screenshots 14 to 58 of one `manhwaclan` session, and
-   `Screenshot (2705).png`) go into `tuning`, marked by the user, and must
+   user ran it (Screenshots 14 to 58, `toongod` and `demonicrevolution`, and
+   `Screenshot (2705).png`, `toongod`) go into `tuning`, marked by the user, and must
    crop. Kept out of the held-out set because they were chosen by failing.
 
 ## Deliberately not in this epic
