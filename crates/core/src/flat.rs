@@ -226,15 +226,24 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 // column is page margin. A column is **margin**, and the widening stops, on
 // the first of these that holds:
 //
-// 1. **Its tone is the margin's and not the page's.** Its median over the
-//    band lies within `uniform_tolerance` of the page background tone, as
-//    the viewport stage reads that tone (`viewport::page_background_tone`,
-//    MC-048's instrument), and *not* within `uniform_tolerance` of the column
-//    just inside it. This is the column where the page's own tone has already
-//    handed over to the margin's: the resampled edge of a bright page on a
-//    dark margin, the near-flat grey columns MC-049 names on
-//    `Screenshot (3538).png`, which are not page background by MC-049's
-//    predicate and must still not be taken.
+// 1. **It is page background at the margin's tone, not the page's.** It is
+//    page background over the band (MC-049's predicate), its median there
+//    lies within `uniform_tolerance` of the page background tone, as the
+//    viewport stage reads that tone (`viewport::page_background_tone`,
+//    MC-048's instrument), and it is *not* within `uniform_tolerance` of the
+//    column just inside it. This is the column where the page's own tone has
+//    already handed over to the margin's.
+//
+//    A column near the margin's tone that is **not** page background is not
+//    taken here (MC-067). Up to MC-067 this branch read the tone alone, and
+//    so cut the dark, row-varying outer edge of art beside a site of similar
+//    brightness: `2025-12-08 17_22_50.png` lost its last 2 columns of art,
+//    whose inner column has band median 15 against a tone of 11 but holds
+//    the site's value on only about half its rows. Such a column falls to
+//    branch 2 and is page. The same rule keeps the 2-column fringe on each
+//    side of `Screenshot (3538).png`, which MC-053 had ruled out; the user
+//    ruled on 2026-10-01 that 3538's crop grows by that fringe (MC-067), so
+//    one luma rule holds both.
 // 2. Otherwise, a column that is **not page background over the band** -
 //    MC-049's predicate: under 95 % of its pixels within `uniform_tolerance`
 //    of its own median - is page, whatever its spread. That is the story's
@@ -516,8 +525,8 @@ impl Margin<'_> {
         let at_tone = self
             .tone
             .is_some_and(|tone| median.abs_diff(tone) <= self.tol);
-        // 1. The margin's tone and not the page's.
-        if at_tone && !continues {
+        // 1. Page background at the margin's tone and not the page's.
+        if at_tone && !continues && background {
             return None;
         }
         // 2. Not page background over the band.
