@@ -218,11 +218,21 @@ const BAND_PAST_THE_CLIFF: f32 = 0.005;
 /// moved to `tuning`, `Screenshot (56).png` (threshold 0.00265363, now the
 /// binding entry) and `Screenshot (59).png` (0.00349161) - recorded on the
 /// user's ruling of 2026-09-30 ("Record it"). `ambiguity_band` is unchanged.
-const AMBIGUOUS_PAST_THE_CLIFF: [&str; 4] = [
+///
+/// **MC-068 adds one**, `Screenshot (9).png`, one of the 21 spent fresh
+/// entries MC-068 moved to `tuning`: it turns ambiguous at the band
+/// 0.00474861, bisected in MC-068's RED on `345a9eb` with the move applied by
+/// the method that reproduces the three recorded values to the eighth place
+/// (`(56)` 0.00265363, `(59)` 0.00349161, `13_45_59` 0.00324973). That is
+/// above `(56)`'s, so the binding entry, the window and the 1.06x are
+/// unchanged; this is a read-out of a newly-`tuning` entry, not a move of the
+/// cliff. None of the other 20 turns ambiguous at 0.005.
+const AMBIGUOUS_PAST_THE_CLIFF: [&str; 5] = [
     "2026-01-05 13_45_59.png",
     "2026-01-05 13_49_39.png",
     "Screenshot (56).png",
     "Screenshot (59).png",
+    "Screenshot (9).png",
 ];
 
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 2): the one
@@ -632,7 +642,8 @@ fn no_marked_page_is_reported_ambiguous() {
 /// corpus at 0.005 - past the bisected cliff, 0.00265363 since MC-062
 /// (0.00324973 before) - and pins exactly which entries become ambiguous again
 /// there: [`AMBIGUOUS_PAST_THE_CLIFF`], four since MC-062 (the user's ruling of
-/// 2026-09-30, "Record it"; renamed from `the_two_pages_...`).
+/// 2026-09-30, "Record it"; renamed from `the_two_pages_...`), five since
+/// MC-068 (`Screenshot (9).png`, above the binding threshold).
 ///
 /// So the band is not "somewhere below 0.05": it is immediately below a real
 /// boundary on real files, and a band raised even to 0.005 breaks AC-2.
@@ -705,7 +716,8 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
          above the chosen band. The lowest of these entries' offending strips sits \
          0.00265363 below chrome_flat_fraction (Screenshot (56).png, recorded by \
          MC-062 on the user's ruling of 2026-09-30; 0.0032497 before), which is \
-         the measured ceiling the band sits under, 1.06x above it. If this list is \
+         the measured ceiling the band sits under, 1.06x above it; MC-068's \
+         Screenshot (9).png turns at 0.00474861, above it. If this list is \
          empty the feature is gone; if it changes the cliff has moved and the \
          derivation needs re-measuring. `left` is measured.\n\n{printed}"
     );
