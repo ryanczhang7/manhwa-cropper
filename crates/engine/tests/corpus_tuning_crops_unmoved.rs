@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 69] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 83] = [
     (
         "2025-08-05 00_11_13.webp",
         [950, 15, 646, 1425],
@@ -177,8 +177,9 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 69] = [
     // unchanged since `d2876f5`) in MC-056's RED, on a scratch copy with the
     // move applied. Measured, never chosen. The third, `2025-07-17
     // 14_20_23.png`, is not cropped at either margin (`Flagged
-    // Detector(Ambiguous)`), which a row of this table cannot say; it is named
-    // in KNOWN_NOT_CROPPED below (MC-056's AC-4, as amended).
+    // Detector(Ambiguous)`), which a row of this table cannot say; it was named
+    // in KNOWN_NOT_CROPPED below (MC-056's AC-4, as amended) until MC-069,
+    // which crops it and gives it a row at the end of this table.
     (
         "2025-08-03 11_27_49.png",
         [1003, 115, 539, 1285],
@@ -465,6 +466,91 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 69] = [
         [1070, 133, 406, 1259],
         [1073, 133, 400, 1259],
     ),
+    //
+    // MC-069: `2025-07-17 14_20_23.png` (MC-056's known `Ambiguous` entry,
+    // until MC-069 in KNOWN_NOT_CROPPED below) and the 13 of MC-069's 14
+    // reported screenshots whose close call is the browser scrollbar, outside
+    // the crop. `process_file` flags all 14 on `main`, so these rows are not
+    // `process_file`'s crop there: they are `cropper_core::detect(..).rect` at
+    // margin_px 3 and 0, read out of one run on `afeaf3b` (release) in
+    // MC-069's RED, on the corpus with MC-069's entries added. That is the rect
+    // `decide` crops to whenever it crops (`CropDecision::Crop` carries
+    // `detect`'s rect, never a recomputed one), and MC-069 changes only whether
+    // it crops, never the rect - so after MC-069 these are `process_file`'s
+    // crops, and the rows pin that the fix moved no rect. Measured, never
+    // chosen. Each contains its mark at both margins; on 12 of the 13 the
+    // margin-0 crop is the mark itself, and on `(48)` it is one row taller at
+    // the top (167 against the mark's 168).
+    (
+        "2025-07-17 14_20_23.png",
+        [959, 167, 627, 1233],
+        [962, 167, 621, 1233],
+    ),
+    (
+        "Screenshot (14).png",
+        [1136, 167, 273, 1225],
+        [1139, 167, 267, 1225],
+    ),
+    (
+        "Screenshot (19).png",
+        [1136, 167, 273, 1225],
+        [1139, 167, 267, 1225],
+    ),
+    (
+        "Screenshot (20).png",
+        [1136, 167, 273, 1225],
+        [1139, 167, 267, 1225],
+    ),
+    (
+        "Screenshot (23).png",
+        [1136, 167, 273, 1225],
+        [1139, 167, 267, 1225],
+    ),
+    (
+        "Screenshot (42).png",
+        [1070, 167, 406, 1225],
+        [1073, 167, 400, 1225],
+    ),
+    (
+        "Screenshot (48).png",
+        [1036, 167, 473, 1225],
+        [1039, 167, 467, 1225],
+    ),
+    (
+        "Screenshot (49).png",
+        [1036, 167, 473, 1225],
+        [1039, 167, 467, 1225],
+    ),
+    (
+        "Screenshot (50).png",
+        [1036, 167, 473, 1225],
+        [1039, 167, 467, 1225],
+    ),
+    (
+        "Screenshot (51).png",
+        [990, 167, 566, 1225],
+        [993, 167, 560, 1225],
+    ),
+    (
+        "Screenshot (52).png",
+        [1036, 167, 473, 1225],
+        [1039, 167, 467, 1225],
+    ),
+    (
+        "Screenshot (53).png",
+        [1000, 167, 546, 1225],
+        [1003, 167, 540, 1225],
+    ),
+    (
+        "Screenshot (57).png",
+        [1030, 167, 485, 1225],
+        [1033, 167, 479, 1225],
+    ),
+    (
+        "Screenshot (58).png",
+        [1030, 167, 486, 1225],
+        [1033, 167, 480, 1225],
+    ),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -474,7 +560,12 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 69] = [
 /// other marked `tuning` entry is not cropped at either margin, and fails if
 /// this one is cropped at either, so the story that fixes it has to move it
 /// from this list into [`MAIN_CROPS`] with the crop it then measures.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+///
+/// **MC-069** did that for `2025-07-17 14_20_23.png`, and named
+/// `Screenshot (2705).png` here instead (MC-069 AC-3, the user's answer of
+/// 2026-10-01, "Its own story"): its close call is inside its crop, so it
+/// stays `Flagged Detector(Ambiguous)` at both margins until MC-070.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
 
 /// MC-066 AC-3: MC-052's two split-screen entries, named. They are the other
 /// split screens on the corpus - the same reader beside a second window, on

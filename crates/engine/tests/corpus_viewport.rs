@@ -383,7 +383,14 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// `345a9eb` (release) in MC-068's RED on a scratch copy with the move
 /// applied - the same rows `tests/corpus_viewport_stage.rs` holds. The stage
 /// locates a viewport on all 21. Not originals either.
-const STAGE_MEASURED: [(&str, u32, u32); 47] = [
+///
+/// **MC-069 adds its 14**, the screenshots the user's run of the app
+/// answered `Ambiguous` on, last in manifest order. Same provenance: what
+/// `viewport::locate` returns beside the pipeline's page column on `afeaf3b`
+/// (release), read out of one run in MC-069's RED with the 14 added - the
+/// same rows `tests/corpus_viewport_stage.rs` holds. The stage locates a
+/// viewport on all 14. Not originals either.
+const STAGE_MEASURED: [(&str, u32, u32); 61] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -432,6 +439,21 @@ const STAGE_MEASURED: [(&str, u32, u32); 47] = [
     ("Screenshot (2461).png", 133, 1392),
     ("Screenshot (2486).png", 133, 1392),
     ("Screenshot (2669).png", 133, 1392),
+    // MC-069's 14, last in manifest order (see the doc comment).
+    ("Screenshot (14).png", 167, 1392),
+    ("Screenshot (19).png", 167, 1392),
+    ("Screenshot (20).png", 167, 1392),
+    ("Screenshot (23).png", 167, 1392),
+    ("Screenshot (42).png", 167, 1392),
+    ("Screenshot (48).png", 167, 1392),
+    ("Screenshot (49).png", 167, 1392),
+    ("Screenshot (50).png", 167, 1392),
+    ("Screenshot (51).png", 167, 1392),
+    ("Screenshot (52).png", 167, 1392),
+    ("Screenshot (53).png", 167, 1392),
+    ("Screenshot (57).png", 167, 1392),
+    ("Screenshot (58).png", 167, 1392),
+    ("Screenshot (2705).png", 133, 1392),
 ];
 
 /// MC-064: the marked `tuning` entry on which `viewport::locate`, handed the
@@ -481,7 +503,13 @@ const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 /// both directions**: each fails if any other entry it reads is not cropped,
 /// and fails if this one is cropped, so the story that fixes it has to empty
 /// this list.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+///
+/// **MC-069 swaps it** (its AC-3 and AC-4, the user's answers of 2026-10-01):
+/// `2025-07-17 14_20_23.png` crops now - its close call is the browser
+/// scrollbar, outside its crop - and is judged like every other entry, and
+/// `Screenshot (2705).png`, whose close call lies inside its crop, is the
+/// known exception until MC-070.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
 
 /// Whether `name` is one of MC-053's three. Their columns are MC-053's AC-1
 /// and AC-3 (`tests/corpus_page_column.rs`), not MC-048's or MC-052's, so the
@@ -767,9 +795,9 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all sixty-six: section 4's nineteen, MC-053's three, \
+        "the control must see all eighty: section 4's nineteen, MC-053's three, \
          MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
-         off STAGE_DECLINED) and MC-068's 21"
+         off STAGE_DECLINED), MC-068's 21 and MC-069's 14"
     );
     assert_eq!(
         not_cropped,
@@ -1108,11 +1136,11 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        70,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 70 marked tuning entries \
+        84,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 84 marked tuning entries \
          (23 until MC-053 moved three, 26 until MC-056 moved three more, 29 until \
          MC-062 moved the 16 marked among the 23 spent held-out entries, 45 until \
-         MC-064 moved four, 49 until MC-068 moved 21)"
+         MC-064 moved four, 49 until MC-068 moved 21, 70 until MC-069 added 14)"
     );
     // MC-064: the known clips, each at its pinned crop at both margins.
     let known_want: Vec<(String, u32, Option<Rect>)> = both_margins()

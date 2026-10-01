@@ -123,7 +123,13 @@ const MARGIN_BEFORE_MC049: u32 = 3;
 /// directions**: AC-1 fails if any other marked `tuning` entry is not cropped,
 /// and fails if this one is cropped, so the story that fixes it has to empty
 /// this list.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+///
+/// **MC-069 swaps it** (its AC-3 and AC-4, the user's answers of 2026-10-01):
+/// `2025-07-17 14_20_23.png` crops now - its close call is the browser
+/// scrollbar, outside its crop - and is judged like every other entry, and
+/// `Screenshot (2705).png`, whose close call lies inside its crop, is the
+/// known exception until MC-070.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
 /// of each of the four fresh entries MC-063 read per file, `(file, [x, y, w,

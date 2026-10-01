@@ -1309,7 +1309,10 @@ fn no_held_out_reader_is_absent_from_both_the_pre_epic_07_set_and_tuning() {
 /// same way, by the user's answer of 2026-09-30. Sixty-three since MC-064,
 /// which moved the four fresh entries MC-063 read per file. Eighty-four since
 /// MC-068, which moved the other 21 of MC-062's fresh draw once it was spent.
-const READER_BY_FILE: [(&str, &str); 84] = [
+/// Ninety-eight since MC-069, which adds the 14 screenshots the app called
+/// `Ambiguous` in the user's run, with the readers the user named on MC-069's
+/// marking page.
+const READER_BY_FILE: [(&str, &str); 98] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1414,6 +1417,23 @@ const READER_BY_FILE: [(&str, &str); 84] = [
     ("Screenshot (2461).png", "demonicrevolution"),
     ("Screenshot (2486).png", "demonicrevolution"),
     ("Screenshot (2669).png", "toongod"),
+    // MC-069: the 14 screenshots the user's run answered `Ambiguous` on,
+    // added to `tuning` (MC-069 AC-1), with the readers the user named when
+    // marking them (MC-069 `## Notes`, frozen 2026-10-01).
+    ("Screenshot (14).png", "toongod"),
+    ("Screenshot (19).png", "toongod"),
+    ("Screenshot (20).png", "toongod"),
+    ("Screenshot (23).png", "toongod"),
+    ("Screenshot (42).png", "toongod"),
+    ("Screenshot (48).png", "demonicrevolution"),
+    ("Screenshot (49).png", "demonicrevolution"),
+    ("Screenshot (50).png", "demonicrevolution"),
+    ("Screenshot (51).png", "demonicrevolution"),
+    ("Screenshot (52).png", "demonicrevolution"),
+    ("Screenshot (53).png", "demonicrevolution"),
+    ("Screenshot (57).png", "demonicrevolution"),
+    ("Screenshot (58).png", "demonicrevolution"),
+    ("Screenshot (2705).png", "toongod"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1492,10 +1512,18 @@ const READER_BY_FILE: [(&str, &str); 84] = [
 /// `6, 6, 0, 3`. `kunmanga` and `manhwaclan` do not move; `w-network` leaves
 /// the held-out set. No reader is re-attributed. Sums: `tuning` 84 (70 marked,
 /// 14 flag), `held-out` 15.
+///
+/// **MC-069, 2026-10-01.** The 14 screenshots the app called `Ambiguous`
+/// arrive in `tuning`, all marked: `toongod` 6 (`(14)`, `(19)`, `(20)`,
+/// `(23)`, `(42)`, `(2705)`) and `demonicrevolution` 8 (`(48)` to `(58)`).
+/// `toongod` goes from `39, 32, 7, 7` to `45, 38, 7, 7` and
+/// `demonicrevolution` from `7, 7, 0, 1` to `15, 15, 0, 1`; no other row moves,
+/// and no reader is re-attributed. Sums: `tuning` 98 (84 marked, 14 flag),
+/// `held-out` 15.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 39, 32, 7, 7),
+    ("toongod", 45, 38, 7, 7),
     ("w-network", 12, 6, 6, 0),
-    ("demonicrevolution", 7, 7, 0, 1),
+    ("demonicrevolution", 15, 15, 0, 1),
     ("rolia-scans", 14, 13, 1, 4),
     ("kunmanga", 4, 4, 0, 0),
     ("xbato", 6, 6, 0, 3),
@@ -1549,7 +1577,11 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// **MC-068 moves no mark.** It adds the other 21 of MC-062's fresh draw, with
 /// the marks [`MC062_DRAW`] freezes for them, and pins its own 15 fresh marks
 /// in [`FRESH_HELD_OUT`].
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 70] = [
+///
+/// **MC-069 moves no mark.** It adds its 14 reported screenshots with the
+/// marks [`MC069_REPORTED`] freezes for them (`Screenshot (42).png` as
+/// amended there).
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 84] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1003, 188, 540, 1138),
@@ -1650,6 +1682,23 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 70] = [
     ("Screenshot (2461).png", 1010, 133, 534, 1259),
     ("Screenshot (2486).png", 1078, 133, 400, 1259),
     ("Screenshot (2669).png", 1073, 133, 400, 1259),
+    // MC-069: the 14 screenshots the app called `Ambiguous`, with the marks
+    // the user froze on 2026-10-01 (MC069_REPORTED's rows), `(42)` as amended
+    // from `1073,166 400x1226`.
+    ("Screenshot (14).png", 1139, 167, 267, 1225),
+    ("Screenshot (19).png", 1139, 167, 267, 1225),
+    ("Screenshot (20).png", 1139, 167, 267, 1225),
+    ("Screenshot (23).png", 1139, 167, 267, 1225),
+    ("Screenshot (42).png", 1073, 167, 400, 1225),
+    ("Screenshot (48).png", 1039, 168, 467, 1224),
+    ("Screenshot (49).png", 1039, 167, 467, 1225),
+    ("Screenshot (50).png", 1039, 167, 467, 1225),
+    ("Screenshot (51).png", 993, 167, 560, 1225),
+    ("Screenshot (52).png", 1039, 167, 467, 1225),
+    ("Screenshot (53).png", 1003, 167, 540, 1225),
+    ("Screenshot (57).png", 1033, 167, 479, 1225),
+    ("Screenshot (58).png", 1033, 167, 480, 1225),
+    ("Screenshot (2705).png", 1073, 133, 400, 1259),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2299,7 +2348,10 @@ const MC068_SPENT_HELD_OUT: [&str; 21] = [
 
 /// MC-068 AC-4: after the move, `tuning` holds this many marked entries and
 /// this many flag entries (49 + 14 before MC-068; 45 + 14 before MC-064).
-const TUNING_MARKED: usize = 70;
+///
+/// **84 marked since MC-069**, whose 14 reported screenshots are all marked
+/// `tuning` entries (MC-069 AC-1); 70 before it. The flags do not move.
+const TUNING_MARKED: usize = 84;
 const TUNING_FLAGS: usize = 14;
 
 /// MC-068 AC-2 and AC-5: after the move, `held-out` holds this many marked
@@ -2326,20 +2378,27 @@ fn fresh_tags(fresh: &Fresh) -> Vec<String> {
 /// directory, a byte count other than the one drawn, or not
 /// [`FRESH_DIMENSIONS`] by header. One row per difference, `file: what`.
 fn drawn_files_wrong(draw: &[Fresh]) -> Vec<String> {
+    files_wrong(draw.iter().map(|fresh| (fresh.file, fresh.bytes)))
+}
+
+/// [`drawn_files_wrong`]'s body, over `(file, bytes)` pairs, so MC-069's
+/// reported screenshots ([`MC069_REPORTED`]) are held to exactly the same
+/// three checks. Factored out by MC-069; the checks did not change.
+fn files_wrong(files: impl IntoIterator<Item = (&'static str, u64)>) -> Vec<String> {
     let dir = corpus::dir();
     let mut wrong: Vec<String> = Vec::new();
-    for fresh in draw {
-        let path = dir.join(fresh.file);
+    for (file, bytes) in files {
+        let path = dir.join(file);
         let Ok(meta) = fs::metadata(&path) else {
-            wrong.push(format!("{}: not in {}", fresh.file, dir.display()));
+            wrong.push(format!("{}: not in {}", file, dir.display()));
             continue;
         };
-        if meta.len() != fresh.bytes {
+        if meta.len() != bytes {
             wrong.push(format!(
                 "{}: {} bytes, drawn at {}",
-                fresh.file,
+                file,
                 meta.len(),
-                fresh.bytes
+                bytes
             ));
         }
         let dims = image::ImageReader::open(&path)
@@ -2349,7 +2408,7 @@ fn drawn_files_wrong(draw: &[Fresh]) -> Vec<String> {
         if dims != Some(FRESH_DIMENSIONS) {
             wrong.push(format!(
                 "{}: dimensions {dims:?} by header, drawn as {FRESH_DIMENSIONS:?}",
-                fresh.file
+                file
             ));
         }
     }
@@ -2361,16 +2420,31 @@ fn drawn_files_wrong(draw: &[Fresh]) -> Vec<String> {
 /// `expect` other than the user's box, or tags other than exactly
 /// [`fresh_tags`]. One row per difference, `file: what`.
 fn drawn_entries_wrong(entries: &[CorpusEntry], draw: &[Fresh], split: Split) -> Vec<String> {
+    entries_wrong(
+        entries,
+        draw.iter()
+            .map(|fresh| (fresh.file, fresh.rect, fresh_tags(fresh))),
+        split,
+    )
+}
+
+/// [`drawn_entries_wrong`]'s body, over `(file, (x, y, w, h), sorted tags)`,
+/// so MC-069's reported screenshots, whose tags include `light-theme`, are
+/// held to exactly the same checks. Factored out by MC-069; the checks did not
+/// change.
+fn entries_wrong(
+    entries: &[CorpusEntry],
+    draw: impl IntoIterator<Item = (&'static str, (u32, u32, u32, u32), Vec<String>)>,
+    split: Split,
+) -> Vec<String> {
     let mut wrong: Vec<String> = Vec::new();
-    for fresh in draw {
-        let (x, y, w, h) = fresh.rect;
+    for (file, (x, y, w, h), want_tags) in draw {
         let pinned = Rect { x, y, w, h };
-        let want_tags = fresh_tags(fresh);
-        let named: Vec<&CorpusEntry> = entries.iter().filter(|e| e.name() == fresh.file).collect();
+        let named: Vec<&CorpusEntry> = entries.iter().filter(|e| e.name() == file).collect();
         let [entry] = named.as_slice() else {
             wrong.push(format!(
                 "{}: {} manifest entries of that name, needs exactly one",
-                fresh.file,
+                file,
                 named.len()
             ));
             continue;
@@ -2378,7 +2452,7 @@ fn drawn_entries_wrong(entries: &[CorpusEntry], draw: &[Fresh], split: Split) ->
         if entry.split != split {
             wrong.push(format!(
                 "{}: split `{}`, needs `{}`",
-                fresh.file,
+                file,
                 entry.split.as_str(),
                 split.as_str()
             ));
@@ -2387,11 +2461,11 @@ fn drawn_entries_wrong(entries: &[CorpusEntry], draw: &[Fresh], split: Split) ->
             Expect::Rect(actual) if actual == pinned => {}
             Expect::Rect(actual) => wrong.push(format!(
                 "{}: expect {actual:?}, the user marked {pinned:?}",
-                fresh.file
+                file
             )),
             Expect::Flag => wrong.push(format!(
                 "{}: expect \"flag\", the user marked {pinned:?}",
-                fresh.file
+                file
             )),
         }
         let mut tags = entry.tags.clone();
@@ -2399,7 +2473,7 @@ fn drawn_entries_wrong(entries: &[CorpusEntry], draw: &[Fresh], split: Split) ->
         if tags != want_tags {
             wrong.push(format!(
                 "{}: tags {tags:?}, needs exactly {want_tags:?}",
-                fresh.file
+                file
             ));
         }
     }
@@ -2520,8 +2594,8 @@ fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw(
 // --- MC-068: the counts after the move ----------------------------------------
 
 #[test]
-fn tuning_holds_seventy_marked_and_fourteen_flags_and_held_out_fifteen_marked_across_four_readers()
-{
+fn tuning_holds_eighty_four_marked_and_fourteen_flags_and_held_out_fifteen_marked_across_four_readers()
+ {
     let entries = corpus::load();
 
     let count = |split: Split, marked: bool| {
@@ -2547,10 +2621,234 @@ fn tuning_holds_seventy_marked_and_fourteen_flags_and_held_out_fifteen_marked_ac
     assert_eq!(
         measured, recorded,
         "MC-068 AC-2, AC-4 and AC-5: with MC-062's draw spent and all 25 of it \
-         `tuning`, `tuning` holds 70 marked and 14 flag entries (49 + 14 until \
-         MC-068 moved 21), and `held-out` is MC-068's 15, all marked, no flag, \
+         `tuning`, `tuning` holds 84 marked and 14 flag entries (70 + 14 until \
+         MC-069 added its 14 reported screenshots; 49 + 14 until MC-068 moved \
+         21), and `held-out` is MC-068's 15, all marked, no flag, \
          across 4 readers (21 marked across 5 until MC-068). Which entries, and \
          with which marks, is the fresh-set and spent-set tests' job; this is \
          the summary a person reads first"
+    );
+}
+
+// --- MC-069 AC-1: the 14 screenshots the app called Ambiguous ----------------
+
+/// The page's theme, as the user answered it on MC-069's marking page
+/// (*Ambiguous Shots Marks*, `marks-mc069`): the one tag [`Fresh`] cannot
+/// carry, because every screenshot MC-062 and MC-068 drew was dark.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Theme {
+    /// "dark": `dark-theme`.
+    Dark,
+    /// "light": `light-theme`.
+    Light,
+}
+
+impl Theme {
+    fn tag(self) -> &'static str {
+        match self {
+            Theme::Dark => "dark-theme",
+            Theme::Light => "light-theme",
+        }
+    }
+}
+
+/// One of MC-069's reported screenshots, as the user marked it.
+struct Reported {
+    /// The original's name, unchanged (AC-1: "under their original names").
+    file: &'static str,
+    /// The original's size in bytes, from MC-069's `## Notes` table. The
+    /// SHA-256 prefix beside it there was checked when the file was copied
+    /// (`sha256sum`, and `cmp` against the original); no hashing crate is in
+    /// this workspace, so the byte count and the header are what a test here
+    /// can hold - MC-068's arrangement.
+    bytes: u64,
+    /// The user's frozen box as `(x, y, w, h)`.
+    rect: (u32, u32, u32, u32),
+    /// The reader the user named.
+    site: &'static str,
+    /// The page's theme.
+    theme: Theme,
+    /// The user's gap answer.
+    gap: Gap,
+}
+
+/// MC-069 AC-1. The 14 screenshots the user's run of the app answered
+/// `Ambiguous` on (2026-10-01), `a01`..`a14`, with the marks the user froze
+/// the same day ("the MC-069 marks are right, freeze them") as **amended
+/// once**: `Screenshot (42).png` is `1073,167 400x1225`, was
+/// `1073,166 400x1226` (MC-069 `## Amendments`, the user's "Yes, start at
+/// 167": row 166 is the browser bar's flat luma 59).
+///
+/// **This is the oracle, not a derivation.** The marking page is an Artifact
+/// outside the tree; a change to a row is an Amendment.
+///
+/// All 14 are `tuning`, never `held-out`: they were chosen by the app failing
+/// on them (MC-069 `## Context`).
+const MC069_REPORTED: [Reported; 14] = [
+    Reported {
+        file: "Screenshot (14).png",
+        bytes: 929_358,
+        rect: (1139, 167, 267, 1225),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // a01
+    Reported {
+        file: "Screenshot (19).png",
+        bytes: 743_364,
+        rect: (1139, 167, 267, 1225),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // a02
+    Reported {
+        file: "Screenshot (20).png",
+        bytes: 926_112,
+        rect: (1139, 167, 267, 1225),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // a03
+    Reported {
+        file: "Screenshot (23).png",
+        bytes: 922_508,
+        rect: (1139, 167, 267, 1225),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // a04
+    Reported {
+        file: "Screenshot (42).png",
+        bytes: 1_083_580,
+        rect: (1073, 167, 400, 1225),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // a05, as amended
+    Reported {
+        file: "Screenshot (48).png",
+        bytes: 537_942,
+        rect: (1039, 168, 467, 1224),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::None,
+    }, // a06
+    Reported {
+        file: "Screenshot (49).png",
+        bytes: 1_183_580,
+        rect: (1039, 167, 467, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::None,
+    }, // a07
+    Reported {
+        file: "Screenshot (50).png",
+        bytes: 1_158_118,
+        rect: (1039, 167, 467, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::None,
+    }, // a08
+    Reported {
+        file: "Screenshot (51).png",
+        bytes: 867_237,
+        rect: (993, 167, 560, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::White,
+    }, // a09
+    Reported {
+        file: "Screenshot (52).png",
+        bytes: 745_332,
+        rect: (1039, 167, 467, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::None,
+    }, // a10
+    Reported {
+        file: "Screenshot (53).png",
+        bytes: 696_432,
+        rect: (1003, 167, 540, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::None,
+    }, // a11
+    Reported {
+        file: "Screenshot (57).png",
+        bytes: 889_716,
+        rect: (1033, 167, 479, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::Black,
+    }, // a12
+    Reported {
+        file: "Screenshot (58).png",
+        bytes: 884_276,
+        rect: (1033, 167, 480, 1225),
+        site: "demonicrevolution",
+        theme: Theme::Light,
+        gap: Gap::White,
+    }, // a13
+    Reported {
+        file: "Screenshot (2705).png",
+        bytes: 1_204_928,
+        rect: (1073, 133, 400, 1259),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::White,
+    }, // a14
+];
+
+/// The tags a reported entry must carry, sorted: its theme, `png`,
+/// `site:<site>`, and the gutter tag its gap answer gives - [`fresh_tags`]'s
+/// rule with the theme the user answered rather than `dark-theme` always.
+fn reported_tags(reported: &Reported) -> Vec<String> {
+    let mut tags: Vec<String> = [reported.theme.tag(), "png"]
+        .into_iter()
+        .chain(reported.gap.tag())
+        .map(str::to_owned)
+        .chain(std::iter::once(format!(
+            "{SITE_TAG_PREFIX}{}",
+            reported.site
+        )))
+        .collect();
+    tags.sort();
+    tags
+}
+
+#[test]
+fn every_screenshot_the_app_called_ambiguous_is_in_the_corpus_at_its_original_size() {
+    assert_eq!(
+        files_wrong(MC069_REPORTED.iter().map(|r| (r.file, r.bytes))),
+        Vec::<String>::new(),
+        "MC-069 AC-1: each of the 14 screenshots the user's run of the app \
+         answered `Ambiguous` on must be in fixtures/corpus/ under its original \
+         name, byte for byte the size of the original (SHA-256 checked against \
+         MC-069's `## Notes` when copied) and a {}x{} whole-screen capture. \
+         Each row is `file: what differs`",
+        FRESH_DIMENSIONS.0,
+        FRESH_DIMENSIONS.1
+    );
+}
+
+#[test]
+fn every_screenshot_the_app_called_ambiguous_is_one_tuning_entry_with_the_users_mark_and_tags() {
+    let entries = corpus::load();
+    assert_eq!(
+        entries_wrong(
+            &entries,
+            MC069_REPORTED
+                .iter()
+                .map(|r| (r.file, r.rect, reported_tags(r))),
+            Split::Tuning,
+        ),
+        Vec::<String>::new(),
+        "MC-069 AC-1: each of the 14 must be exactly one `tuning` manifest entry \
+         (never `held-out`: the app's failure chose them) whose `expect` is the \
+         box the user froze on 2026-10-01, with `Screenshot (42).png` as amended \
+         to 1073,167 400x1225, and whose tags are exactly its theme \
+         (`dark-theme` for toongod's five and (2705), `light-theme` for \
+         demonicrevolution's eight), `png`, its `site:` and the gutter its gap \
+         answer gives. Each row is `file: what differs`"
     );
 }

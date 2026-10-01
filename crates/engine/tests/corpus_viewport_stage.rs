@@ -131,7 +131,13 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// MC-062's: what `locate` returns beside the page column on `345a9eb`
 /// (release), read out of one run in MC-068's RED on a scratch copy with the
 /// move applied - not chosen. The stage locates a viewport on all 21.
-const STAGE_MEASURED: [(&str, u32, u32); 47] = [
+///
+/// **MC-069 adds its 14**, the screenshots the user's run of the app
+/// answered `Ambiguous` on, last in manifest order. Same provenance: what
+/// `locate` returns beside the pipeline's page column on `afeaf3b`
+/// (release), read out of one run in MC-069's RED with the 14 added - not
+/// chosen. The stage locates a viewport on all 14; MC-069 does not touch it.
+const STAGE_MEASURED: [(&str, u32, u32); 61] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -180,6 +186,24 @@ const STAGE_MEASURED: [(&str, u32, u32); 47] = [
     ("Screenshot (2461).png", 133, 1392),
     ("Screenshot (2486).png", 133, 1392),
     ("Screenshot (2669).png", 133, 1392),
+    // MC-069's 14, last in manifest order: what `locate` returns beside the
+    // pipeline's page column on `afeaf3b` (release), read out of one run in
+    // MC-069's RED with its entries added - not chosen. `(2705)`, which
+    // `decide` flags `Ambiguous`, still has a viewport.
+    ("Screenshot (14).png", 167, 1392),
+    ("Screenshot (19).png", 167, 1392),
+    ("Screenshot (20).png", 167, 1392),
+    ("Screenshot (23).png", 167, 1392),
+    ("Screenshot (42).png", 167, 1392),
+    ("Screenshot (48).png", 167, 1392),
+    ("Screenshot (49).png", 167, 1392),
+    ("Screenshot (50).png", 167, 1392),
+    ("Screenshot (51).png", 167, 1392),
+    ("Screenshot (52).png", 167, 1392),
+    ("Screenshot (53).png", 167, 1392),
+    ("Screenshot (57).png", 167, 1392),
+    ("Screenshot (58).png", 167, 1392),
+    ("Screenshot (2705).png", 133, 1392),
 ];
 
 /// MC-064: the marked `tuning` entry on which the stage, handed the
@@ -323,8 +347,8 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     assert_eq!(
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
-        "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four and MC-068's \
-         21 must be marked tuning entries, reached here in manifest order"
+        "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
+         21 and MC-069's 14 must be marked tuning entries, reached here in manifest order"
     );
     assert_eq!(
         declined_seen,
