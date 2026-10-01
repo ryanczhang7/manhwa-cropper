@@ -373,6 +373,11 @@ only one that can start.
    `Screenshot (2705).png`, `toongod`) go into `tuning`, marked by the user, and must
    crop. Kept out of the held-out set because they were chosen by failing.
 
+   **`Screenshot (2705).png` is cropped: [MC-070](../stories/MC-070.md)** —
+   *fix*, `depends_on: [MC-069]`. Split from MC-069 on the user's answer of
+   2026-10-01: its close call is on the page's own bottom rows, inside the
+   crop, and its crop ends one column short of the art.
+
 ## Deliberately not in this epic
 
 - **Re-marking the corpus.** The marks stay tight, by the user's decision of

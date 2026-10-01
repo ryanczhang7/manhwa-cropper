@@ -140,8 +140,10 @@ const MIN_ENTRIES: usize = 20;
 /// * `2025-03-03 11_00_13.png`, `2025-05-12 20_48_42.png`: flag entries the
 ///   app crops, moved from held-out by MC-062 and ruled known misses (MC-051:
 ///   the "Cropped 2" of its 7 held-out flag entries).
-/// * `2025-07-17 14_20_23.png`: a marked entry the detector flags
-///   `Ambiguous`, MC-056's known exception (MC-051: `h09`, failed its bar).
+/// * `Screenshot (2705).png`: a marked entry `decide` flags `Ambiguous`,
+///   MC-069's known exception (MC-070 fixes it). It was
+///   `2025-07-17 14_20_23.png`, MC-056's (MC-051: `h09`, failed its bar),
+///   until MC-069 cropped it; see the MC-069 paragraph below.
 ///
 /// **Exact in both directions**: AC-2 fails if a listed entry is no longer in
 /// the `tuning` corpus or is no longer a miss, so the story that fixes one has
@@ -168,11 +170,21 @@ const MIN_ENTRIES: usize = 20;
 /// **MC-067 takes one off** (its AC-1): `2025-12-08 17_22_50.png` (`f09`),
 /// which keeps its art's near-black right edge. It counts toward the bar
 /// again.
+///
+/// **MC-069 swaps one** (its AC-3 and AC-4): `2025-07-17 14_20_23.png` comes
+/// off - its close call is the browser scrollbar, outside its crop, so it
+/// crops (`962,167 621x1233` at margin 0, right 7 px past its mark, inside the
+/// 8 px band) and counts toward the bar again - and `Screenshot (2705).png`
+/// goes on, MC-069's named known exception, flagged `Ambiguous` until MC-070.
+/// MC-069's other 13 count: after MC-069 each crops to its mark (`(48)` one
+/// row taller), so over the 98 `tuning` entries the bar reads 92 of 94 there,
+/// and 78 of 94 on `main` at `afeaf3b`, where the 13 and `14_20_23` are
+/// flagged.
 const KNOWN_MISSES: [&str; 4] = [
     "2025-02-27 22_46_15.png",
     "2025-03-03 11_00_13.png",
     "2025-05-12 20_48_42.png",
-    "2025-07-17 14_20_23.png",
+    "Screenshot (2705).png",
 ];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)

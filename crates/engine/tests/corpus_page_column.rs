@@ -153,15 +153,37 @@ const MC068_TWENTY_ONE: [&str; 21] = [
     "Screenshot (2669).png",
 ];
 
+/// MC-069's 14: the screenshots the user's run of the app answered
+/// `Ambiguous` on, added to `tuning` by MC-069 (its AC-1), in manifest order.
+/// Like the others above they are **not** originals and join no originals
+/// list here; they join every test over all marked `tuning` entries.
+const MC069_FOURTEEN: [&str; 14] = [
+    "Screenshot (14).png",
+    "Screenshot (19).png",
+    "Screenshot (20).png",
+    "Screenshot (23).png",
+    "Screenshot (42).png",
+    "Screenshot (48).png",
+    "Screenshot (49).png",
+    "Screenshot (50).png",
+    "Screenshot (51).png",
+    "Screenshot (52).png",
+    "Screenshot (53).png",
+    "Screenshot (57).png",
+    "Screenshot (58).png",
+    "Screenshot (2705).png",
+];
+
 /// Whether `name` is one of the marked `tuning` entries added after the 23
 /// originals: MC-053's three, MC-056's three, MC-062's sixteen, MC-064's
-/// four or MC-068's 21.
+/// four, MC-068's 21 or MC-069's 14.
 fn is_not_an_original(name: &str) -> bool {
     THE_THREE.contains(&name)
         || MC056_THREE.contains(&name)
         || MC062_SIXTEEN.contains(&name)
         || MC064_FOUR.contains(&name)
         || MC068_TWENTY_ONE.contains(&name)
+        || MC069_FOURTEEN.contains(&name)
 }
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -206,7 +228,13 @@ const RULED_ART_EDGES: [(&str, Side); 2] = [
 /// directions**: AC-2 fails if any other marked `tuning` entry is not cropped,
 /// and fails if this one is cropped, so the story that fixes it has to empty
 /// this list.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
+///
+/// **MC-069 swaps it** (its AC-3 and AC-4, the user's answers of 2026-10-01):
+/// `2025-07-17 14_20_23.png` crops now - its close call is the browser
+/// scrollbar, outside its crop - and is judged like every other entry, and
+/// `Screenshot (2705).png`, whose close call lies inside its crop, is the
+/// known exception until MC-070.
+const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
 
 /// AC-2's control on the metric: on at least this many of the 26 marked
 /// `tuning` entries the predicate calls the mark's own first **and** last
@@ -619,9 +647,10 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        70,
-        "MC-053 (MC-055) AC-2 is over the 70 marked tuning entries (26 until MC-056 moved \
-         three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21)"
+        84,
+        "MC-053 (MC-055) AC-2 is over the 84 marked tuning entries (26 until MC-056 moved \
+         three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 \
+         moved 21, 70 until MC-069 added 14)"
     );
     assert_eq!(
         known_read,
@@ -668,9 +697,10 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 138,
-        "MC-053 (MC-055) AC-2 checks 138 sides: 70 entries less MC-056's one known exception \
-         (88 until MC-064 moved four, 96 until MC-068 moved 21)"
+        sides, 166,
+        "MC-053 (MC-055) AC-2 checks 166 sides: 84 entries less the one known exception, \
+         MC-069's (2705) (88 until MC-064 moved four, 96 until MC-068 moved 21, 138 until \
+         MC-069 added 14 and swapped MC-056's exception for its own)"
     );
     assert!(
         failing.is_empty(),
@@ -971,9 +1001,10 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .collect();
     assert_eq!(
         entries.len(),
-        70,
-        "the control is over the 70 marked tuning entries (26 until MC-056 moved three, \
-         29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21)"
+        84,
+        "the control is over the 84 marked tuning entries (26 until MC-056 moved three, \
+         29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21, \
+         70 until MC-069 added 14)"
     );
     assert_eq!(
         ruled_art_read,

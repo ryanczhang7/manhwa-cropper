@@ -11,9 +11,9 @@
 //!    finds nothing there is no art, and `detect` returns `None` - the image
 //!    was one flat colour and there is nothing to crop (MC-006 AC-5);
 //! 2. [`content_box`] inside what survived, which peels chrome strips off the
-//!    edges one per side per pass. Its `removed` and `ambiguous` are carried
-//!    into [`Detection`] untouched: MC-007 turns them into flags, and nothing
-//!    here reinterprets them;
+//!    edges one per side per pass. Its `removed` is carried into
+//!    [`Detection`] untouched. Its close calls are not, since MC-069: see
+//!    "Which close calls flag" below;
 //! 3. [`trim_within`] again, **inside the content box**. Peeling a toolbar off
 //!    the top of a screenshot routinely exposes a page gutter that was not an
 //!    edge of the image a moment ago, and the first trim has no way to see it.
@@ -82,6 +82,23 @@
 //! image, whose area is all of the image's and whose sides are the image's
 //! own.
 //!
+//! # Which close calls flag
+//!
+//! [`content_box`] reports every strip it judged *nearly* chrome-like, and
+//! until MC-069 any one of them made the detection ambiguous. Now
+//! [`Detection::ambiguous`] is true only if the final rect - after
+//! [`margin::expand`] and the viewport clamp, the rect [`decide`] would crop
+//! to - includes at least one pixel of such a strip. A crop that ends exactly
+//! where the strip starts includes none of it.
+//!
+//! The reason is the browser scrollbar. A real screenshot's 15 px scrollbar
+//! at the right edge sits just inside the ambiguity band on two readers, so
+//! every page from them was flagged, while the crop already lay wholly left of
+//! it: the close call could not change the answer. Asked, the user chose
+//! "Ignore if crop excludes it". The strip judgement itself is unchanged -
+//! [`ContentBox::ambiguous`](crate::content::ContentBox::ambiguous) still
+//! reports the close call - and no threshold moved.
+//!
 //! # Arithmetic
 //!
 //! The area share is computed in `f32`, for the same reason
@@ -130,8 +147,10 @@
 //! The field is mechanical rather than statistical, so it is compared rather
 //! than tracked: each stage moved something iff it returned a rect other than
 //! the one it was given.
+//!
+//! [`content_box`]: crate::content::content_box
 
-use crate::content::{Side, content_box};
+use crate::content::{Side, content_box_near};
 use crate::flat::{page_column, textured_box};
 use crate::margin;
 use crate::trim::{trim_uniform, trim_within};
@@ -155,8 +174,13 @@ pub struct Detection {
     /// peeled, straight out of
     /// [`ContentBox::removed`](crate::content::ContentBox::removed).
     pub removed: Vec<Side>,
-    /// Whether some edge strip was *nearly* chrome-like, straight out of
-    /// [`ContentBox::ambiguous`](crate::content::ContentBox::ambiguous).
+    /// Whether some edge strip was *nearly* chrome-like **and** [`rect`]
+    /// includes at least one of its pixels (MC-069). Narrower than
+    /// [`ContentBox::ambiguous`](crate::content::ContentBox::ambiguous),
+    /// which reports the close call wherever the crop lies; the module note
+    /// "Which close calls flag" has why.
+    ///
+    /// [`rect`]: Detection::rect
     pub ambiguous: bool,
 }
 
@@ -178,7 +202,7 @@ pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
     };
 
     let first = trim_uniform(img, t)?;
-    let found = content_box(img, first, t);
+    let (found, near) = content_box_near(img, first, t);
     let second = trim_within(img, found.rect, t)?;
     let textured = textured_box(img, second, t);
     let column = page_column(img, textured, t);
@@ -214,8 +238,14 @@ pub fn detect(img: &Luma, t: &Tuning) -> Option<Detection> {
             || column != textured
             || rows != column,
         removed: found.removed,
-        ambiguous: found.ambiguous,
+        ambiguous: near.iter().any(|&strip| overlaps(strip, rect)),
     })
+}
+
+/// Whether `a` and `b` share at least one pixel. Rects that only touch - one
+/// ending at the column or row where the other starts - share none.
+fn overlaps(a: Rect, b: Rect) -> bool {
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 }
 
 /// `rect` with its rows cut to `view.top .. view.bottom` and its columns
@@ -266,8 +296,9 @@ pub enum FlagReason {
     /// or one of its sides is shorter than [`Tuning::min_content_side`]. Too
     /// little survived to be a page.
     LowContent,
-    /// Some edge strip was *nearly* chrome-like, so the rect turns on a close
-    /// call the detector is not confident about.
+    /// Some edge strip was *nearly* chrome-like and the crop includes part of
+    /// it, so the rect turns on a close call the detector is not confident
+    /// about (MC-069 narrowed it to strips the crop includes).
     Ambiguous,
 }
 

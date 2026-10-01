@@ -4,10 +4,11 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 99 real screenshots in `fixtures/corpus/` with one
+The corpus is 113 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 84 are `tuning` and 15 are
-`held-out`. Since MC-068 (2026-10-01), `held-out` means only the 15 fresh
+`"flag"` for a screenshot that should be left alone. 98 are `tuning` and 15 are
+`held-out` (MC-069 added 14 to `tuning`; see "Screenshots the app called
+`Ambiguous`: MC-069" below). Since MC-068 (2026-10-01), `held-out` means only the 15 fresh
 screenshots drawn blind that day. Every earlier held-out entry is spent and
 `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
@@ -965,6 +966,27 @@ alone, no light page, and no `w-network` page**, so a score on it says
 nothing about any of those. The scored run is a later MC-063-shaped spike;
 until then the 15 must not be run as `held-out` by anything else.
 
+### Screenshots the app called `Ambiguous`: MC-069, 2026-10-01
+
+[MC-069](../backlog/stories/MC-069.md) adds the 14 screenshots the user's own
+run of the app left uncropped as `Ambiguous` (`Screenshot (N).png`, N = 14,
+19, 20, 23, 42, 48 to 53, 57, 58 and 2705), all to **`tuning`**: they were
+chosen by the app failing on them, so they can never be held out. Copied
+byte-for-byte under their original names (SHA-256 checked against MC-069's
+`## Notes`), marked by the user on *Ambiguous Shots Marks* (`marks-mc069`)
+and frozen the same day, with one amendment: `Screenshot (42).png` starts at
+row 167, not 166 (row 166 is the browser bar). All 14 are art boxes:
+`toongod` 6 (dark pages), `demonicrevolution` 8 (light pages).
+
+On 13 of them the close call is the browser scrollbar, outside the crop;
+`(2705)`'s is the page's own bottom rows, inside it, and it stays a known
+`Ambiguous` exception until MC-070. `2025-07-17 14_20_23.png` (MC-056's
+known exception) has the same scrollbar close call and crops after MC-069.
+
+**New counts:** 113 screenshots; **tuning 98 : held-out 15**; marked 84 : 15;
+flags 14 : 0. The corpus is 125,214,059 bytes (119.4 MiB), under the 120 MiB
+ceiling, which MC-069 does not raise.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
@@ -972,7 +994,7 @@ and checks the corpus is *well formed*: every file present and decodable, every
 rectangle inside its image, the nine required tags covered, every tag in the
 vocabulary above, the `diagonal-gutter` list exact, the whole set under 120 MiB
 (60 MiB until MC-062, 100 MiB until MC-068, each raised at the user's request; the corpus
-is 107.2 MiB after MC-068).
+is 107.2 MiB after MC-068 and 119.4 MiB after MC-069).
 
 It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the

@@ -154,7 +154,9 @@ mod corpus;
 use std::path::Path;
 
 use corpus::{CorpusEntry, Expect, Split};
-use cropper_core::{Dimensions, FlagReason, Luma, Rect, Tuning, detect};
+use cropper_core::content::content_box;
+use cropper_core::trim::trim_uniform;
+use cropper_core::{CropDecision, Dimensions, FlagReason, Luma, Rect, Tuning, decide, detect};
 use cropper_engine::{Flag, Outcome, process_file};
 
 // --- Constants read out of the story, never calibrated here -----------------
@@ -235,16 +237,54 @@ const AMBIGUOUS_PAST_THE_CLIFF: [&str; 5] = [
     "Screenshot (9).png",
 ];
 
-/// MC-056, the user's ruling of 2026-09-29 (its Open question 2): the one
-/// marked `tuning` entry the detector flags `Ambiguous` at the default band,
-/// so it crops nothing. It moved from `held-out` with MC-056 because MC-051
-/// read it per file; why it is ambiguous is a later story's question.
+/// The one marked `tuning` entry `decide` answers `Flag(Ambiguous)` at
+/// `Tuning::default()`, so it crops nothing.
+///
+/// **MC-069, the user's answer of 2026-10-01 ("Its own story").**
+/// `Screenshot (2705).png`: its close call is the page's own bottom rows,
+/// `0,1366 2545x26` (flat fraction 0.848708), which lie inside the crop, so
+/// MC-069's rule leaves it flagged. MC-070 fixes it.
+///
+/// It was `2025-07-17 14_20_23.png` from MC-056 (the user's ruling of
+/// 2026-09-29) until MC-069: that entry's close call is the browser
+/// scrollbar, `x 2545..2560` (0.849273), which its crop lies wholly left of,
+/// so under MC-069's rule it crops and it left this list.
 ///
 /// **Exact in both directions.** The tests naming it fail if any *other*
-/// marked `tuning` entry is ambiguous, and fail if this one stops being - so
-/// the story that fixes it has to empty this list, and cannot leave a stale
-/// exception behind.
-const KNOWN_AMBIGUOUS: [&str; 1] = ["2025-07-17 14_20_23.png"];
+/// marked `tuning` entry is flagged `Ambiguous`, and fail if this one stops
+/// being - so the story that fixes it has to empty this list, and cannot leave
+/// a stale exception behind.
+const KNOWN_AMBIGUOUS: [&str; 1] = ["Screenshot (2705).png"];
+
+/// MC-069 AC-4: the `tuning` entries whose **strip-level** judgement,
+/// `content_box(img, trim_uniform(img, t)?, t).ambiguous`, is true at the
+/// default band, in manifest order. This is where the band and its cliff live,
+/// and MC-069 does not change it: only what `decide` makes of a close call
+/// narrows.
+///
+/// Measured on `main` at `afeaf3b` with MC-069's 14 added: MC-056's
+/// `2025-07-17 14_20_23.png` (the scrollbar, 0.849273) and all 14 of MC-069's
+/// (the scrollbar on the 13, flat fractions 0.847765 to 0.849860; the page's
+/// bottom rows on `(2705)`, 0.848708) - MC-069 `## Amendments`, read back by
+/// RED. Until MC-069 this list and [`KNOWN_AMBIGUOUS`] were the same list,
+/// because `decide` flagged every close call; they are not any more.
+const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 15] = [
+    "2025-07-17 14_20_23.png",
+    "Screenshot (14).png",
+    "Screenshot (19).png",
+    "Screenshot (20).png",
+    "Screenshot (23).png",
+    "Screenshot (42).png",
+    "Screenshot (48).png",
+    "Screenshot (49).png",
+    "Screenshot (50).png",
+    "Screenshot (51).png",
+    "Screenshot (52).png",
+    "Screenshot (53).png",
+    "Screenshot (57).png",
+    "Screenshot (58).png",
+    "Screenshot (2705).png",
+];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the three fresh entries MC-063 read per file whose crop clips
@@ -352,6 +392,15 @@ fn luma(path: &Path) -> Luma {
     let decoded = image::load_from_memory(&bytes)
         .unwrap_or_else(|err| panic!("decoding {}: {err}", path.display()));
     cropper_engine::codec::to_luma(&decoded)
+}
+
+/// MC-069: `content_box`'s strip-level judgement over the rect `detect` hands
+/// it - `trim_uniform` first, exactly as `detect` composes the two - which is
+/// where `ambiguity_band` acts. `false` for an image `trim_uniform` drains,
+/// as `detect` returns `None` there. MC-069 does not change this; it changes
+/// only what `decide` makes of it.
+fn strip_level_ambiguous(img: &Luma, t: &Tuning) -> bool {
+    trim_uniform(img, t).is_some_and(|first| content_box(img, first, t).ambiguous)
 }
 
 /// The dimensions of `img`.
@@ -569,14 +618,24 @@ fn a_marked_page_with_both_sides_divided_by_three_is_rejected_by_the_size_gate()
 
 // --- AC-2: no marked page is ambiguous --------------------------------------
 
-/// AC-2. `detect` at `Tuning::default()` reports `ambiguous: false` for every
-/// corpus entry that carries a marked rect.
+/// AC-2. `decide` at `Tuning::default()` does not answer `Flag(Ambiguous)`
+/// for any corpus entry that carries a marked rect, but the known exception.
 ///
-/// Eight are `true` on `main` at `a42f8e8`, listed in the story's `## Notes`,
-/// finding 6: the three `2026-01-05` entries, `Screenshot (67)`,
+/// Eight were ambiguous on `main` at `a42f8e8`, listed in the story's
+/// `## Notes`, finding 6: the three `2026-01-05` entries, `Screenshot (67)`,
 /// `Screenshot (70)`, `Screenshot (75)`, `Screenshot (93)` and
 /// `Screenshot (103)`. `decide` asks this question before it reaches the size
 /// gate, so AC-1 alone would leave all eight flagged.
+///
+/// **MC-069 re-instruments it on `decide`.** It read `detect(..).ambiguous`
+/// until MC-069, which was the same question while every close call flagged.
+/// MC-069's rule narrows the *decision* only - a close call on a strip the
+/// crop leaves out no longer flags - so the question this test asks, "is a
+/// marked page flagged `Ambiguous`", is now asked of the decision itself, and
+/// whether `Detection::ambiguous` narrows with it is left to the implementer.
+/// On `main` at `afeaf3b` this fails on `2025-07-17 14_20_23.png` and the 13
+/// of MC-069 (their close call is the browser scrollbar, outside the crop),
+/// and holds on `(2705)`, the new [`KNOWN_AMBIGUOUS`].
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn no_marked_page_is_reported_ambiguous() {
@@ -586,16 +645,11 @@ fn no_marked_page_is_reported_ambiguous() {
 
     for (entry, _) in marked() {
         let img = luma(&entry.path);
-        let found = detect(&img, &t);
-        let flag = found.as_ref().is_some_and(|d| d.ambiguous);
+        let decision = decide(&img, &t);
+        let flag = decision == CropDecision::Flag(FlagReason::Ambiguous);
         rows.push(format!(
-            "{:<30} {:>10} {:>9}",
+            "{:<30} {:>9}  {decision:?}",
             entry.name(),
-            if found.is_some() {
-                "detected"
-            } else {
-                "uniform"
-            },
             if flag { "AMBIGUOUS" } else { "." }
         ));
         if flag {
@@ -605,28 +659,30 @@ fn no_marked_page_is_reported_ambiguous() {
 
     let printed = table(
         &format!(
-            "AC-2: detect(.., Tuning::default()).ambiguous, at ambiguity_band {}",
+            "AC-2: decide(.., Tuning::default()) == Flag(Ambiguous), at ambiguity_band {}",
             t.ambiguity_band
         ),
-        &format!("{:<30} {:>10} {:>9}", "file", "detect", "ambiguous"),
+        &format!("{:<30} {:>9}  {}", "file", "ambiguous", "decision"),
         &rows,
     );
 
     assert!(!rows.is_empty(), "AC-2 checked no entries at all");
     // MC-056: exact in both directions against KNOWN_AMBIGUOUS. Any other
-    // marked page that is ambiguous fails this exactly as it did before MC-056;
-    // the known exception going unambiguous fails it too, until the list is
-    // emptied.
+    // marked page that is flagged Ambiguous fails this exactly as it did
+    // before MC-056; the known exception going unflagged fails it too, until
+    // the list is emptied.
     assert_eq!(
         ambiguous,
         KNOWN_AMBIGUOUS.map(String::from).to_vec(),
         "AC-2: a page a person marked must not turn on a close call the detector is \
          not confident about - `decide` answers Flag(Ambiguous) before it ever \
-         reaches the size gate. The only marked page allowed to be ambiguous is \
-         MC-056's known exception (KNOWN_AMBIGUOUS, the user's ruling of \
-         2026-09-29), and it must still be: if a fix makes it unambiguous, empty \
-         the list. {} of {} are ambiguous at ambiguity_band {}. `left` is \
-         measured, `right` is KNOWN_AMBIGUOUS.\n\n{printed}",
+         reaches the size gate. The only marked page allowed to be flagged \
+         Ambiguous is the known exception (KNOWN_AMBIGUOUS: MC-069's (2705), whose \
+         close call lies inside its crop; MC-070 fixes it), and it must still be: \
+         if a fix makes it crop, empty the list. Since MC-069 a close call on a \
+         strip the crop lies wholly outside of does not flag. {} of {} are \
+         flagged Ambiguous at ambiguity_band {}. `left` is measured, `right` is \
+         KNOWN_AMBIGUOUS.\n\n{printed}",
         ambiguous.len(),
         rows.len(),
         t.ambiguity_band
@@ -647,6 +703,18 @@ fn no_marked_page_is_reported_ambiguous() {
 ///
 /// So the band is not "somewhere below 0.05": it is immediately below a real
 /// boundary on real files, and a band raised even to 0.005 breaks AC-2.
+///
+/// **MC-069 measures it at the strip judgement**, `content_box` over
+/// `trim_uniform`'s rect - exactly as `detect` composes them - where it read
+/// `detect(..).ambiguous` until MC-069. The band and its cliff live in
+/// `content_box`, and MC-069 changes only what `decide` makes of a close call
+/// (MC-069 AC-4): read through the decision, every entry whose near strip
+/// lies outside its crop would vanish from both columns and the cliff would
+/// look like it had moved when nothing in the band had. So the turned list is
+/// still exactly [`AMBIGUOUS_PAST_THE_CLIFF`] - MC-069's 14 are already close
+/// calls at the default band, so none of them turns - and the at-band list is
+/// its own exact pin, [`STRIP_AMBIGUOUS_AT_THE_BAND`], no longer
+/// [`KNOWN_AMBIGUOUS`]. The decision-level list is AC-2's, above.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
@@ -675,8 +743,8 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
 
     for entry in tuning_only() {
         let img = luma(&entry.path);
-        let now = detect(&img, &t).as_ref().is_some_and(|d| d.ambiguous);
-        let then = detect(&img, &past).as_ref().is_some_and(|d| d.ambiguous);
+        let now = strip_level_ambiguous(&img, &t);
+        let then = strip_level_ambiguous(&img, &past);
         rows.push(format!(
             "{:<30} {:>10} {:>12}",
             entry.name(),
@@ -693,7 +761,8 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
 
     let printed = table(
         &format!(
-            "AC-2's control: ambiguity at the chosen band {} against {BAND_PAST_THE_CLIFF}",
+            "AC-2's control: content_box's strip-level ambiguity at the chosen band {} \
+             against {BAND_PAST_THE_CLIFF}",
             t.ambiguity_band
         ),
         &format!("{:<30} {:>10} {:>12}", "file", "at default", "at 0.005"),
@@ -702,8 +771,9 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
 
     // The entries that *turn* ambiguous past the band: ambiguous at 0.005 and
     // not at the default. Before MC-056 nothing was ambiguous at the default,
-    // so this was `past_band` itself; MC-056's known exception is ambiguous at
-    // both bands and is accounted for by the two assertions after this one.
+    // so this was `past_band` itself; the entries already ambiguous at the
+    // default (STRIP_AMBIGUOUS_AT_THE_BAND since MC-069) are ambiguous at both
+    // bands and are accounted for by the two assertions after this one.
     let turned: Vec<String> = past_band
         .iter()
         .filter(|name| !at_band.contains(name))
@@ -719,15 +789,20 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
          the measured ceiling the band sits under, 1.06x above it; MC-068's \
          Screenshot (9).png turns at 0.00474861, above it. If this list is \
          empty the feature is gone; if it changes the cliff has moved and the \
-         derivation needs re-measuring. `left` is measured.\n\n{printed}"
+         derivation needs re-measuring. Measured at content_box's strip-level \
+         judgement since MC-069, which does not change it. `left` is \
+         measured.\n\n{printed}"
     );
     assert_eq!(
         at_band,
-        KNOWN_AMBIGUOUS.map(String::from).to_vec(),
-        "AC-2's control: and at the chosen band of {} nothing is ambiguous but \
-         MC-056's known exception (KNOWN_AMBIGUOUS), so the band sits strictly \
-         below the cliff. Exact in both directions: if the exception stops being \
-         ambiguous, empty the list. `left` is measured.\n\n{printed}",
+        STRIP_AMBIGUOUS_AT_THE_BAND.map(String::from).to_vec(),
+        "AC-2's control, as MC-069 AC-4 measures it: at the chosen band of {} \
+         content_box calls a strip a close call on exactly \
+         STRIP_AMBIGUOUS_AT_THE_BAND - MC-056's 2025-07-17 14_20_23.png and \
+         MC-069's 14 - and on nothing else, so the band sits strictly below the \
+         cliff. This is the strip judgement, which MC-069 leaves alone; which of \
+         these `decide` flags is AC-2's question (KNOWN_AMBIGUOUS). `left` is \
+         measured.\n\n{printed}",
         t.ambiguity_band
     );
     let missing_past: Vec<&String> = at_band
