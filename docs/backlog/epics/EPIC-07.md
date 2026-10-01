@@ -356,6 +356,17 @@ only one that can start.
    so the fix is filed here. The fresh set is spent. The next held-out score
    needs a fresh draw with a new seed.
 
+   All four were fixed (MC-065 to MC-067, done 2026-10-01; MC-067 by the
+   user's ruling that `Screenshot (3538).png` grows by its fringe).
+
+   **A second fresh held-out set: [MC-068](../stories/MC-068.md)** — *chore*,
+   `depends_on: [MC-067]`. The user asked for one on 2026-10-01, picked by
+   the Lead PO and not by them, at most 20. The Lead PO drew 20 blind with a
+   new seed, 5 per folder, by MC-062's method, and the user raised
+   `MAX_BYTES` to 120 MiB. The 21 spent `held-out` entries move to `tuning`.
+   The user marks the 20 before it starts; the scored run on them is a later
+   MC-063-shaped spike.
+
 ## Deliberately not in this epic
 
 - **Re-marking the corpus.** The marks stay tight, by the user's decision of
