@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066]
 ---
 
 ## Goal
@@ -328,6 +328,23 @@ only one that can start.
      per file to `tuning`.
    - **[MC-065](../stories/MC-065.md)** — *fix*, `depends_on: [MC-064]`:
      reproduce and remove the column-axis clips on those entries.
+
+   **Split on 2026-09-30, after all four were viewed** at the user's request,
+   and each mark ruled to stand. There are three causes, and the user chose
+   two stories:
+   - **[MC-065](../stories/MC-065.md)** — *fix*: the two right-edge cuts.
+     - `f20`: a flat white page edge, trimmed as background.
+     - `f09`: a near-black art edge, trimmed.
+
+     In both, the site's background is a column of one exact value, so luma
+     separates the page from the site, and colour stays out of scope.
+   - **[MC-066](../stories/MC-066.md)** — *fix*, `depends_on: [MC-064]`: the
+     two second-window screenshots.
+     - `f18`: the app cropped a YouTube window beside the reader.
+     - `f13`: it joined the page to that window and kept the scrollbar.
+
+     By the user's rulings, the crop must stay inside the reader's window,
+     and flagging `f18` is only an approved stopgap.
 
    **Where the fix belongs.** The column axis is `EPIC-08`'s bar. Zero clips
    is this epic's absolute, and these clips broke this epic's held-out score,
