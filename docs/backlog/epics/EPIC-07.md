@@ -362,10 +362,16 @@ only one that can start.
    **A second fresh held-out set: [MC-068](../stories/MC-068.md)** — *chore*,
    `depends_on: [MC-067]`. The user asked for one on 2026-10-01, picked by
    the Lead PO and not by them, at most 20. The Lead PO drew 20 blind with a
-   new seed, 5 per folder, by MC-062's method, and the user raised
+   new seed by MC-062's method; the user then cut it to 15 and raised
    `MAX_BYTES` to 120 MiB. The 21 spent `held-out` entries move to `tuning`.
-   The user marks the 20 before it starts; the scored run on them is a later
+   The user marks the 15 before it starts; the scored run on them is a later
    MC-063-shaped spike.
+
+   **Real-use `Ambiguous` answers: [MC-069](../stories/MC-069.md)** — *fix*,
+   `depends_on: [MC-068]`. 14 screenshots the app left uncropped when the
+   user ran it (Screenshots 14 to 58 of one `manhwaclan` session, and
+   `Screenshot (2705).png`) go into `tuning`, marked by the user, and must
+   crop. Kept out of the held-out set because they were chosen by failing.
 
 ## Deliberately not in this epic
 
