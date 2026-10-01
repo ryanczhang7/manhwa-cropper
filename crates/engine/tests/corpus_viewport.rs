@@ -160,7 +160,9 @@ const COLUMNS_BEFORE: [(&str, u32, u32); 21] = [
     ("Screenshot (2708).jpg", 1074, 399),
     ("Screenshot (2744).jpg", 948, 648),
     ("Screenshot (3187).png", 984, 576),
-    ("Screenshot (3538).png", 975, 596),
+    // MC-067 AC-2, the user's ruling of 2026-10-01 ("Let 3538 grow"): the
+    // crop grows by its 2-column dark fringe on each side. It was (975, 596).
+    ("Screenshot (3538).png", 973, 600),
 ];
 
 // --- MC-052: the two split-screen screenshots -------------------------------
@@ -310,10 +312,13 @@ const ORIGINALS_BEFORE: [(&str, [u32; 4], [u32; 4]); 21] = [
         [981, 137, 582, 1255],
         [984, 137, 576, 1255],
     ),
+    // MC-067 AC-2, the user's ruling of 2026-10-01 ("Let 3538 grow"): the
+    // columns grow by the 2-column dark fringe on each side; the rows do not
+    // move. It was `[972, 137, 602, 1255]` / `[975, 137, 596, 1255]`.
     (
         "Screenshot (3538).png",
-        [972, 137, 602, 1255],
-        [975, 137, 596, 1255],
+        [970, 137, 606, 1255],
+        [973, 137, 600, 1255],
     ),
 ];
 

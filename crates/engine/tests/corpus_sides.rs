@@ -97,6 +97,10 @@ const METRIC_CONTROL_REQUIRED: usize = 19;
 /// 19 is the measured left count and one below the measured right count
 /// (20). **Escalated in the story's `## Handoff`**: this number, or the
 /// predicate's share, needs the product owner's ruling before GREEN.
+///
+/// MC-067 grows 3538's crop by those transition columns (the user's ruling of
+/// 2026-10-01), so the next column out on both of its sides is the site's
+/// single value, and the control fires there too: 3538 adds to both counts.
 const WIDENED_CONTROL_REQUIRED_PER_SIDE: usize = 19;
 
 /// AC-2's control: the crop narrowed by one column on each side must clip on
@@ -104,6 +108,9 @@ const WIDENED_CONTROL_REQUIRED_PER_SIDE: usize = 19;
 /// margin-0 candidate (the seven corrected marks, `Screenshot (3538).png`'s
 /// left and `2026-01-05 13_45_59.png`'s right, whose MC-027 correction already
 /// put its mark on the locator's edge).
+///
+/// MC-067 grows 3538's crop 2 columns past its mark's left edge, so 3538 no
+/// longer counts here, and `f09`, cropped to exactly its mark, now does.
 const NARROWED_CLIPS_REQUIRED: usize = 8;
 
 /// `Tuning::margin_px` before MC-049, which AC-4 measures the row move from.
@@ -135,14 +142,20 @@ const KNOWN_NOT_CROPPED: [&str; 1] = ["2025-07-17 14_20_23.png"];
 /// 22_47_44.png`) off this list, off [`KNOWN_CLIPS`] and off
 /// [`KNOWN_BACKGROUND_SIDES`] (its AC-1 to AC-3): their crops are the reader's
 /// window now, and AC-1 and AC-2 here judge them like every other entry.
-const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-12-08 17_22_50.png", [1006, 167, 531, 1233])];
+///
+/// MC-067 took `f09` off this list and off [`KNOWN_CLIPS`] (its AC-1): it
+/// keeps its art's near-black right edge, and AC-1 and AC-2 here judge it like
+/// every other entry. Its pin was `[1006, 167, 531, 1233]`. The list is empty,
+/// and stays exact.
+const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
 /// not contain the mark. **Exact in both directions**: AC-2 fails if any
 /// other crop clips, and fails if a listed entry's crop is not its pin.
-/// MC-065 took `f20` off and MC-066 took `f18` off; `f09` stays for MC-067.
-const KNOWN_CLIPS: [&str; 1] = ["2025-12-08 17_22_50.png"];
+/// MC-065 took `f20` off, MC-066 took `f18` off and MC-067 took `f09` off.
+/// The list is empty: no known clip is left.
+const KNOWN_CLIPS: [&str; 0] = [];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
@@ -393,6 +406,12 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
         ),
         &rows,
     );
+    // The controls' measured counts, for a story's controls table
+    // (`--nocapture`).
+    println!(
+        "AC-1 controls: metric {metric_ok} of {entries}; widened fires on {widened_left} \
+         left and {widened_right} right"
+    );
 
     assert!(
         entries >= METRIC_CONTROL_REQUIRED,
@@ -543,6 +562,12 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
             t.margin_px
         ),
         &rows,
+    );
+    // The control's measured count, for a story's controls table
+    // (`--nocapture`).
+    println!(
+        "AC-2 control: narrowed clips on {} ({narrowed_clips:?})",
+        narrowed_clips.len()
     );
 
     assert!(

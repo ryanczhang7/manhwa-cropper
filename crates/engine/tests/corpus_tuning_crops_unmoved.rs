@@ -137,10 +137,15 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
         [981, 137, 582, 1255],
         [984, 137, 576, 1255],
     ),
+    // MC-067 AC-2, the user's ruling of 2026-10-01 ("Let 3538 grow"): the
+    // crop grows by its 2-column dark fringe on each side, 973..974 and
+    // 1571..1572, which is the same thing as `f09`'s by luma and by colour.
+    // It was `[972, 137, 602, 1255]` / `[975, 137, 596, 1255]`. Ruled, not
+    // measured.
     (
         "Screenshot (3538).png",
-        [972, 137, 602, 1255],
-        [975, 137, 596, 1255],
+        [970, 137, 606, 1255],
+        [973, 137, 600, 1255],
     ),
     (
         "2025-03-06 01_22_45.png",
@@ -327,12 +332,24 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
         [1019, 115, 506, 1285],
         [1022, 115, 500, 1285],
     ),
-    // `f09` (`2025-12-08 17_22_50.png`) keeps MC-064's rows, its measured
-    // clip: MC-065 moved it to MC-067 (MC-065 `## Amendments`, 2026-10-01).
+    //
+    // MC-067 re-pins `f09` (`2025-12-08 17_22_50.png`), whose art's near-black
+    // right edge it keeps. Its rows were MC-064's measured clip, `[1003, 167,
+    // 537, 1233]` / `[1006, 167, 531, 1233]`. The rows below are **forced by
+    // the criteria, not chosen or guessed** (MC-067 `## Test plan`). At
+    // margin 0 the crop must contain the mark `1006,167 533x1233` and its rows
+    // lie within the furniture rows 167..1400 (MC-067 AC-1, MC-063's frozen
+    // oracle), and AC-1 itself requires exactly the mark's columns; the
+    // columns either side, 1005 and 1539, are the site's single value (11),
+    // which `corpus_dark_fringe.rs` measures. At margin 3 `margin::expand`
+    // widens the columns by 3 on each side, and the rows stay at the
+    // viewport, 167..1400, which the same row bound and
+    // `corpus_sides.rs::the_top_and_bottom_edges_move_by_exactly_the_margin_change`
+    // require.
     (
         "2025-12-08 17_22_50.png",
-        [1003, 167, 537, 1233],
-        [1006, 167, 531, 1233],
+        [1003, 167, 539, 1233],
+        [1006, 167, 533, 1233],
     ),
 ];
 

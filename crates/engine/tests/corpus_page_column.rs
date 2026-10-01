@@ -315,10 +315,14 @@ const ORIGINALS_AT_BOTH_MARGINS: [(&str, [u32; 4], [u32; 4]); 23] = [
         [981, 137, 582, 1255],
         [984, 137, 576, 1255],
     ),
+    // MC-067 AC-2, the user's ruling of 2026-10-01 ("Let 3538 grow"): the
+    // crop grows by its 2-column dark fringe on each side, reversing MC-053's
+    // preference for 3538 (its Open question 5). It was `[972, 137, 602,
+    // 1255]` / `[975, 137, 596, 1255]`. Ruled, not measured.
     (
         "Screenshot (3538).png",
-        [972, 137, 602, 1255],
-        [975, 137, 596, 1255],
+        [970, 137, 606, 1255],
+        [973, 137, 600, 1255],
     ),
     (
         "2025-03-06 01_22_45.png",
@@ -737,11 +741,28 @@ fn mc027_column(img: &Luma, t: &Tuning) -> Rect {
     mc027_page_column(img, textured_box(img, second, t), t)
 }
 
+/// A page column's `(x, w)`.
+type XW = (u32, u32);
+
+/// MC-067 AC-2, the user's ruling of 2026-10-01 ("Let 3538 grow"): the one
+/// original whose shipped page column is **not** MC-027's widest run, `(file,
+/// the stand-in's (x, w), the shipped (x, w))` at margin 0. MC-027's rule ends
+/// `Screenshot (3538).png`'s page column on the last textured column each
+/// side, 975..1570; the shipped crop keeps the 2-column dark fringe beyond it
+/// on each side, 973..1572, as the user ruled. **Exact in both directions**:
+/// the stand-in must still give its value here and the pipeline must crop to
+/// exactly the ruled one, so this is 3538's re-pin and not a loosening.
+const STAND_IN_DIFFERS_ON: [(&str, XW, XW); 1] =
+    [("Screenshot (3538).png", (975, 596), (973, 600))];
+
 /// The stand-in, earned: on each of the 23 originals, MC-027's rule as frozen
 /// here gives exactly the columns the shipped pipeline crops to at margin 0 -
 /// on `c004d96`, and after GREEN too, because AC-3 holds the originals exactly.
 /// The three are left out only because GREEN is required to move them; in RED
 /// the stand-in matched them as well (26 of 26).
+///
+/// MC-067: on `Screenshot (3538).png` the two must differ by exactly the
+/// ruled fringe ([`STAND_IN_DIFFERS_ON`]); on the other 22 they must agree.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn mc027s_rule_frozen_here_reproduces_the_shipped_page_column_on_the_originals() {
@@ -759,6 +780,21 @@ fn mc027s_rule_frozen_here_reproduces_the_shipped_page_column_on_the_originals()
         }
         compared += 1;
         let stand_in = mc027_column(&luma(&entry.path), &t);
+        if let Some(&(_, want_stand_in, want_shipped)) = STAND_IN_DIFFERS_ON
+            .iter()
+            .find(|(file, _, _)| *file == entry.name())
+        {
+            let shipped = crop_at(&entry, &tmp, &t).map(|crop| (crop.x, crop.w));
+            if (stand_in.x, stand_in.w) != want_stand_in || shipped != Ok(want_shipped) {
+                differ.push(format!(
+                    "{}: MC-067 AC-2 - the stand-in must give x,w {want_stand_in:?} (got \
+                     {:?}) and the shipped crop the ruled {want_shipped:?} (got {shipped:?})",
+                    entry.name(),
+                    (stand_in.x, stand_in.w)
+                ));
+            }
+            continue;
+        }
         match crop_at(&entry, &tmp, &t) {
             Ok(crop) if (crop.x, crop.w) == (stand_in.x, stand_in.w) => {}
             Ok(crop) => differ.push(format!(
@@ -939,6 +975,10 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
 /// that is not page background, measured over the central band", in an
 /// ignored copy of the tree, moves `Screenshot (3538).png` by one column on
 /// each side, and this test goes red naming it.
+///
+/// MC-067 re-pinned 3538 to the user's ruling of 2026-10-01 (it grows by its
+/// 2-column fringe on each side). The pin is still exact, so this test still
+/// goes red on any move of 3538, including back to its old crop.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn the_twenty_three_original_crops_do_not_move_by_a_pixel_at_either_margin() {
