@@ -4,11 +4,11 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 84 real screenshots in `fixtures/corpus/` with one
+The corpus is 99 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 59 are `tuning` and 25 are
-`held-out`. Since MC-062 (2026-09-30), `held-out` means only the 25 fresh
-screenshots drawn blind that day. The 23 spent entries before them are
+`"flag"` for a screenshot that should be left alone. 84 are `tuning` and 15 are
+`held-out`. Since MC-068 (2026-10-01), `held-out` means only the 15 fresh
+screenshots drawn blind that day. Every earlier held-out entry is spent and
 `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
 tuning / held-out split" below, which is the section to
@@ -897,14 +897,82 @@ way, or if a listed entry's crop moves at all. So the fix
 `MAIN_CROPS` (`corpus_tuning_crops_unmoved.rs`) gains the four at both
 margins, measured.
 
+### The second fresh held-out set: MC-068, 2026-10-01
+
+[MC-068](../backlog/stories/MC-068.md) drew 15 new screenshots at random,
+after MC-065 to MC-067 fixed the four MC-063 read per file. The user asked
+for the Lead PO to pick, not them, at most 20; the draw took 20 and the user
+then cut it to 15. **Held-out now means only these 15.**
+
+#### The draw
+
+MC-062's procedure, with a new seed, read from names, sizes and file headers
+only; no drawn image was viewed or measured before the user marked it. The
+scripts are in MC-068 `## Notes` (`dims.sh` `4a3c01721bb46c65`, `draw.awk`
+`f6bf09cb8472efe3`).
+1. **Pool:** MC-062's eight folders, minus every corpus file by name without
+   extension, and minus the 14 screenshots of
+   [MC-069](../backlog/stories/MC-069.md) (the app's real-use `Ambiguous`
+   answers, which go to `tuning` there). 1,454 whole-screen files
+   (2560x1440), all in mahwa panels, Eleceed, Hero Killer and Unholy Blood;
+   the other four folders still hold none.
+2. **Order:** within each folder by
+   `sha256("MC-068|2026-10-01|<folder>|<file name>")`, ascending.
+3. **No near-twins:** MC-062's rule (30 minutes by name time; 20 by
+   `Screenshot (N)` number), against the corpus, MC-069's 14 and each file
+   already drawn. 41 skipped.
+4. **Quotas:** round-robin over the four folders until 15: mahwa panels 4,
+   Eleceed 4, Hero Killer 4, Unholy Blood 3.
+
+**One correction before any image was seen:** the first run drew 20 against
+the corpus alone. Re-run with MC-069's 14 counted as corpus and `TARGET=15`,
+it is the first run's first 15 except that `Screenshot (32).png` (a near-twin
+of MC-069's screenshots) is skipped and `Screenshot (2507).png` takes its
+place. The 15 files, byte counts and SHA-256 prefixes are MC-068's
+`## Context` table; each copy in `fixtures/corpus/` was checked against it.
+
+**The marks**, frozen by the user on 2026-10-01 from *New Test Marks*
+(`marks-mc068`): all 15 are art boxes, 0 flags, all dark pages. Readers:
+`toongod` 7, `rolia-scans` 4, `xbato` 3, `demonicrevolution` 1. Every box
+spans the visible height, browser bar to taskbar: mid-chapter screenshots.
+
+#### The 21 spent entries move to `tuning`
+
+The 21 that stayed `held-out` after MC-064, every one already scored once by
+MC-063, became `tuning`. No `expect` or tag changed. Nothing they do in the
+tuning suites is an exception: no clip at either margin, all 21 cropped, none
+ambiguous at the default band, every mark edge read as art, no page-background
+side, and the viewport located on all 21. Read-out pins (`MAIN_CROPS`,
+`STAGE_MEASURED`, the page-column and viewport counts) record what the app
+does on them. One measured list grew: `Screenshot (9).png` goes ambiguous at
+the 0.005 control band (threshold 0.00474861), so `AMBIGUOUS_PAST_THE_CLIFF`
+is 5 names; the binding entry (`Screenshot (56).png`, 0.00265363) and
+`ambiguity_band` are unchanged.
+
+**New counts:** 99 screenshots; **tuning 84 : held-out 15**; marked 70 : 15;
+flags 14 : 0. The size ceiling is **120 MiB** (the user's answer of
+2026-10-01); the corpus is 107.2 MiB.
+
+#### The floors, by the user's rulings of 2026-10-01
+
+`MIN_HELD_OUT_MARKED` = **15** (was 20; matches the set, so losing any of the
+15 is caught). `MIN_HELD_OUT_SITES` = 4 (4 present), `MIN_HELD_OUT_FLAGS` = 0,
+`MIN_UNSEEN_SITES` = 0, unchanged.
+
+**What this set can speak for:** crops on four known readers, mid-chapter,
+dark pages. It holds **no unseen reader, no screenshot that should be left
+alone, no light page, and no `w-network` page**, so a score on it says
+nothing about any of those. The scored run is a later MC-063-shaped spike;
+until then the 15 must not be run as `held-out` by anything else.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
 and checks the corpus is *well formed*: every file present and decodable, every
 rectangle inside its image, the nine required tags covered, every tag in the
-vocabulary above, the `diagonal-gutter` list exact, the whole set under 100 MiB
-(60 MiB until MC-062 raised it, the user's request of 2026-09-30; the corpus
-is 93,824,345 bytes, 89.5 MiB, after MC-062).
+vocabulary above, the `diagonal-gutter` list exact, the whole set under 120 MiB
+(60 MiB until MC-062, 100 MiB until MC-068, each raised at the user's request; the corpus
+is 107.2 MiB after MC-068).
 
 It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the

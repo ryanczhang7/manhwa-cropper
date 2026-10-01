@@ -125,14 +125,43 @@ const MC064_FOUR: [&str; 4] = [
     "2025-12-08 17_22_50.png",
 ];
 
+/// MC-068's 21: the rest of MC-062's fresh draw, spent by MC-063's one scored
+/// run and moved to `tuning` by MC-068 (its AC-4), in manifest order. Like
+/// the others above they are **not** originals and join no originals list
+/// here; they join every test over all marked `tuning` entries.
+const MC068_TWENTY_ONE: [&str; 21] = [
+    "2025-03-04 14_28_54.png",
+    "2025-03-06 02_01_06.png",
+    "2025-03-07 16_07_21.png",
+    "2025-03-18 12_37_27.png",
+    "2025-03-23 23_56_16.png",
+    "2025-03-24 22_44_31.png",
+    "2025-03-25 22_06_29.png",
+    "2025-07-17 23_45_48.png",
+    "2025-07-21 08_26_37.png",
+    "2025-07-21 17_47_22.png",
+    "2025-08-04 17_10_16.png",
+    "2025-08-07 11_20_12.png",
+    "2025-08-07 14_33_43.png",
+    "2025-10-23 11_31_40.png",
+    "2025-11-12 17_43_44.png",
+    "2025-12-09 00_00_17.png",
+    "Screenshot (9).png",
+    "Screenshot (2368).png",
+    "Screenshot (2461).png",
+    "Screenshot (2486).png",
+    "Screenshot (2669).png",
+];
+
 /// Whether `name` is one of the marked `tuning` entries added after the 23
-/// originals: MC-053's three, MC-056's three, MC-062's sixteen or MC-064's
-/// four.
+/// originals: MC-053's three, MC-056's three, MC-062's sixteen, MC-064's
+/// four or MC-068's 21.
 fn is_not_an_original(name: &str) -> bool {
     THE_THREE.contains(&name)
         || MC056_THREE.contains(&name)
         || MC062_SIXTEEN.contains(&name)
         || MC064_FOUR.contains(&name)
+        || MC068_TWENTY_ONE.contains(&name)
 }
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -590,9 +619,9 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        49,
-        "MC-053 (MC-055) AC-2 is over the 49 marked tuning entries (26 until MC-056 moved \
-         three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four)"
+        70,
+        "MC-053 (MC-055) AC-2 is over the 70 marked tuning entries (26 until MC-056 moved \
+         three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21)"
     );
     assert_eq!(
         known_read,
@@ -639,9 +668,9 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 96,
-        "MC-053 (MC-055) AC-2 checks 96 sides: 49 entries less MC-056's one known exception \
-         (88 until MC-064 moved four)"
+        sides, 138,
+        "MC-053 (MC-055) AC-2 checks 138 sides: 70 entries less MC-056's one known exception \
+         (88 until MC-064 moved four, 96 until MC-068 moved 21)"
     );
     assert!(
         failing.is_empty(),
@@ -942,9 +971,9 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .collect();
     assert_eq!(
         entries.len(),
-        49,
-        "the control is over the 49 marked tuning entries (26 until MC-056 moved three, \
-         29 until MC-062 moved sixteen, 45 until MC-064 moved four)"
+        70,
+        "the control is over the 70 marked tuning entries (26 until MC-056 moved three, \
+         29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21)"
     );
     assert_eq!(
         ruled_art_read,
