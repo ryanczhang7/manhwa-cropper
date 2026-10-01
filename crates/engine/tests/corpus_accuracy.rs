@@ -148,12 +148,66 @@ const MIN_ENTRIES: usize = 20;
 /// to take it off this list, and it counts again. Everything else still
 /// counts, `Screenshot (93).jpg` and `Screenshot (1720).png` included. Over the
 /// 59 `tuning` entries after MC-062 the bar reads 53 of 55.
-const KNOWN_MISSES: [&str; 4] = [
+///
+/// **MC-064 adds four**, by the user's ruling of 2026-09-30 (*"List them as
+/// known"*): the fresh entries MC-063 read per file, moved to `tuning`. Three
+/// clip ([`KNOWN_CLIPS`]) and `2025-03-16 22_47_44.png` keeps the browser
+/// scrollbar (right loose by 1381 px beyond the band). Each is held to its
+/// measured crop by [`MC064_CROPS`]. Over the 63 `tuning` entries after MC-064
+/// the bar still reads 53 of 55.
+const KNOWN_MISSES: [&str; 8] = [
     "2025-02-27 22_46_15.png",
     "2025-03-03 11_00_13.png",
     "2025-05-12 20_48_42.png",
     "2025-07-17 14_20_23.png",
+    "2025-03-06 12_48_06.png",
+    "2025-03-16 22_47_44.png",
+    "2025-08-07 01_13_55.png",
+    "2025-12-08 17_22_50.png",
 ];
+
+/// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
+/// of each of the four fresh entries MC-063 read per file, `(file, [x, y, w,
+/// h])`, in manifest order. **Measured, not chosen**: read out of one run on
+/// `43e8e61` (release; crates unchanged since `d2876f5`) in MC-064's RED, on a
+/// scratch copy with only the four `split` values changed. Both of this file's
+/// MC-064 exceptions - [`KNOWN_CLIPS`] in AC-1 and the four in
+/// [`KNOWN_MISSES`] in AC-2 - hold each entry to exactly this crop, so a fix
+/// that moves one has to take it off both lists.
+const MC064_CROPS: [(&str, [u32; 4]); 4] = [
+    ("2025-03-06 12_48_06.png", [1828, 0, 717, 1440]),
+    ("2025-03-16 22_47_44.png", [635, 115, 1922, 1285]),
+    ("2025-08-07 01_13_55.png", [1022, 115, 494, 1285]),
+    ("2025-12-08 17_22_50.png", [1006, 167, 531, 1233]),
+];
+
+/// MC-064, the user's ruling of 2026-09-30: the three of [`MC064_CROPS`] whose
+/// crop clips the mark, AC-1's only known exceptions. **Exact in both
+/// directions**: AC-1 fails if any other crop clips, and fails if a listed
+/// entry's crop is anything but its pin in [`MC064_CROPS`].
+const KNOWN_CLIPS: [&str; 3] = [
+    "2025-03-06 12_48_06.png",
+    "2025-08-07 01_13_55.png",
+    "2025-12-08 17_22_50.png",
+];
+
+/// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
+/// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
+/// in the form [`score`] renders it.
+fn mc064_crops_moved(rows: &[Scored], names: &[&str]) -> Vec<String> {
+    MC064_CROPS
+        .iter()
+        .filter(|(file, _)| names.contains(file))
+        .filter_map(|&(file, [x, y, w, h])| {
+            let pinned = format!("crop {x},{y} {w}x{h}");
+            match rows.iter().find(|r| r.name == file) {
+                None => Some(format!("{file}: not a `tuning` entry here")),
+                Some(r) if r.got == pinned => None,
+                Some(r) => Some(format!("{file}: got {}, pinned {pinned}", r.got)),
+            }
+        })
+        .collect()
+}
 
 // --- One pass over the corpus -----------------------------------------------
 
@@ -559,9 +613,20 @@ fn no_corpus_crop_cuts_into_the_artwork_its_manifest_entry_marked() {
          expected rect came back `Cropped`, so \"zero clips\" is vacuous.\n\n{rendered}"
     );
 
+    // MC-064: the known clips, each held to its measured crop.
+    let moved = mc064_crops_moved(&rows, &KNOWN_CLIPS);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must \
+         still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, \
+         take it off the list and let AC-1 judge it:\n{}\n\n{rendered}",
+        moved.join("\n")
+    );
+
     let clipped: Vec<String> = rows
         .iter()
         .filter(|r| !r.clip.is_empty())
+        .filter(|r| !KNOWN_CLIPS.contains(&r.name.as_str()))
         .map(|r| format!("  {}: {}", r.name, r.clip.join("; ")))
         .collect();
 
@@ -600,9 +665,12 @@ fn widening_every_expected_rect_one_pixel_on_the_columns_makes_the_zero_clip_che
     let runs = run_corpus(out.path(), &tuning);
     let rows = score(&runs, slack(&tuning), CONTROL_GROW_PX);
 
+    // MC-064: a known clip clips before any widening, so it would make this
+    // control fire whatever the comparison did; it is left out.
     let fired: Vec<&str> = rows
         .iter()
         .filter(|r| !r.clip.is_empty())
+        .filter(|r| !KNOWN_CLIPS.contains(&r.name.as_str()))
         .map(|r| r.name.as_str())
         .collect();
     let compared = rows.iter().filter(|r| r.compared).count();
@@ -676,6 +744,15 @@ fn at_least_nine_corpus_screenshots_in_ten_are_right_on_the_column_axis() {
          from `left` is gone from the corpus or is right now: take it off the \
          list, and it counts toward the bar again.\n\n{rendered}"
     );
+    // MC-064: its four known misses are held to their measured crops too.
+    let moved = mc064_crops_moved(&rows, &KNOWN_MISSES);
+    assert!(
+        moved.is_empty(),
+        "MC-064: each of its four known misses must still be cropped to exactly its \
+         pin in MC064_CROPS - if a fix moves one, take it off KNOWN_MISSES and let \
+         the bar count it:\n{}\n\n{rendered}",
+        moved.join("\n")
+    );
 
     let counted: Vec<&Scored> = rows
         .iter()
@@ -739,8 +816,12 @@ fn the_column_window_is_narrower_than_the_corpus_so_the_ninety_percent_can_be_mi
     let (_out, tuning, rows, rendered) = default_pass();
     let band = slack(&tuning);
 
+    // MC-064: a known miss is outside the window by a ruling, not by the
+    // comparison (`2025-03-16 22_47_44.png` by 1381 px), so it would make this
+    // control fire on any window at all; known misses are left out.
     let outside: Vec<String> = rows
         .iter()
+        .filter(|r| !KNOWN_MISSES.contains(&r.name.as_str()))
         .filter_map(|r| {
             r.columns_outside
                 .as_ref()

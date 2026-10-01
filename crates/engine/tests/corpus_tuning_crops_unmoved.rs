@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 44] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 48] = [
     (
         "2025-08-05 00_11_13.webp",
         [950, 15, 646, 1425],
@@ -268,6 +268,35 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 44] = [
         "Screenshot (3625).png",
         [945, 137, 654, 1255],
         [948, 137, 648, 1255],
+    ),
+    // MC-064: the four fresh entries MC-063 read per file, moved to `tuning` by
+    // the user's ruling of 2026-09-30, in manifest order, read out of one run
+    // of `process_file` on `43e8e61` (release; crates unchanged since
+    // `d2876f5`) in MC-064's RED, on a scratch copy with only the four `split`
+    // values changed. Measured, never chosen. All four are cropped at both
+    // margins. Three clip their mark (`2025-03-06 12_48_06.png`, `2025-08-07
+    // 01_13_55.png`, `2025-12-08 17_22_50.png`) and `2025-03-16 22_47_44.png`
+    // keeps the browser scrollbar: these rows pin that, as `main` produces it,
+    // and the zero-clip suites name them as known exceptions. MC-065 moves them.
+    (
+        "2025-03-06 12_48_06.png",
+        [1825, 0, 723, 1440],
+        [1828, 0, 717, 1440],
+    ),
+    (
+        "2025-03-16 22_47_44.png",
+        [632, 115, 1928, 1288],
+        [635, 115, 1922, 1285],
+    ),
+    (
+        "2025-08-07 01_13_55.png",
+        [1019, 115, 500, 1285],
+        [1022, 115, 494, 1285],
+    ),
+    (
+        "2025-12-08 17_22_50.png",
+        [1003, 167, 537, 1233],
+        [1006, 167, 531, 1233],
     ),
 ];
 

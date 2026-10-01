@@ -114,11 +114,56 @@ const MC062_SIXTEEN: [&str; 16] = [
     "Screenshot (3625).png",
 ];
 
+/// MC-064's four: the fresh entries MC-063 read per file, moved to `tuning` by
+/// the user's ruling of 2026-09-30 ("Write up and file"), in manifest order.
+/// Like the others above they are **not** originals and join no originals list
+/// here; they join every test over all marked `tuning` entries.
+const MC064_FOUR: [&str; 4] = [
+    "2025-03-06 12_48_06.png",
+    "2025-03-16 22_47_44.png",
+    "2025-08-07 01_13_55.png",
+    "2025-12-08 17_22_50.png",
+];
+
 /// Whether `name` is one of the marked `tuning` entries added after the 23
-/// originals: MC-053's three, MC-056's three or MC-062's sixteen.
+/// originals: MC-053's three, MC-056's three, MC-062's sixteen or MC-064's
+/// four.
 fn is_not_an_original(name: &str) -> bool {
-    THE_THREE.contains(&name) || MC056_THREE.contains(&name) || MC062_SIXTEEN.contains(&name)
+    THE_THREE.contains(&name)
+        || MC056_THREE.contains(&name)
+        || MC062_SIXTEEN.contains(&name)
+        || MC064_FOUR.contains(&name)
 }
+
+/// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
+/// as known"*): AC-2's known page-background sides at margin 0, `(file, side,
+/// [x, y, w, h] of the crop at margin 0)`. `2025-03-16 22_47_44.png`'s crop
+/// keeps the browser's scrollbar, running to column 2556 against a mark that
+/// ends at 1167, and columns it keeps beyond the mark on the right read as
+/// page background. The crop is **measured, not chosen**: one run of
+/// `process_file` on `43e8e61` (release; crates unchanged since `d2876f5`) in
+/// MC-064's RED, on a scratch copy with only the four `split` values changed.
+/// **Exact in both directions**: AC-2 fails if any other side lets page
+/// background in, if this one stops doing so, or if its crop is not the pin.
+const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 1] = [(
+    "2025-03-16 22_47_44.png",
+    Side::Right,
+    [635, 115, 1922, 1285],
+)];
+
+/// MC-064, the user's ruling of 2026-09-30 (*"Known exception"*, put to the
+/// user because this story's `## Out of scope` forbids correcting a mark): the
+/// mark edges of MC-064's four that the metric control reads as page
+/// background, `(file, side)`. `2025-08-07 01_13_55.png`'s right edge, column
+/// 1521, has share 0.988 (measured in MC-064's RED on a scratch copy with the
+/// move applied), against [`PAGE_BACKGROUND_SHARE`]: either the box runs a few
+/// columns into the page or the app is wrong, and MC-065 decides which and
+/// clears it either way. **Not** one of [`MC049_MARK_ERRORS`] (marks a story
+/// corrected) or [`RULED_ART_EDGES`] (edges the user ruled art after a
+/// close-up): nobody has looked at this one. **Exact in both directions**: the
+/// metric control fails if any other edge reads as background, and fails if
+/// this one stops reading so.
+const MC064_BACKGROUND_EDGES: [(&str, Side); 1] = [("2025-08-07 01_13_55.png", Side::Right)];
 
 /// MC-056, the user's ruling of 2026-09-29 (its Open question 3): the mark
 /// edges the user ruled **art** after a close-up although the predicate reads
@@ -523,16 +568,57 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         ..Tuning::default()
     };
     let entries = marked();
-    let (sides, failing, not_cropped) = page_background_let_in(&entries, &t, &tmp);
+    let (sides, all_failing, not_cropped) = page_background_let_in(&entries, &t, &tmp);
+    // MC-064: the known page-background sides are set apart, exactly, below.
+    let is_known = |name: &str, side: Side| {
+        KNOWN_BACKGROUND_SIDES
+            .iter()
+            .any(|(file, s, _)| *file == name && *s == side)
+    };
+    let known_read: Vec<(String, Side)> = all_failing
+        .iter()
+        .filter(|(name, side, _)| is_known(name, *side))
+        .map(|(name, side, _)| (name.clone(), *side))
+        .collect();
+    let failing: Vec<&LetIn> = all_failing
+        .iter()
+        .filter(|(name, side, _)| !is_known(name, *side))
+        .collect();
     let shown: Vec<String> = failing
         .iter()
         .map(|(name, side, cols)| format!("{name} {side:?}: page-background columns {cols:?}"))
         .collect();
     assert_eq!(
         entries.len(),
-        45,
-        "MC-053 (MC-055) AC-2 is over the 45 marked tuning entries (26 until MC-056 moved \
-         three, 29 until MC-062 moved sixteen)"
+        49,
+        "MC-053 (MC-055) AC-2 is over the 49 marked tuning entries (26 until MC-056 moved \
+         three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four)"
+    );
+    assert_eq!(
+        known_read,
+        KNOWN_BACKGROUND_SIDES
+            .map(|(name, side, _)| (name.to_string(), side))
+            .to_vec(),
+        "MC-064: every known page-background side (KNOWN_BACKGROUND_SIDES, the user's \
+         ruling of 2026-09-30) must still let page background in at margin_px 0 - if a \
+         fix clears one, take it off the list. `left` is measured"
+    );
+    let moved: Vec<String> = KNOWN_BACKGROUND_SIDES
+        .iter()
+        .filter_map(|&(file, _, [x, y, w, h])| {
+            let pinned = Rect { x, y, w, h };
+            let entry = entries.iter().find(|(entry, _)| entry.name() == file);
+            match entry.map(|(entry, _)| crop_at(entry, &tmp, &t)) {
+                Some(Ok(crop)) if crop == pinned => None,
+                got => Some(format!("{file}: {got:?}, pinned {pinned:?}")),
+            }
+        })
+        .collect();
+    assert!(
+        moved.is_empty(),
+        "MC-064: each entry with a known page-background side must still be cropped to \
+         exactly its pin in KNOWN_BACKGROUND_SIDES at margin_px 0:\n{}",
+        moved.join("\n")
     );
     // MC-056: exact against KNOWN_NOT_CROPPED, by name. `not_cropped` rows are
     // `name: outcome`; the name is everything before the first ": ".
@@ -553,14 +639,16 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 88,
-        "MC-053 (MC-055) AC-2 checks 88 sides: 45 entries less MC-056's one known exception"
+        sides, 96,
+        "MC-053 (MC-055) AC-2 checks 96 sides: 49 entries less MC-056's one known exception \
+         (88 until MC-064 moved four)"
     );
     assert!(
         failing.is_empty(),
         "MC-053 (MC-055) AC-2: at margin_px 0 no column the crop keeps outside the mark may \
          be page background (share >= {PAGE_BACKGROUND_SHARE} within {} of the \
-         column's median, over the mark's rows). {} of {sides} sides let it in:\n{}",
+         column's median, over the mark's rows), except MC-064's known sides \
+         (KNOWN_BACKGROUND_SIDES). {} of {sides} sides let it in:\n{}",
         t.uniform_tolerance,
         failing.len(),
         shown.join("\n")
@@ -669,7 +757,7 @@ fn mc027s_rule_frozen_here_reproduces_the_shipped_page_column_on_the_originals()
     let mut differ = Vec::new();
     let mut compared = 0usize;
     for (entry, _) in marked() {
-        // MC-056's three and MC-062's sixteen are not originals either.
+        // MC-056's three, MC-062's sixteen and MC-064's four are not originals either.
         if is_not_an_original(&entry.name()) {
             continue;
         }
@@ -812,6 +900,14 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .iter()
         .filter(|(name, side)| !MC049_MARK_ERRORS.contains(&(name.as_str(), *side)))
         .filter(|(name, side)| !RULED_ART_EDGES.contains(&(name.as_str(), *side)))
+        .filter(|(name, side)| !MC064_BACKGROUND_EDGES.contains(&(name.as_str(), *side)))
+        .collect();
+    // MC-064: the other direction for its known edge. It must still read as
+    // page background; one that stops is a stale exception.
+    let mc064_read: Vec<(&str, Side)> = exceptions
+        .iter()
+        .map(|(name, side)| (name.as_str(), *side))
+        .filter(|edge| MC064_BACKGROUND_EDGES.contains(edge))
         .collect();
     // MC-056: the other direction for the edges the user ruled art. Each must
     // still read as page background; one that stops is a stale exception.
@@ -822,9 +918,17 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .collect();
     assert_eq!(
         entries.len(),
-        45,
-        "the control is over the 45 marked tuning entries (26 until MC-056 moved three, \
-         29 until MC-062 moved sixteen)"
+        49,
+        "the control is over the 49 marked tuning entries (26 until MC-056 moved three, \
+         29 until MC-062 moved sixteen, 45 until MC-064 moved four)"
+    );
+    assert_eq!(
+        mc064_read,
+        MC064_BACKGROUND_EDGES.to_vec(),
+        "MC-064: every known mark edge of its four that reads as page background \
+         (MC064_BACKGROUND_EDGES, the user's ruling of 2026-09-30) must still read so \
+         here - if one no longer does, the exception is stale and must be removed. \
+         `left` is measured.\n\n{printed}"
     );
     assert_eq!(
         ruled_art_read,
@@ -838,8 +942,9 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         "MC-053 (MC-055) AC-2's control on the metric: a mark's own first and last columns \
          are art, so the predicate must call both not page background on at least \
          {METRIC_CONTROL_REQUIRED} of {} entries (it did on {ok}), and may call a \
-         mark edge background only on MC-049's seven mark errors and the edges the \
-         user ruled art (RULED_ART_EDGES, MC-056) (it also did on \
+         mark edge background only on MC-049's seven mark errors, the edges the \
+         user ruled art (RULED_ART_EDGES, MC-056) and MC-064's known edge \
+         (MC064_BACKGROUND_EDGES) (it also did on \
          {unexplained:?}).\n\n{printed}",
         entries.len()
     );
@@ -863,7 +968,7 @@ fn the_twenty_three_original_crops_do_not_move_by_a_pixel_at_either_margin() {
     let mut seen = Vec::new();
     for (entry, _) in marked() {
         let name = entry.name();
-        // MC-056's three and MC-062's sixteen are not originals either.
+        // MC-056's three, MC-062's sixteen and MC-064's four are not originals either.
         if is_not_an_original(&name) {
             continue;
         }
