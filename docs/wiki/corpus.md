@@ -861,6 +861,42 @@ held-out score. That includes the 21 that stay `held-out` in the manifest. A
 later held-out score needs a fresh draw with a new seed, by the procedure
 above.
 
+##### MC-064, 2026-09-30: the four MC-063 read per file move to `tuning`
+
+[MC-064](../backlog/stories/MC-064.md) changed four `"split"` values from
+`held-out` to `tuning` and nothing else. No `expect`, tag or mark moved:
+`2025-12-08 17_22_50.png` (`f09`, `toongod`), `2025-03-16 22_47_44.png`
+(`f13`, `toongod`), `2025-03-06 12_48_06.png` (`f18`, `toongod`) and
+`2025-08-07 01_13_55.png` (`f20`, `rolia-scans`). The user ruled that the
+other 21 stay `held-out`, spent but unread.
+
+**New counts:**
+- **tuning 63 : held-out 21**;
+- **marked 49 : 21**;
+- flags 14 : 0.
+
+Held-out still spans 5 readers (`toongod` 14 becomes 11, `rolia-scans` 4
+becomes 3), so `MIN_HELD_OUT_MARKED` (20) and `MIN_HELD_OUT_SITES` (4) hold
+unchanged.
+
+**The exception lists.** The user ruled *"List them as known"*. Each list
+pins the crop the app makes today, measured on `43e8e61` (crates identical to
+`d2876f5`), and fails in both directions: if any other entry fails the same
+way, or if a listed entry's crop moves at all. So the fix
+([MC-065](../backlog/stories/MC-065.md)) has to empty them.
+
+| List | Where | Entries |
+|---|---|---|
+| `KNOWN_CLIPS` | `corpus.rs` (both zero-clip tests), `corpus_accuracy.rs`, `corpus_sides.rs` | `f18` `1828,0 717x1440`, `f20` `1022,115 494x1285`, `f09` `1006,167 531x1233` (margin 0) |
+| `KNOWN_CLIPS` | `corpus_viewport.rs` (both margins) | `f18`, `f20`. `f09` fails nothing there: at margin 3 its crop contains the mark, and at margin 0 that test checks rows only |
+| `KNOWN_MISSES` (now 8) | `corpus_accuracy.rs`, the 90 % bar | all four, each held to its crop; the bar reads 53 of 55 |
+| `KNOWN_BACKGROUND_SIDES` | `corpus_sides.rs`, `corpus_page_column.rs` | `f13` right: its crop keeps the browser scrollbar (`635,115 1922x1285`) |
+| `MC064_BACKGROUND_EDGES` | `corpus_page_column.rs` | `f20` right: the mark's last column (1521) reads as page background (share 0.988). The user left the mark unchanged; MC-065 decides whether the mark or the app is wrong |
+| `STAGE_DECLINED` | `corpus_viewport.rs`, `corpus_viewport_stage.rs` | `f18`: the viewport stage declines (`locate` returns `None`) |
+
+`MAIN_CROPS` (`corpus_tuning_crops_unmoved.rs`) gains the four at both
+margins, measured.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
