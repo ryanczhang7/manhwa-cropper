@@ -283,16 +283,26 @@ pub fn textured_span(spread: &[f32], t: &Tuning) -> Option<(usize, usize)> {
 /// so the answer is the same on every machine.
 #[must_use]
 pub fn widest_textured_run(spread: &[f32], t: &Tuning) -> Option<(usize, usize)> {
+    textured_runs(spread, t).into_iter().fold(None, wider)
+}
+
+/// Every run of consecutive indices of `spread` at or above
+/// `t.min_line_spread`, both bounds **inclusive**, in ascending index order.
+///
+/// [`widest_textured_run`] is the widest of these. The page-column stage reads
+/// the rest when the widest is not in the page margin (MC-066, in
+/// [`crate::flat`]).
+pub(crate) fn textured_runs(spread: &[f32], t: &Tuning) -> Vec<(usize, usize)> {
     // The only place the threshold is read, and it is read from the argument.
     let threshold = t.min_line_spread;
-    let mut widest: Option<(usize, usize)> = None;
+    let mut runs = Vec::new();
     let mut open: Option<usize> = None;
 
     for (i, &value) in spread.iter().enumerate() {
         match (value >= threshold, open) {
             (true, None) => open = Some(i),
             (false, Some(start)) => {
-                widest = wider(widest, (start, i - 1));
+                runs.push((start, i - 1));
                 open = None;
             }
             // Continuing a run, or continuing to be below the threshold.
@@ -302,10 +312,10 @@ pub fn widest_textured_run(spread: &[f32], t: &Tuning) -> Option<(usize, usize)>
     if let Some(start) = open {
         // The profile ended mid-run: close it at the last index, as
         // `strong_lines` does, rather than dropping it.
-        widest = wider(widest, (start, spread.len() - 1));
+        runs.push((start, spread.len() - 1));
     }
 
-    widest
+    runs
 }
 
 /// `run` if it is **strictly** wider than `widest`, otherwise `widest`.

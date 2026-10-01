@@ -37,7 +37,10 @@
 //!    column that is flat through the band but carries the page's tone on,
 //!    it also reads the viewport, stage 6's instrument, asked beside the
 //!    run. [`flat`](crate::flat)'s "Stage 3c" section is where all of that is
-//!    argued. The row axis stays exactly where stage 4 left it;
+//!    argued. Since MC-066 the run is the widest one whose page column has
+//!    the page margin beside it, not simply the widest, so a second browser
+//!    window's video is not taken for the page. The row axis stays exactly
+//!    where stage 4 left it;
 //! 6. [`viewport::locate`] beside the page column, on the **row axis only**,
 //!    which finds the browser viewport - the rows between the browser chrome
 //!    and the taskbar, both painted edge to edge where the page background

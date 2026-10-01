@@ -82,7 +82,8 @@
 use std::cell::OnceCell;
 
 use crate::edges::{
-    Axis, col_profile, row_profile, spread_within, strong_lines, textured_span, widest_textured_run,
+    Axis, col_profile, row_profile, spread_within, strong_lines, textured_runs, textured_span,
+    widest_textured_run,
 };
 use crate::viewport;
 use crate::{Luma, Rect, Tuning};
@@ -186,6 +187,26 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 //
 // That is not a tuning knob and there is no constant in it. It is the
 // definition of a page margin, restated as code.
+//
+// # Which run is the page: the one in the page margin (MC-066)
+//
+// "The widest run" assumes the page is the widest stretch of texture on the
+// screen. A second browser window beside the reader breaks that: on
+// `2025-03-06 12_48_06.png` its video is 716 columns over the band and the
+// page 517, and the crop was the video. What the video does not have is the
+// page margin. Its flanks are the seam between the windows (32) and that
+// window's scrollbar (255), while the page's are the margin (11) on both
+// sides.
+//
+// So the runs are tried widest first, each widened to the margin as below,
+// and the first whose page column has, on at least one side, a column that
+// **is page margin** - page background over the band, MC-049's predicate,
+// with its median within `uniform_tolerance` of the page background tone -
+// is the page. Where none has, the widest is kept, exactly as before. On
+// every screenshot whose widest run is in the page margin, which is every
+// one before MC-066, the first candidate is that run and nothing changes.
+// The tone, the predicate and the tolerance are the instruments branch 1 and
+// branch 3 below already read. There is no new constant.
 //
 // # Where the page column ends: at the margin, not at the threshold (MC-053)
 //
@@ -332,35 +353,66 @@ pub fn central_band(rect: Rect, t: &Tuning) -> Rect {
 /// stage does not guess at it.
 #[must_use]
 pub fn page_column(img: &Luma, within: Rect, t: &Tuning) -> Rect {
+    locate_column(img, within, t).unwrap_or(within)
+}
+
+/// [`page_column`]'s answer where it narrows `within`, and `None` where it
+/// hands `within` back: no textured column at all, or a page column that
+/// reaches an end of `within`. [`detect`](crate::detect) needs the
+/// difference (MC-066, the second half of the section comment above).
+pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect> {
     let band = central_band(within, t);
     let spread = spread_within(img, band, Axis::Columns);
-    let Some((first, last)) = widest_textured_run(&spread, t) else {
-        return within;
-    };
-    // A spread profile index *is* a line index, so the arithmetic is an offset
-    // from the rect's own origin; both bounds are inclusive, hence the `+ 1`.
-    let run = Rect {
-        x: within.x + first as u32,
-        w: (last - first + 1) as u32,
-        ..within
-    };
-    let (first, last) = extend_to_the_margin(img, within, band, run, t);
+    // Widest first. The sort is stable, so of two runs of equal width the
+    // earlier stays first: `widest_textured_run`'s tie-break, which is what
+    // makes the first candidate exactly the run MC-027's rule takes.
+    let mut runs = textured_runs(&spread, t);
+    runs.sort_by_key(|&(first, last)| std::cmp::Reverse(last - first));
+    debug_assert_eq!(runs.first().copied(), widest_textured_run(&spread, t));
+
+    let mut widest = None;
+    let mut page = None;
+    for (first, last) in runs {
+        // A spread profile index *is* a line index, so the arithmetic is an
+        // offset from the rect's own origin; both bounds are inclusive, hence
+        // the `+ 1`.
+        let run = Rect {
+            x: within.x + first as u32,
+            w: (last - first + 1) as u32,
+            ..within
+        };
+        let (column, in_margin) = extend_to_the_margin(img, within, band, run, t);
+        if in_margin {
+            page = Some(column);
+            break;
+        }
+        widest.get_or_insert(column);
+    }
+    let (first, last) = page.or(widest)?;
     // The interior rule, read on the column the extension arrived at: a page
     // column that reaches either end of `within` has no page margin on that
     // side.
     if first == within.x || last + 1 == within.x + within.w {
-        return within;
+        return None;
     }
-    Rect {
+    Some(Rect {
         x: first,
         w: last - first + 1,
         ..within
-    }
+    })
 }
 
 /// The first and last image column, both inclusive, of `run` widened outward
-/// on each side for as long as the next column [`Margin::belongs`] to the page.
-fn extend_to_the_margin(img: &Luma, within: Rect, band: Rect, run: Rect, t: &Tuning) -> (u32, u32) {
+/// on each side for as long as the next column [`Margin::belongs`] to the page,
+/// and whether the column so found sits in the page margin: whether a column
+/// just past it, on either side, [`Margin::is_page_margin`] (MC-066).
+fn extend_to_the_margin(
+    img: &Luma,
+    within: Rect,
+    band: Rect,
+    run: Rect,
+    t: &Tuning,
+) -> ((u32, u32), bool) {
     let margin = Margin {
         img,
         within,
@@ -394,7 +446,11 @@ fn extend_to_the_margin(img: &Luma, within: Rect, band: Rect, run: Rect, t: &Tun
             None => break,
         }
     }
-    (first, last)
+    let end = within.x + within.w;
+    let in_margin = margin.tone.is_none()
+        || (first > within.x && margin.is_page_margin(first - 1))
+        || (last + 1 < end && margin.is_page_margin(last + 1));
+    ((first, last), in_margin)
 }
 
 /// What [`extend_to_the_margin`] reads a column against.
@@ -423,6 +479,16 @@ impl Margin<'_> {
     /// there.
     fn over_band(&self, x: u32) -> (u8, bool) {
         column_background(self.img, x, self.band.clone(), self.tol)
+    }
+
+    /// Whether column `x` is the page margin itself: page background over the
+    /// band, at the page background tone (MC-066).
+    fn is_page_margin(&self, x: u32) -> bool {
+        let (median, background) = self.over_band(x);
+        background
+            && self
+                .tone
+                .is_some_and(|tone| median.abs_diff(tone) <= self.tol)
     }
 
     /// The viewport's rows inside the rect, located once, on first use.
