@@ -47,6 +47,11 @@
 //!    off the page column, it does so only when those rows hold a run of at
 //!    least [`MIN_RUN`] rows that step 3 does not find page-like. Otherwise
 //!    that side has no strip, and the viewport runs to the image's edge there.
+//! 7. **A window on both sides, after a decline** (MC-075, below): when step
+//!    4 finds no run at all, the reader's window is found over the column's
+//!    rows, and only if it holds at least `MIN_WINDOW_MARGIN` columns on
+//!    each side of the page column, steps 3, 4 and 6 run over it, a row
+//!    page-like only when each side alone is. Otherwise the stage declines.
 //!
 //! # A strip must be as sure as the page (MC-054)
 //!
@@ -110,20 +115,21 @@
 //! cropped there. A split-screen shot is neither: the whole margin finds the
 //! rows both windows cover, over the page, and the window finds the reader's
 //! rows, a superset. So MC-048's reading is kept exactly and decides alone
-//! whether the stage speaks at all; only a viewport that overlaps the
+//! whether the stage speaks over it; only a viewport that overlaps the
 //! column's rows is widened; and the window reading can only add rows. Every
-//! row MC-048's stage kept, this one keeps, and wherever MC-048's stage
-//! declined, this one declines.
+//! row MC-048's stage kept, this one keeps. Where MC-048's stage found no run
+//! at all, step 7 (MC-075, below) is the only reading that may still speak.
 //!
-//! There is no minimum distance between the page column and a window edge.
-//! GREEN had one (`MIN_WINDOW_MARGIN`, 16 columns) so that on the two
-//! `2025-08-05` WebPs, where a reader panel of another tone hugs the page, the
-//! side was read over its full width and the stage still declined. Under the
-//! rule above the whole margin already declines there, and the guard did no
-//! work any test can see: every test passes without it, and over 75,000
-//! generated cases (`tests/detect.rs`'s generator, 15 fixed seeds) the rule
-//! without it clipped none, against 2 with it (both also clipped by MC-048's
-//! stage). MC-052 `## Notes`, "GATES: the proptest clip", has the counts.
+//! There is no minimum distance between the page column and a window edge
+//! **when widening**. GREEN had one (`MIN_WINDOW_MARGIN`, 16 columns) so that
+//! on the two `2025-08-05` WebPs, where a reader panel of another tone hugs
+//! the page, the side was read over its full width and the stage still
+//! declined. Under the rule above the whole margin already declines there, and
+//! the guard did no work any test can see: every test passes without it, and
+//! over 75,000 generated cases (`tests/detect.rs`'s generator, 15 fixed seeds)
+//! the rule without it clipped none, against 2 with it (both also clipped by
+//! MC-048's stage). MC-052 `## Notes`, "GATES: the proptest clip", has the
+//! counts. Step 7 brings the guard back, for the case it was written for.
 //!
 //! The tone (step 2), [`PAGE_LIKE`], [`MIN_RUN`] and `uniform_tolerance` are
 //! unchanged: this changes which pixels the settled instrument reads, not the
@@ -133,19 +139,65 @@
 //! AC-6, case B). Widening reads the reader's window, not either side, so the
 //! second window's taller viewport is never read.
 //!
+//! # After a decline: a window on both sides of the page (MC-075)
+//!
+//! Step 5 needs the whole margin to find the rows both windows cover. Beside a
+//! second window textured on **every** row there are none:
+//! `2025-03-13 12_01_01.png`'s second window (x 1799 to the image edge) has no
+//! flat row, so the whole-margin share is 0.648 on every row of the reader's
+//! viewport, step 4 finds no run, and the crop kept the browser bar, the
+//! reader's scrollbar and the taskbar. Over the reader's window alone the same
+//! rows are page-like (1.000 on 1255 of 1277). So when step 4 finds no run at
+//! all, step 7 reads the reader's window once more:
+//!
+//! - The window is `reader_window`'s, found over the column's rows, since
+//!   there is no whole-margin viewport to find it over.
+//! - It is read only when it holds at least `MIN_WINDOW_MARGIN` columns on
+//!   **each** side of the page column: a page sitting in a margin of its own,
+//!   as a reader window's page does. On the `2025-08-05` WebPs a panel hugs
+//!   the page and the window is 0 to 4 columns a side (MC-052; 1 and 4 on
+//!   `00_11_13.webp`: 952 and 1593..1597); read anyway, those slivers are
+//!   page-like over a short band and nowhere else, and `00_11_13` was cut to
+//!   rows 0..76 (MC-075 `## Context`, trial rule 1). A few columns of page tone
+//!   say nothing about where the browser ends; a margin does.
+//! - A row is page-like when **each** side, read alone, is at [`PAGE_LIKE`]:
+//!   the reader's own viewport is flat on both sides of its page, and a row
+//!   flat on one side and textured on the other is not the reader's. This is
+//!   the stricter of the two readings, and the one MC-075's trial rule 2
+//!   needed to keep `tests/detect.rs`'s generated screens whole when no width
+//!   guard was asked; with the guard, no test tells it from the pooled share
+//!   of both sides (MC-075 `## Notes`).
+//! - The viewport is the outer runs of [`MIN_RUN`] such rows (step 4), and a
+//!   side cuts the column's rows only over a run of [`MIN_RUN`] rows flat on
+//!   **neither** side (step 6, asked of the reading that speaks). Chrome is
+//!   painted edge to edge, as the top of this page says, so a row flat on one
+//!   side and not the other is neither page nor chrome, and an unsure row is
+//!   kept. The whole margin's evidence would not do here: it is page-like on
+//!   almost no row, so it would allow any cut. Nor would "not page-like over
+//!   the window": on `tests/detect.rs`'s generated screens a window can be two
+//!   bands of textured chrome near [`PAGE_LIKE`], one side at 0.955 and the
+//!   other at 0.899 on every art row, and that reading cut a 366-row page to
+//!   one row (MC-075 `## Notes`).
+//!
+//! This reads only where MC-048's stage, and MC-052's, declined, so every row
+//! either kept, this one keeps.
+//!
 //! # When it declines
 //!
-//! `None` when the whole-margin reading finds no run of [`MIN_RUN`] page-like
-//! rows - including when there is no pixel beside the column at all - however
-//! the window reading would come out. A whole-margin viewport clear of the
-//! column's rows is returned as it is, unwidened, and the pipeline declines on
-//! it as MC-048's did. The pipeline then leaves the rows exactly as
-//! the earlier stages did. MC-048 AC-3 relies on this: on the two `2025-08-05`
-//! WebPs the full-margin reading finds no such run, and their crops are
-//! unchanged. There is deliberately **no** narrower fallback reading tried
-//! after a decline (MC-048 `## Amendments`): a decline of the whole margin is
-//! final, and the window reading can only widen a viewport the whole margin
-//! found.
+//! `None` when there is no pixel beside the column at all; and when the
+//! whole-margin reading finds no run of [`MIN_RUN`] page-like rows **and**
+//! step 7 does not speak: a side of the reader's window under
+//! `MIN_WINDOW_MARGIN` columns (a page against an image edge included), or
+//! no run of [`MIN_RUN`] rows page-like on both sides. A viewport clear of the
+//! column's rows, from either reading, is returned as it is, unwidened, and
+//! the pipeline declines on it as MC-048's did. The pipeline then leaves the
+//! rows exactly as the earlier stages did. MC-048 AC-3 relies on this, and it
+//! still holds: on the two `2025-08-05` WebPs the full-margin reading finds no
+//! run and the reader's window is 0 to 4 columns a side, so step 7 does not read
+//! and their crops are unchanged. MC-048 `## Amendments` ruled out a narrower
+//! reading tried after **any** decline, because on those WebPs it cuts the
+//! page; step 7 is not that. It reads after a decline only a window that is a
+//! margin on both sides, and the WebPs are exactly what it refuses.
 
 use crate::{Luma, Rect, Tuning};
 
@@ -216,10 +268,14 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
             near as f32 / whole >= PAGE_LIKE
         })
         .collect();
-    let (mut top, mut bottom) = outer_runs(&page_like)?;
+    let (first, end) = (column.y as usize, column.y as usize + column.h as usize);
+    let Some((mut top, mut bottom)) = outer_runs(&page_like) else {
+        // MC-075: the whole margin found nothing. Only a reader window that
+        // is a window on both sides of the page may still speak.
+        return beside_a_textured_window(img, left_end, right_start, first..end, tone, tol);
+    };
     // A viewport clear of the column's rows is one the pipeline treats as a
     // decline; the window reading must not turn it into a crop.
-    let (first, end) = (column.y as usize, column.y as usize + column.h as usize);
     if top >= end || bottom <= first {
         return viewport(top, bottom);
     }
@@ -252,6 +308,79 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
         top = 0;
     }
     if bottom < end && !chrome(bottom..end.min(rows)) {
+        bottom = rows;
+    }
+    viewport(top, bottom)
+}
+
+/// The fewest page-background columns the reader's window must hold on
+/// **each** side of the page column for [`beside_a_textured_window`] to read
+/// it (MC-075).
+///
+/// Not calibrated on the file that needed it. It is MC-052 GREEN's
+/// `MIN_WINDOW_MARGIN`, set and measured before MC-075 existed, for the shape
+/// it guards here: on the two `2025-08-05` WebPs a reader panel of another
+/// tone hugs the page, leaving 0 to 4 page-tone columns between the page
+/// column and the panel, while a reader window beside a second window had 635
+/// (`2025-03-06 01_22_45.png`), 661 (`2025-03-07 00_58_06.png`) and 47
+/// (MC-052's AC-6 fixture) (MC-052 `## Notes`, "GREEN: the rule"). Its value
+/// is `MIN_RUN`'s, as it was there. MC-075 `## Notes` records which values
+/// pass the whole suite.
+const MIN_WINDOW_MARGIN: usize = MIN_RUN;
+
+/// MC-075's reading, after the whole margin declined: the reader's own window
+/// read over every row, where the whole-margin reading could not speak
+/// because a second window beside the reader's is textured on **every** row
+/// and holds the whole-margin share under [`PAGE_LIKE`] throughout
+/// (`2025-03-13 12_01_01.png`: 0.648).
+///
+/// The window is [`reader_window`]'s, found over `column`'s rows, since there
+/// is no whole-margin viewport to find it over. It is read only when each of
+/// its sides holds at least [`MIN_WINDOW_MARGIN`] columns: a page sitting in a
+/// margin of its own on both sides, not a page hugged by a panel with a sliver
+/// of page tone beside it, whose rows say nothing about the browser. A row is
+/// page-like when each side, read alone, is - so a row flat on one side and
+/// textured on the other is not. The viewport is the outer runs of
+/// [`MIN_RUN`] such rows, and a side cuts the column's rows only over a run of
+/// [`MIN_RUN`] rows flat on **neither** side, as step 6 asks of the reading
+/// that speaks: chrome is painted edge to edge, so a row flat on one side is
+/// neither page nor chrome, and an unsure row is kept.
+fn beside_a_textured_window(
+    img: &Luma,
+    left_end: usize,
+    right_start: usize,
+    column_rows: std::ops::Range<usize>,
+    tone: u8,
+    tol: u8,
+) -> Option<Viewport> {
+    let width = img.width as usize;
+    let rows = img.height as usize;
+    let (lo, hi) = reader_window(img, left_end, right_start, column_rows.clone(), tone, tol);
+    if left_end - lo < MIN_WINDOW_MARGIN || hi - right_start < MIN_WINDOW_MARGIN {
+        return None;
+    }
+    let flat = |side: &[u8]| {
+        let near = side.iter().filter(|&&v| v.abs_diff(tone) <= tol).count();
+        near as f32 / side.len() as f32 >= PAGE_LIKE
+    };
+    // Each row's two sides, read alone: (left flat, right flat).
+    let sides: Vec<(bool, bool)> = img
+        .data
+        .chunks_exact(width)
+        .map(|row| (flat(&row[lo..left_end]), flat(&row[right_start..hi])))
+        .collect();
+    let page_like: Vec<bool> = sides.iter().map(|&(l, r)| l && r).collect();
+    let (mut top, mut bottom) = outer_runs(&page_like)?;
+    let (first, end) = (column_rows.start, column_rows.end.min(rows));
+    if top >= end || bottom <= first {
+        return viewport(top, bottom);
+    }
+    // Chrome is painted edge to edge: a row flat on either side is not it.
+    let chrome = |ys: std::ops::Range<usize>| has_run(ys.map(|y| sides[y] == (false, false)));
+    if top > first && !chrome(first..top) {
+        top = 0;
+    }
+    if bottom < end && !chrome(bottom..end) {
         bottom = rows;
     }
     viewport(top, bottom)
