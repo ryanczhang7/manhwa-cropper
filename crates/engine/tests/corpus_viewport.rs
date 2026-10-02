@@ -531,6 +531,10 @@ const STAGE_DECLINED: [&str; 3] = [
 /// contains the mark `1006,167 532x1233`, and at margin 0 its one-column clip
 /// is on a side, which this test does not count - so it does not fail this
 /// test, and naming it would be an exception nothing needs.
+///
+/// MC-073: the user re-marked `n05` to `1007,167 531x1233` (*"Box starts at
+/// 1007"*, 2026-10-02), which its margin-0 crop equals and its margin-3 crop
+/// contains. It still does not belong here; nothing on this list changes.
 const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 1] = [(
     "2025-03-07 00_05_58.png",
     [700, 0, 404, 1440],

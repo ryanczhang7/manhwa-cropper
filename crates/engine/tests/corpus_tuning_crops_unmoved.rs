@@ -577,6 +577,9 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
     // 0..1440 (browser chrome and taskbar), `n05` clips one column on the left
     // at margin 0, `n06` keeps rows 0..1440 and `n13` keeps 93 rows of browser
     // chrome. MC-073 to MC-076 move them, each re-pinning its own rows.
+    // MC-073 moves no crop: the user re-marked `n05` to `1007,167 531x1233`
+    // ("Box starts at 1007", 2026-10-02), which its margin-0 crop below
+    // already equals, so its row stands unchanged (MC-073 AC-3).
     (
         "2025-03-07 00_05_58.png",
         [700, 0, 404, 1440],

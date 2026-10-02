@@ -436,7 +436,7 @@
       "tags": ["dark-theme", "black-gutter", "png", "site:rolia-scans"],
       "split": "held-out" },
     { "file": "2025-11-01 12_34_31.png",
-      "expect": { "x": 1006, "y": 167, "w": 532, "h": 1233 },
+      "expect": { "x": 1007, "y": 167, "w": 531, "h": 1233 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
       "split": "tuning" },
     { "file": "2025-11-20 23_55_15.png",

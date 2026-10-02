@@ -1629,6 +1629,10 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 ///
 /// **MC-072 moves no mark.** It adds the four fresh entries MC-071 read per
 /// file, with the marks [`FRESH_HELD_OUT`] freezes for them.
+///
+/// **MC-073 moves one mark**, by the user's ruling of 2026-10-02, in their
+/// words *"Box starts at 1007"*: `n05` (`2025-11-01 12_34_31.png`) from
+/// `1006,167 532x1233` to `1007,167 531x1233`, as in [`FRESH_HELD_OUT`].
 const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 88] = [
     ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
@@ -1755,7 +1759,9 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 88] = [
     // FRESH_HELD_OUT's rows `n02`, `n06`, `n05`, `n13`), in manifest order.
     ("2025-03-07 00_05_58.png", 643, 115, 533, 1284),
     ("2025-03-13 12_01_01.png", 698, 115, 400, 1277),
-    ("2025-11-01 12_34_31.png", 1006, 167, 532, 1233),
+    // MC-073 AC-1: `n05` re-marked by the user's ruling of 2026-10-02, in
+    // their words "Box starts at 1007". It was `1006,167 532x1233`.
+    ("2025-11-01 12_34_31.png", 1007, 167, 531, 1233),
     ("Screenshot (2507).png", 977, 133, 600, 1259),
 ];
 
@@ -2260,6 +2266,13 @@ const MC062_DRAW: [Fresh; 25] = [
 /// The SHA-256 of each copy is checked against `## Context` when SCAFFOLD
 /// copies it (no hashing crate is in this workspace); the byte count and the
 /// header dimensions are what a test here can hold.
+///
+/// **MC-073 re-marks one row**, by the user's ruling of 2026-10-02, in their
+/// words *"Box starts at 1007"*: `n05` (`2025-11-01 12_34_31.png`, `tuning`
+/// since MC-072) from `1006,167 532x1233` to `1007,167 531x1233`. Column 1006
+/// is the dark seam beside the art, as on `Screenshot (3605).png` and
+/// `2025-10-20 15_37_25.png` (MC-073 `## Context`). MC-071's held-out score
+/// was taken against the old mark and is not re-computed.
 const FRESH_HELD_OUT: [Fresh; 15] = [
     Fresh {
         file: "Screenshot (1460).png",
@@ -2289,10 +2302,14 @@ const FRESH_HELD_OUT: [Fresh; 15] = [
         site: "xbato",
         gap: Gap::White,
     }, // n04
+    // MC-073 AC-1: `n05` re-marked by the user's ruling of 2026-10-02, in
+    // their words "Box starts at 1007" - column 1006 is the dark seam beside
+    // the art, as on `Screenshot (3605).png` and `2025-10-20 15_37_25.png`.
+    // It was `(1006, 167, 532, 1233)`; the right edge and rows are unchanged.
     Fresh {
         file: "2025-11-01 12_34_31.png",
         bytes: 1_913_304,
-        rect: (1006, 167, 532, 1233),
+        rect: (1007, 167, 531, 1233),
         site: "toongod",
         gap: Gap::White,
     }, // n05

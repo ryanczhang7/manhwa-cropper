@@ -166,10 +166,15 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// recorded crops. They are held here for [`KNOWN_CLIPS`] only. Neither has a
 /// page-background side (`n02`'s columns lie inside its mark, `n05`'s right
 /// edge is the mark's), so [`KNOWN_BACKGROUND_SIDES`] stays empty.
-const MC064_CROPS: [(&str, [u32; 4]); 2] = [
-    ("2025-03-07 00_05_58.png", [703, 0, 398, 1440]),
-    ("2025-11-01 12_34_31.png", [1007, 167, 531, 1233]),
-];
+///
+/// MC-073 took `n05` (`2025-11-01 12_34_31.png`) off this list and off
+/// [`KNOWN_CLIPS`] (its AC-2): the user re-marked it, ruling on 2026-10-02
+/// *"Box starts at 1007"* - column 1006 is the dark seam beside the art, as
+/// on `Screenshot (3605).png` and `2025-10-20 15_37_25.png`. Its mark is
+/// `1007,167 531x1233`, which its crop at margin 0 already equals, so AC-1
+/// and AC-2 here judge it like every other entry. Its pin was
+/// `[1007, 167, 531, 1233]`.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-03-07 00_05_58.png", [703, 0, 398, 1440])];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
@@ -182,7 +187,11 @@ const MC064_CROPS: [(&str, [u32; 4]); 2] = [
 /// recommended"*): `n02` (`2025-03-07 00_05_58.png`) and `n05` (`2025-11-01
 /// 12_34_31.png`), each held to its measured pin in [`MC064_CROPS`]. The fix
 /// stories take them off.
-const KNOWN_CLIPS: [&str; 2] = ["2025-03-07 00_05_58.png", "2025-11-01 12_34_31.png"];
+///
+/// MC-073 took `n05` off (its AC-2): the user re-marked it to
+/// `1007,167 531x1233` (*"Box starts at 1007"*, 2026-10-02), which its crop
+/// already equals, so it no longer clips. The list stays exact both ways.
+const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 00_05_58.png"];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
