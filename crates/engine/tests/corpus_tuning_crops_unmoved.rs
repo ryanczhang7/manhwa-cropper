@@ -593,10 +593,19 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
         [640, 115, 539, 1284],
         [643, 115, 533, 1284],
     ),
+    // MC-075 re-pins `n06` (its AC-1): beside a second window textured on
+    // every row the viewport stage declined and the crop kept the browser
+    // bar, the scrollbar and the taskbar. Its rows are now MC-071's frozen
+    // `T` and `B`, 115..1392 (settled), and its columns are kept: margin 0 is
+    // the mark, `698,115 400x1277`; margin 3 is the mark widened by 3 columns
+    // a side with the rows held to the viewport, `695,115 406x1277` - both
+    // what the Lead PO's scratch trial measured (MC-075 `## Context`, trial
+    // rule 3). GREEN confirms them on the shipped fix. It was
+    // `[695, 0, 406, 1440]` and `[698, 0, 400, 1440]`.
     (
         "2025-03-13 12_01_01.png",
-        [695, 0, 406, 1440],
-        [698, 0, 400, 1440],
+        [695, 115, 406, 1277],
+        [698, 115, 400, 1277],
     ),
     (
         "2025-11-01 12_34_31.png",
