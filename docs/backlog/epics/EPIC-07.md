@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076]
 ---
 
 ## Goal
@@ -407,6 +407,38 @@ only one that can start.
    **Result (2026-10-02): not met, with a clip.** 2 clips of 15 (`n02`
    cut on both sides, `n05` by one column), and 11 of 15 meet the bar against
    14. Speaks for four known readers, mid-chapter, dark pages only.
+
+   **Filed after MC-071 (2026-10-02).** Five stories follow. The causes are
+   candidates: no agent has measured the four failing screenshots, and the
+   Lead PO measures each before its RED. Two of the fixes may merge once
+   measured.
+   - **[MC-072](../stories/MC-072.md)** — *chore*, `depends_on: [MC-071]`:
+     move `n02`, `n05`, `n06` and `n13` to `tuning` (MC-064-shaped), with
+     their wrong crops listed as known problems, exact in both directions.
+     Held-out drops to 11 entries across 3 readers (`n13` was its only
+     `demonicrevolution` entry), so two floors move on the user's ruling:
+     `MIN_HELD_OUT_MARKED` 15 to 11 and `MIN_HELD_OUT_SITES` 4 to 3. Its RED
+     records which of the four the viewport stage declines on.
+   - **[MC-073](../stories/MC-073.md)** — *fix*, `depends_on: [MC-072]`:
+     `n05`'s one-column cut on the left. Whether column 1006 is art is
+     measured first; if it reads like `Screenshot (2705)`'s column 1472, the
+     user decides between a re-mark and a fix, as in MC-070.
+   - **[MC-074](../stories/MC-074.md)** — *fix*, `depends_on: [MC-072]`:
+     `n02`'s page column, cut 60 columns on the left and 75 on the right.
+     If its full-height rows turn out to be the same fault, it takes them
+     from MC-075.
+   - **[MC-075](../stories/MC-075.md)** — *fix*, `depends_on: [MC-072,
+     MC-074]`: the full-height crops that keep the browser bar, scrollbar
+     and taskbar (`n06`, and `n02`'s rows). It adds a corpus check against
+     MC-071's frozen top and bottom rows, because no tuning suite judges a
+     crop whose viewport the stage declined.
+   - **[MC-076](../stories/MC-076.md)** — *fix*, `depends_on: [MC-072]`:
+     `n13`'s crop starts at row 40, keeping 93 rows of browser chrome. Its
+     symptom differs from MC-075's (the bottom is exact), so it is separate
+     unless the measurement shows one cause.
+
+   None of these is a held-out score. Any later run over the 15 is a
+   re-score on spent held-out; the next held-out score needs a fresh draw.
 
 ## Deliberately not in this epic
 
