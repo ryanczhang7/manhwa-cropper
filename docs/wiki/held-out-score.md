@@ -1,13 +1,16 @@
 # The held-out scores
 
 `EPIC-07`'s bar, reported on held-out sets. Each set is scored once. The
-newest score comes first. The two scores are of the **same detector**: nothing
-changed under `crates/core`, `crates/engine/src`, `crates/app/src` or
-`Cargo.lock` between `d2876f5` and `1438b2b`. They are on different
-screenshots, and they sit side by side. Neither replaces the other.
+newest score comes first. MC-051's and MC-063's scores are of the **same
+detector**: nothing changed under `crates/core`, `crates/engine/src`,
+`crates/app/src` or `Cargo.lock` between `d2876f5` and `1438b2b`. **MC-071's
+is not.** Its detector is `1438b2b`'s plus the five fixes MC-065 to MC-070.
+All three are on different screenshots, and they sit side by side. None
+replaces another.
 
 | | set | clips | meets the bar | verdict |
 |---|---|---|---|---|
+| [MC-071](../backlog/stories/MC-071.md), 2026-10-02, `4539e12` | the second fresh 15 (MC-068) | **2 of 15** | **11 of 15**, against 14 | **not met: a clip** |
 | [MC-063](../backlog/stories/MC-063.md), 2026-09-30, `1438b2b` | the fresh 25 (MC-062) | **3 of 25** | **21 of 25**, against 23 | **not met: a clip** |
 | [MC-051](../backlog/stories/MC-051.md), 2026-09-29, `d2876f5` | the first 19 marked, spent | 0 of 19 | 16 of 19, against 18 | not met |
 
@@ -16,6 +19,115 @@ holds no unseen reader and no screenshot that should be left alone, so it
 says nothing about either. MC-051's unseen-reader result (`manhwaclan` 2 of 2
 met, `xbato` 0 of 1) is still the only unseen-reader evidence on record, and
 `xbato` is no longer unseen.
+
+**The MC-071 score speaks for crops on four known readers, mid-chapter, dark
+pages.** The set holds no unseen reader, no screenshot that should be left
+alone, no light page and no `w-network` page, so it says nothing about any of
+those.
+
+## MC-071, 2026-10-02: the second fresh held-out set
+
+[MC-071](../backlog/stories/MC-071.md) carries the working, with every command
+and its output. This section carries the result and what it spends.
+
+### The verdict
+
+**A clip: 2 of 15. The furniture half is not met either: 11 of 15 meet the
+bar, against 14 required.** This is MC-071 AC-4 (c). Zero clips is absolute,
+so the clips decide the verdict whatever the furniture count. The user was
+asked before anything was acted on, as Open question 4 required, and answered
+"Record as not met".
+
+| | result | bar |
+|---|---|---|
+| clips | **2 of 15** (row 0, column 2) | 0 (absolute) |
+| meets the bar (contains the mark, and no furniture) | **11 of 15** | at least 14 of 15 |
+| reader furniture absent | 15 of 15 | — |
+| browser and OS furniture absent (the scrollbar counts as browser) | 12 of 15 | — |
+| marked entries answered `Flagged` | 0 of 15 | — |
+| viewport located / declined | 12 / 3 | — |
+
+Per reader (entries, zero-clip, furniture-free, meets, viewport located):
+`demonicrevolution` 1 1 0 0 0; `rolia-scans` 4 4 4 4 4; `toongod`
+7 5 5 4 5; `xbato` 3 3 3 3 3.
+
+### The run
+
+- **Scored commit:** `4539e12`. Its `crates/`, `Cargo.toml` and `Cargo.lock`
+  are identical to `main` after MC-070 (`b9cf008`).
+- **Harness:** a standalone crate outside the repository (session
+  `d6b1fa50…` scratchpad, `mc071-harness/src/main.rs`, sha256
+  `96b15608…5413`, unchanged before and after the run). It calls
+  `process_file` at `Tuning::default()` (margin 0, the app's own setting),
+  release build, and asks MC-048's viewport stage directly.
+- **Before the run:**
+  - The same harness, built against `1438b2b`, reproduced MC-063's aggregate
+    exactly on its 25 spent entries. Without the scrollbar row it reads 22 of
+    25, so that check can fail.
+  - The controls fire on 15 of 15: a whole-image crop shows furniture, and a
+    mark shrunk by 10 rows clips.
+  - No suite under `crates/` crops a held-out entry.
+- **Once:** run at 2026-10-02T03:35:22Z. A second invocation is refused. One
+  earlier invocation stopped before its first crop, while creating the output
+  file, and MC-071 `## Notes` shows where.
+- **Output:** `mc071-out/heldout-run.txt`, sha256 `44eee68a…20e6`, quoted
+  verbatim in MC-071 `## Notes`.
+
+### The oracle
+
+There is no site header on any of the 15, so `T` is the browser-bar end, the
+mark's top. Eleven marks end on their group's usual bottom row, so `B` is the
+mark's bottom. For the four that stop short (`n02`, `n06`, `n10`, `n15`), the
+user ruled the scrollbar, site-footer and taskbar starts blind on *Four Fresh
+Screen Bars*, a page that drew no crop and no mark. No site footer was ruled
+on any of them, and there is a scrollbar on three. Checked against the marks,
+there are 0 conflicts. The oracle was frozen in `4539e12` before the run.
+
+### The four failing entries
+
+Per-file for failures only (Open question 3), read after the totals were
+written:
+
+- **`n02`** (`2025-03-07 00_05_58.png`, `toongod`). **A clip.** The crop is
+  columns 703..1101 against the mark's 643..1176, which cuts 60 columns on the
+  left and 75 on the right. It also runs the full screen height (rows
+  0..1440): browser chrome, scrollbar and taskbar.
+- **`n05`** (`2025-11-01 12_34_31.png`, `toongod`). **A clip of one column.**
+  The crop starts at column 1007 against the mark's 1006. Its rows are exact.
+- **`n06`** (`2025-03-13 12_01_01.png`, `toongod`). No clip, and its columns
+  equal the mark's. The crop runs the full screen height, so it keeps browser
+  chrome, scrollbar and taskbar.
+- **`n13`** (`Screenshot (2507).png`, `demonicrevolution`). No clip. The crop
+  starts at row 40 against `T` 133, so it keeps 93 rows of browser chrome.
+
+The viewport stage declined on 3 of 15, and three of the four failures keep
+browser chrome. Whether those are the same three is not established here. The
+per-file lines do not carry the viewport, and diagnosing that is the follow-up
+stories' job.
+
+### What it forces
+
+These are named, not filed:
+- a chore, MC-064-shaped, that moves `n02`, `n05`, `n06` and `n13` to
+  `tuning`;
+- a fix for `n02`'s narrow, full-height crop;
+- a fix for `n05`'s one-column cut on the left;
+- a fix for the crops that keep the browser bar (`n06`, `n13`, and `n02`'s
+  rows).
+
+### What has been spent
+
+- **The second fresh set has been scored.** The 15 gave their one score at
+  `4539e12`.
+- **A later run is a re-score.** Any later run over these 15 is a
+  **re-score on spent held-out**. It is labelled that way wherever it is
+  reported, and is **never** `EPIC-07`'s held-out score.
+- **Read entries are tuning.** `n02`, `n05`, `n06` and `n13` were read per
+  file, so they are `tuning` for any later rule. Moving them in the manifest
+  is the follow-up chore.
+- **The other 11 stay `held-out` in the manifest**, but they are spent.
+- **A later held-out score needs another fresh draw** by MC-068's procedure,
+  with a new seed, picked by the Lead PO, at most 20.
 
 ## MC-063, 2026-09-30: the fresh held-out set
 

@@ -994,6 +994,18 @@ the marks of six other entries (MC-070 `## Amendments`). Its close call on the
 page's own bottom rows is fixed, so it crops and there is no known `Ambiguous`
 exception left.
 
+**Spent by MC-071 (2026-10-02).** The 15 gave their one score at scored commit
+`4539e12`: **2 clips of 15, and 11 of 15 meet the bar against 14. Not met.**
+Read per file, after the totals were written: `n02`
+(`2025-03-07 00_05_58.png`), `n05` (`2025-11-01 12_34_31.png`), `n06`
+(`2025-03-13 12_01_01.png`) and `n13` (`Screenshot (2507).png`). They are
+`tuning` for any later rule, and moving them in the manifest is a follow-up
+chore. The other 11 stay `held-out` but are spent. Any later run over the 15
+is a re-score. The score speaks for crops on four known readers, mid-chapter,
+dark pages. The set holds no unseen reader, no screenshot that should be left
+alone, no light page and no `w-network` page, so it says nothing about any of
+those. See `held-out-score.md`.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate

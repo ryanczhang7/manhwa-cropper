@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071]
 ---
 
 ## Goal
@@ -108,6 +108,21 @@ screenshot that should be left alone, so it says nothing about either.
 **The goal stays open.** The user's words were that it *"should work on any
 reader"*. The fresh set is spent too, and the next held-out score needs a
 fresh draw with a new seed.
+
+**The third held-out score, 2026-10-02 ([MC-071](../stories/MC-071.md),
+[`held-out-score.md`](../../wiki/held-out-score.md)): not met, with a
+clip.** It ran on MC-068's 15 fresh screenshots at scored commit `4539e12`,
+whose detector has MC-065 to MC-070's five fixes:
+- **2 clips of 15**, both on the column axis, so the absolute half fails;
+- **11 of 15** meet the bar, against 14.
+
+It sits beside MC-051's and MC-063's and replaces neither. **It speaks for
+crops on four known readers, mid-chapter, dark pages.** The set holds no
+unseen reader, no screenshot that should be left alone, no light page and no
+`w-network` page, so it says nothing about any of those. The four failures
+(`n02`, `n05`, `n06`, `n13`) go to `tuning` in a follow-up chore, and each
+fix is its own story. The goal stays open. The 15 are spent, and the next
+held-out score needs another fresh draw.
 
 ## Stories
 
@@ -377,6 +392,21 @@ only one that can start.
    *fix*, `depends_on: [MC-069]`. Split from MC-069 on the user's answer of
    2026-10-01: its close call is on the page's own bottom rows, inside the
    crop, and its crop ends one column short of the art.
+
+   **The third held-out score: [MC-071](../stories/MC-071.md)** — *spike*,
+   `depends_on: [MC-070]`. The user asked for it on 2026-10-01, once MC-069
+   and MC-070 were in. It runs the crop once over MC-068's 15 fresh
+   screenshots, an MC-063-shaped run. Unlike MC-063's, the detector has
+   changed since the last score (MC-065 to MC-070), so it is the first test
+   of whether those fixes hold on screenshots no rule was fitted on. The bar
+   is 0 clips and at least 14 of 15, confirmed by the user. It
+   speaks for four known readers, mid-chapter, dark pages only. No entry is
+   read per file before the totals are written, and any failure becomes its
+   own story.
+
+   **Result (2026-10-02): not met, with a clip.** 2 clips of 15 (`n02`
+   cut on both sides, `n05` by one column), and 11 of 15 meet the bar against
+   14. Speaks for four known readers, mid-chapter, dark pages only.
 
 ## Deliberately not in this epic
 
