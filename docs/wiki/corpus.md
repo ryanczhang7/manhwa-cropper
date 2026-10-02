@@ -1021,13 +1021,33 @@ added. **New counts:** tuning 102 (88 marked + 14 flag), held-out 11 (11 marked
   and `corpus_sides.rs`; `n02` alone in `corpus_viewport.rs`, since `n05`'s
   margin-3 crop contains its mark). Their marks' edge columns that read as
   page background (`n02` left and right, `n05` left) are in
-  `MC072_BACKGROUND_EDGES`; that is not a ruling that they are art.
+  `MC072_BACKGROUND_EDGES`; that is not a ruling that they are art. (`n05`
+  is off all of these since MC-073, below.)
 - **The viewport stage declines on `n02`, `n06` and `n13`** (`STAGE_DECLINED`)
   and locates 167..1400 on `n05`. Those three are MC-071's three declines, so
   all 11 still held-out had their viewport located. A declined crop's rows are
   judged by no tuning suite; the three are held by `MAIN_CROPS`.
 - Fixes: MC-073 (`n05`), MC-074 (`n02`'s columns), MC-075 (full-height crops),
   MC-076 (`n13`).
+
+**Re-marked by MC-073 (2026-10-02): `n05` is off every list.** `n05`
+(`2025-11-01 12_34_31.png`)'s mark moved from `1006,167 532x1233` to
+**`1007,167 531x1233`** by the user's ruling *"Box starts at 1007"*. The
+crop was never moved and no code changed: at margin 0 it already equals the
+new mark. What prompted the question was a measurement of column 1006: over
+the central band, median 10, range 2..26, share 0.999 within 10 of its own
+median, beside a site of exactly 11 and art of about 71. That is a thin dark
+line beside bright art. It reads like column 1006 on `Screenshot (3605).png`,
+where the user's box starts at 1007, and on `2025-10-20 15_37_25.png`, where it
+starts at 1008. `f09` (`2025-12-08 17_22_50.png`) keeps its 1006 only because
+its 1007 is dark art too. A rule that kept `n05`'s column would move (3605)
+and `10_20` outward by that column, which MC-070's candidate B did. `n05`
+left `KNOWN_CLIPS` in `corpus.rs`, `corpus_accuracy.rs` and `corpus_sides.rs`,
+`MC064_CROPS` in `corpus_accuracy.rs` and `corpus_sides.rs`, and
+`MC072_BACKGROUND_EDGES` in `corpus_page_column.rs`; its new first column,
+1007, reads as art (share 0.376). The known exceptions above are now `n02`'s
+alone. MC-071's held-out score is spent and is not re-computed under the
+amended mark.
 
 ## What the tests can and cannot say
 
