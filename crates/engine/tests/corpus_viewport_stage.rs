@@ -146,7 +146,16 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// (release), read out of one run in MC-072's RED on a scratch copy with only
 /// the four `split` values changed - not chosen. On the other three the stage
 /// declines: [`STAGE_DECLINED`].
-const STAGE_MEASURED: [(&str, u32, u32); 62] = [
+///
+/// **MC-074 adds `2025-03-07 00_05_58.png` (`n02`)**, off [`STAGE_DECLINED`],
+/// in manifest order before `n05`: 115..1399. **Settled, not measured or
+/// chosen**: MC-071's frozen oracle for `n02` (`T` 115, `B` 1399), which is
+/// what the Lead PO measured `locate` to return beside the right page column
+/// `643,0 533x1440` on `d2ad8ad` (MC-074 `## Context`). Its drawn panels sit
+/// on flat white page paper the user ruled is page (*"Box stands"*,
+/// 2026-10-02); once the page column spans the paper, the stage locates the
+/// viewport beside it (MC-074 AC-1).
+const STAGE_MEASURED: [(&str, u32, u32); 63] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -213,6 +222,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 62] = [
     ("Screenshot (57).png", 167, 1392),
     ("Screenshot (58).png", 167, 1392),
     ("Screenshot (2705).png", 133, 1392),
+    // MC-074: `n02`, before `n05` in manifest order (see the doc comment).
+    ("2025-03-07 00_05_58.png", 115, 1399),
     // MC-072: `n05`, last in manifest order (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
 ];
@@ -237,11 +248,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 62] = [
 /// on `0f9c579` (release) in MC-072's RED on a scratch copy with only the four
 /// `split` values changed; they are MC-071's three declines. Section 4 never
 /// saw them, so they are not [`DECLINES`] either.
-const STAGE_DECLINED: [&str; 3] = [
-    "2025-03-07 00_05_58.png",
-    "2025-03-13 12_01_01.png",
-    "Screenshot (2507).png",
-];
+///
+/// MC-074 took `n02` off (its AC-1): with its page column spanning the white
+/// page paper the user ruled is page (*"Box stands"*, 2026-10-02), the stage
+/// locates 115..1399 beside it, and [`STAGE_MEASURED`] holds those rows.
+const STAGE_DECLINED: [&str; 2] = ["2025-03-13 12_01_01.png", "Screenshot (2507).png"];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.

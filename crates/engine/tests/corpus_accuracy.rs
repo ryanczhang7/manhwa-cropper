@@ -227,7 +227,14 @@ const KNOWN_MISSES: [&str; 3] = [
 /// on `Screenshot (3605).png` and `2025-10-20 15_37_25.png`. Its mark is
 /// `1007,167 531x1233`, which its crop at margin 0 already equals, so AC-1
 /// judges it like every other entry. Its pin was `[1007, 167, 531, 1233]`.
-const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-03-07 00_05_58.png", [703, 0, 398, 1440])];
+///
+/// MC-074 took `n02` (`2025-03-07 00_05_58.png`) off this list and off
+/// [`KNOWN_CLIPS`] (its AC-1): its drawn panels sit on flat white page paper,
+/// which the user ruled on 2026-10-02 is page (*"Box stands"*), so its crop
+/// at margin 0 is to equal its mark `643,115 533x1284` and AC-1 judges it like
+/// every other entry. Its pin was `[703, 0, 398, 1440]`. The list is empty,
+/// and stays exact.
+const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
 /// crop clips the mark, AC-1's only known exceptions. **Exact in both
@@ -244,7 +251,12 @@ const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-03-07 00_05_58.png", [703, 0,
 /// MC-073 took `n05` off (its AC-2): the user re-marked it to
 /// `1007,167 531x1233` (*"Box starts at 1007"*, 2026-10-02), which its crop
 /// already equals, so it no longer clips. The list stays exact both ways.
-const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 00_05_58.png"];
+///
+/// MC-074 took `n02` off (its AC-1): the user ruled its flat white page paper
+/// is page (*"Box stands"*, 2026-10-02), so its crop is to equal its mark
+/// `643,115 533x1284` and it no longer clips. The list is empty, and stays
+/// exact both ways: no known clip is left.
+const KNOWN_CLIPS: [&str; 0] = [];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,

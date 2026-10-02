@@ -343,7 +343,14 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// which its crop at margin 0 already equals, so these tests judge it like
 /// every other entry. Its pin was `[1007, 167, 531, 1233]`. The list stays
 /// exact in both directions.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [("2025-03-07 00_05_58.png", [703, 0, 398, 1440])];
+///
+/// MC-074 took `n02` (`2025-03-07 00_05_58.png`) off (its AC-1): its drawn
+/// panels sit on flat white page paper, which the user ruled on 2026-10-02 is
+/// page (*"Box stands"*), so its crop at margin 0 is to equal its mark
+/// `643,115 533x1284` and these tests judge it like every other entry. Its
+/// pin was `[703, 0, 398, 1440]`, the panels only over the whole height. The
+/// list is empty, and stays exact in both directions: no known clip is left.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {

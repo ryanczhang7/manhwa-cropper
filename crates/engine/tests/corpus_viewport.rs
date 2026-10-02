@@ -399,7 +399,16 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// MC-072's RED on a scratch copy with only the four `split` values changed -
 /// the same row `tests/corpus_viewport_stage.rs` holds. On the other three
 /// the stage declines: [`STAGE_DECLINED`]. Not originals either.
-const STAGE_MEASURED: [(&str, u32, u32); 62] = [
+///
+/// **MC-074 adds `2025-03-07 00_05_58.png` (`n02`)**, off [`STAGE_DECLINED`],
+/// in manifest order before `n05`: 115..1399. **Settled, not measured or
+/// chosen**: MC-071's frozen oracle for `n02` (`T` 115, `B` 1399), which is
+/// what the Lead PO measured `viewport::locate` to return beside the right
+/// page column `643,0 533x1440` on `d2ad8ad` (MC-074 `## Context`). Its
+/// drawn panels sit on flat white page paper the user ruled is page
+/// (*"Box stands"*, 2026-10-02); once the page column spans the paper, the
+/// stage locates the viewport beside it (MC-074 AC-1).
+const STAGE_MEASURED: [(&str, u32, u32); 63] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -463,6 +472,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 62] = [
     ("Screenshot (57).png", 167, 1392),
     ("Screenshot (58).png", 167, 1392),
     ("Screenshot (2705).png", 133, 1392),
+    // MC-074: `n02`, before `n05` in manifest order (see the doc comment).
+    ("2025-03-07 00_05_58.png", 115, 1399),
     // MC-072: `n05`, last in manifest order (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
 ];
@@ -493,11 +504,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 62] = [
 /// this file's row predicate cannot judge it (as for `f18` in MC-064): it is
 /// held by `tests/corpus_tuning_crops_unmoved.rs`, and `n02`'s by
 /// [`KNOWN_CLIPS`] too. Not originals either.
-const STAGE_DECLINED: [&str; 3] = [
-    "2025-03-07 00_05_58.png",
-    "2025-03-13 12_01_01.png",
-    "Screenshot (2507).png",
-];
+///
+/// MC-074 took `n02` off (its AC-1): with its page column spanning the white
+/// page paper the user ruled is page (*"Box stands"*, 2026-10-02), the stage
+/// locates 115..1399 beside it, and [`STAGE_MEASURED`] holds those rows.
+const STAGE_DECLINED: [&str; 2] = ["2025-03-13 12_01_01.png", "Screenshot (2507).png"];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
@@ -535,11 +546,14 @@ const STAGE_DECLINED: [&str; 3] = [
 /// MC-073: the user re-marked `n05` to `1007,167 531x1233` (*"Box starts at
 /// 1007"*, 2026-10-02), which its margin-0 crop equals and its margin-3 crop
 /// contains. It still does not belong here; nothing on this list changes.
-const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 1] = [(
-    "2025-03-07 00_05_58.png",
-    [700, 0, 404, 1440],
-    [703, 0, 398, 1440],
-)];
+///
+/// MC-074 took `n02` off (its AC-1): its drawn panels sit on flat white page
+/// paper, which the user ruled on 2026-10-02 is page (*"Box stands"*), so its
+/// crop is to contain its mark `643,115 533x1284` at both margins, within rows
+/// 115..1399, and this test judges it like every other entry. Its pins were
+/// `[700, 0, 404, 1440]` (margin 3) and `[703, 0, 398, 1440]` (margin 0). The
+/// list is empty, and stays exact in both directions.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped at either margin -
@@ -845,10 +859,10 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all eighty-one: section 4's nineteen, MC-053's three, \
+        "the control must see all eighty-two: section 4's nineteen, MC-053's three, \
          MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
-         off STAGE_DECLINED), MC-068's 21, MC-069's 14 and one of MC-072's four \
-         (the other three are STAGE_DECLINED)"
+         off STAGE_DECLINED), MC-068's 21, MC-069's 14 and two of MC-072's four \
+         (MC-074 took n02 off STAGE_DECLINED; the other two are)"
     );
     assert_eq!(
         not_cropped,
