@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071]
 ---
 
 ## Goal
@@ -377,6 +377,17 @@ only one that can start.
    *fix*, `depends_on: [MC-069]`. Split from MC-069 on the user's answer of
    2026-10-01: its close call is on the page's own bottom rows, inside the
    crop, and its crop ends one column short of the art.
+
+   **The third held-out score: [MC-071](../stories/MC-071.md)** — *spike*,
+   `depends_on: [MC-070]`. The user asked for it on 2026-10-01, once MC-069
+   and MC-070 were in. It runs the crop once over MC-068's 15 fresh
+   screenshots, an MC-063-shaped run. Unlike MC-063's, the detector has
+   changed since the last score (MC-065 to MC-070), so it is the first test
+   of whether those fixes hold on screenshots no rule was fitted on. The bar
+   is 0 clips and at least 14 of 15, pending the user's confirmation. It
+   speaks for four known readers, mid-chapter, dark pages only. No entry is
+   read per file before the totals are written, and any failure becomes its
+   own story.
 
 ## Deliberately not in this epic
 
