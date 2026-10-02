@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 84] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
     (
         "2025-08-05 00_11_13.webp",
         [950, 15, 646, 1425],
@@ -564,6 +564,38 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 84] = [
         "Screenshot (2705).png",
         [1070, 133, 405, 1259],
         [1073, 133, 399, 1259],
+    ),
+    //
+    // MC-072: the four fresh entries MC-071 read per file (`n02`, `n06`,
+    // `n05`, `n13`), moved to `tuning` by the user's answer of 2026-10-02
+    // ("all recommended"), last in manifest order. Read out of one run of
+    // `process_file` on `0f9c579` (release) in MC-072's RED, on a scratch copy
+    // with only the four `split` values changed. **Measured, never chosen.**
+    // All four are cropped at both margins, and the margin-0 rows equal
+    // MC-071's recorded crops. These rows pin `main`'s crops as they are,
+    // defects included: `n02` clips its mark on both sides and keeps rows
+    // 0..1440 (browser chrome and taskbar), `n05` clips one column on the left
+    // at margin 0, `n06` keeps rows 0..1440 and `n13` keeps 93 rows of browser
+    // chrome. MC-073 to MC-076 move them, each re-pinning its own rows.
+    (
+        "2025-03-07 00_05_58.png",
+        [700, 0, 404, 1440],
+        [703, 0, 398, 1440],
+    ),
+    (
+        "2025-03-13 12_01_01.png",
+        [695, 0, 406, 1440],
+        [698, 0, 400, 1440],
+    ),
+    (
+        "2025-11-01 12_34_31.png",
+        [1004, 167, 537, 1233],
+        [1007, 167, 531, 1233],
+    ),
+    (
+        "Screenshot (2507).png",
+        [974, 37, 606, 1358],
+        [977, 40, 600, 1352],
     ),
 ];
 

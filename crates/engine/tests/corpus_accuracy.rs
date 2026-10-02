@@ -210,16 +210,33 @@ const KNOWN_MISSES: [&str; 3] = [
 /// and AC-2).
 ///
 /// MC-067 took `f09` off this list and off both of those (its AC-1); its pin
-/// was `[1006, 167, 531, 1233]`. The list is empty, and stays exact.
-const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
+/// was `[1006, 167, 531, 1233]`. The list was empty, and stayed exact.
+///
+/// **MC-072 adds two** (the user's answer of 2026-10-02, *"all
+/// recommended"*: list them by name as known problems): the two fresh entries
+/// MC-071 read per file whose crop clips the mark, `n02` and `n05`, in
+/// manifest order. **Measured, not chosen**: read out of one run on `0f9c579`
+/// (release) in MC-072's RED, on a scratch copy with only the four `split`
+/// values changed; they equal MC-071's recorded crops. They are held here for
+/// [`KNOWN_CLIPS`] only: neither is in [`KNOWN_MISSES`], because AC-2's bar
+/// holds with both counted (MC-072 `## Handoff`), so no test needs them there.
+const MC064_CROPS: [(&str, [u32; 4]); 2] = [
+    ("2025-03-07 00_05_58.png", [703, 0, 398, 1440]),
+    ("2025-11-01 12_34_31.png", [1007, 167, 531, 1233]),
+];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
 /// crop clips the mark, AC-1's only known exceptions. **Exact in both
 /// directions**: AC-1 fails if any other crop clips, and fails if a listed
 /// entry's crop is anything but its pin in [`MC064_CROPS`]. MC-065 took
 /// `f20` off, MC-066 took `f18` off (its AC-1) and MC-067 took `f09` off (its
-/// AC-1). The list is empty: no known clip is left.
-const KNOWN_CLIPS: [&str; 0] = [];
+/// AC-1). The list was empty: no known clip was left.
+///
+/// **MC-072 adds two**, by the user's answer of 2026-10-02 (*"all
+/// recommended"*): `n02` (`2025-03-07 00_05_58.png`) and `n05` (`2025-11-01
+/// 12_34_31.png`), whose crops MC-071 recorded as clips, each held to its
+/// measured pin in [`MC064_CROPS`]. The fix stories take them off.
+const KNOWN_CLIPS: [&str; 2] = ["2025-03-07 00_05_58.png", "2025-11-01 12_34_31.png"];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
@@ -647,7 +664,7 @@ fn no_corpus_crop_cuts_into_the_artwork_its_manifest_entry_marked() {
     let moved = mc064_crops_moved(&rows, &KNOWN_CLIPS);
     assert!(
         moved.is_empty(),
-        "MC-064: each known clip (KNOWN_CLIPS, the user's ruling of 2026-09-30) must \
+        "MC-064, MC-072: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02) must \
          still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, \
          take it off the list and let AC-1 judge it:\n{}\n\n{rendered}",
         moved.join("\n")
