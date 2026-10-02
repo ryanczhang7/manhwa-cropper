@@ -174,9 +174,21 @@ const MC069_FOURTEEN: [&str; 14] = [
     "Screenshot (2705).png",
 ];
 
+/// MC-072's four: the fresh entries MC-071 read per file (`n02`, `n06`,
+/// `n05`, `n13`), moved to `tuning` by the user's answer of 2026-10-02 ("all
+/// recommended"), in manifest order. Like the others above they are **not**
+/// originals and join no originals list here; they join every test over all
+/// marked `tuning` entries.
+const MC072_FOUR: [&str; 4] = [
+    "2025-03-07 00_05_58.png",
+    "2025-03-13 12_01_01.png",
+    "2025-11-01 12_34_31.png",
+    "Screenshot (2507).png",
+];
+
 /// Whether `name` is one of the marked `tuning` entries added after the 23
 /// originals: MC-053's three, MC-056's three, MC-062's sixteen, MC-064's
-/// four, MC-068's 21 or MC-069's 14.
+/// four, MC-068's 21, MC-069's 14 or MC-072's four.
 fn is_not_an_original(name: &str) -> bool {
     THE_THREE.contains(&name)
         || MC056_THREE.contains(&name)
@@ -184,6 +196,7 @@ fn is_not_an_original(name: &str) -> bool {
         || MC064_FOUR.contains(&name)
         || MC068_TWENTY_ONE.contains(&name)
         || MC069_FOURTEEN.contains(&name)
+        || MC072_FOUR.contains(&name)
 }
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -220,6 +233,27 @@ const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 0] = [];
 const RULED_ART_EDGES: [(&str, Side); 2] = [
     ("2025-07-17 14_20_23.png", Side::Left),
     ("2025-08-07 01_13_55.png", Side::Right),
+];
+
+/// MC-072: the mark edges of the four fresh entries MC-071 read per file that
+/// the predicate reads as page background, `(file, side)`, in manifest order -
+/// MC-064's `MC064_BACKGROUND_EDGES` shape, **the list for an edge nobody has
+/// looked at**. Measured in MC-072's RED on `0f9c579` (release), on a scratch
+/// copy with only the four `split` values changed: `n02`
+/// (`2025-03-07 00_05_58.png`) first column 643 and last column 1175 both
+/// share 1.000; `n05` (`2025-11-01 12_34_31.png`) first column 1006 share
+/// 0.982 (its last column, 1537, reads 0.277). `n06` and `n13` read as art on
+/// both edges. These are **not** ruled art: whether each is the art's own flat
+/// edge or a mark error is the user's question, put by the fix story that
+/// owns the entry (MC-072 `## Out of scope`: "MC-073 owns that question" for
+/// `n05`'s column 1006). **Exact in both directions**: the metric control fails
+/// if any other edge reads as background, and fails if one of these stops
+/// reading so - so the story that rules on one moves it to
+/// [`RULED_ART_EDGES`] or corrects the mark, and cannot leave it here.
+const MC072_BACKGROUND_EDGES: [(&str, Side); 3] = [
+    ("2025-03-07 00_05_58.png", Side::Left),
+    ("2025-03-07 00_05_58.png", Side::Right),
+    ("2025-11-01 12_34_31.png", Side::Left),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -651,10 +685,10 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        84,
-        "MC-053 (MC-055) AC-2 is over the 84 marked tuning entries (26 until MC-056 moved \
+        88,
+        "MC-053 (MC-055) AC-2 is over the 88 marked tuning entries (26 until MC-056 moved \
          three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 \
-         moved 21, 70 until MC-069 added 14)"
+         moved 21, 70 until MC-069 added 14, 84 until MC-072 moved four)"
     );
     assert_eq!(
         known_read,
@@ -701,10 +735,11 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 168,
-        "MC-053 (MC-055) AC-2 checks 168 sides: both sides of all 84 entries (88 until \
+        sides, 176,
+        "MC-053 (MC-055) AC-2 checks 176 sides: both sides of all 88 entries (88 until \
          MC-064 moved four, 96 until MC-068 moved 21, 138 until MC-069 added 14 and \
-         swapped MC-056's exception for its own, 166 until MC-070 cropped (2705))"
+         swapped MC-056's exception for its own, 166 until MC-070 cropped (2705), 168 \
+         until MC-072 moved four)"
     );
     assert!(
         failing.is_empty(),
@@ -995,6 +1030,7 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .iter()
         .filter(|(name, side)| !MC049_MARK_ERRORS.contains(&(name.as_str(), *side)))
         .filter(|(name, side)| !RULED_ART_EDGES.contains(&(name.as_str(), *side)))
+        .filter(|(name, side)| !MC072_BACKGROUND_EDGES.contains(&(name.as_str(), *side)))
         .collect();
     // MC-056: the other direction for the edges the user ruled art. Each must
     // still read as page background; one that stops is a stale exception.
@@ -1003,12 +1039,18 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .map(|(name, side)| (name.as_str(), *side))
         .filter(|edge| RULED_ART_EDGES.contains(edge))
         .collect();
+    // MC-072: the same other direction for the four's unlooked-at edges.
+    let mc072_edges_read: Vec<(&str, Side)> = exceptions
+        .iter()
+        .map(|(name, side)| (name.as_str(), *side))
+        .filter(|edge| MC072_BACKGROUND_EDGES.contains(edge))
+        .collect();
     assert_eq!(
         entries.len(),
-        84,
-        "the control is over the 84 marked tuning entries (26 until MC-056 moved three, \
+        88,
+        "the control is over the 88 marked tuning entries (26 until MC-056 moved three, \
          29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21, \
-         70 until MC-069 added 14)"
+         70 until MC-069 added 14, 84 until MC-072 moved four)"
     );
     assert_eq!(
         ruled_art_read,
@@ -1017,13 +1059,22 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
          as page background here - if one no longer does, the exception is stale and \
          must be removed. `left` is measured.\n\n{printed}"
     );
+    assert_eq!(
+        mc072_edges_read,
+        MC072_BACKGROUND_EDGES.to_vec(),
+        "MC-072: every unlooked-at mark edge of the four MC-071 read per file \
+         (MC072_BACKGROUND_EDGES) must still read as page background here - if one \
+         no longer does, or the user rules on it, it comes off the list. `left` is \
+         measured.\n\n{printed}"
+    );
     assert!(
         ok >= METRIC_CONTROL_REQUIRED && unexplained.is_empty(),
         "MC-053 (MC-055) AC-2's control on the metric: a mark's own first and last columns \
          are art, so the predicate must call both not page background on at least \
          {METRIC_CONTROL_REQUIRED} of {} entries (it did on {ok}), and may call a \
          mark edge background only on MC-049's seven mark errors, the edges the \
-         user ruled art (RULED_ART_EDGES, MC-056 and MC-065) (it also did on \
+         user ruled art (RULED_ART_EDGES, MC-056 and MC-065) and MC-072's \
+         unlooked-at edges (MC072_BACKGROUND_EDGES) (it also did on \
          {unexplained:?}).\n\n{printed}",
         entries.len()
     );

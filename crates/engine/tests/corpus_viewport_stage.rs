@@ -137,7 +137,16 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// `locate` returns beside the pipeline's page column on `afeaf3b`
 /// (release), read out of one run in MC-069's RED with the 14 added - not
 /// chosen. The stage locates a viewport on all 14; MC-069 does not touch it.
-const STAGE_MEASURED: [(&str, u32, u32); 61] = [
+///
+/// **MC-072 adds one of its four**, the fresh entries MC-071 read per file,
+/// moved to `tuning` by the user's answer of 2026-10-02 ("all recommended"),
+/// last in manifest order: `2025-11-01 12_34_31.png` (`n05`), 167..1400,
+/// beside the page column `1007,40 531x1400`. Section 4 never saw it. Same
+/// provenance: what `locate` returns beside the page column on `0f9c579`
+/// (release), read out of one run in MC-072's RED on a scratch copy with only
+/// the four `split` values changed - not chosen. On the other three the stage
+/// declines: [`STAGE_DECLINED`].
+const STAGE_MEASURED: [(&str, u32, u32); 62] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -204,6 +213,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 61] = [
     ("Screenshot (57).png", 167, 1392),
     ("Screenshot (58).png", 167, 1392),
     ("Screenshot (2705).png", 133, 1392),
+    // MC-072: `n05`, last in manifest order (see the doc comment).
+    ("2025-11-01 12_34_31.png", 167, 1400),
 ];
 
 /// MC-064: the marked `tuning` entry on which the stage, handed the
@@ -216,9 +227,21 @@ const STAGE_MEASURED: [(&str, u32, u32); 61] = [
 /// locates a viewport on it, and fails if it is not a marked `tuning` entry.
 ///
 /// MC-066 took it off (its AC-1, AC-3): [`STAGE_MEASURED`] holds the rows the
-/// stage must locate beside its page column now. The list is empty, and stays
-/// exact.
-const STAGE_DECLINED: [&str; 0] = [];
+/// stage must locate beside its page column now. The list was empty, and
+/// stayed exact.
+///
+/// **MC-072 adds three of its four**, in manifest order: `2025-03-07
+/// 00_05_58.png` (`n02`, page column `703,0 398x1440`), `2025-03-13
+/// 12_01_01.png` (`n06`, `698,0 400x1440`) and `Screenshot (2507).png`
+/// (`n13`, `977,40 600x1352`). Beside each, `locate` returns `None`, measured
+/// on `0f9c579` (release) in MC-072's RED on a scratch copy with only the four
+/// `split` values changed; they are MC-071's three declines. Section 4 never
+/// saw them, so they are not [`DECLINES`] either.
+const STAGE_DECLINED: [&str; 3] = [
+    "2025-03-07 00_05_58.png",
+    "2025-03-13 12_01_01.png",
+    "Screenshot (2507).png",
+];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
