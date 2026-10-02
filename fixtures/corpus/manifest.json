@@ -388,7 +388,7 @@
       "tags": ["light-theme", "white-gutter", "png", "site:demonicrevolution"],
       "split": "tuning" },
     { "file": "Screenshot (2705).png",
-      "expect": { "x": 1073, "y": 133, "w": 400, "h": 1259 },
+      "expect": { "x": 1073, "y": 133, "w": 399, "h": 1259 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
       "split": "tuning" },
     { "file": "2025-03-07 00_05_58.png",

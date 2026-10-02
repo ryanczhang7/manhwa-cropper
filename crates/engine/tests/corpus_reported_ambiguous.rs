@@ -17,7 +17,8 @@
 //!
 //! The 14th, `Screenshot (2705).png`, is the named known exception (AC-3):
 //! its close call is the page's own bottom rows, inside the crop, so the rule
-//! leaves it flagged, and MC-070 fixes it.
+//! leaves it flagged, and MC-070 fixes it. **MC-070 AC-1** turns its pin
+//! here round: it is `Cropped` at both margins and contains its mark.
 //!
 //! AC-4's one measured exception is here too: `2025-07-17 14_20_23.png`, MC-056's
 //! known `Ambiguous` entry, whose close call is the same scrollbar. It crops
@@ -39,8 +40,8 @@
 mod corpus;
 
 use corpus::{CorpusEntry, Expect, Split};
-use cropper_core::{FlagReason, Rect, Tuning};
-use cropper_engine::{Flag, Outcome, process_file};
+use cropper_core::{Rect, Tuning};
+use cropper_engine::{Outcome, process_file};
 
 /// MC-069 AC-2 and AC-3: the 13 of the 14 whose close call is the browser
 /// scrollbar, outside the crop, in the order the user listed them (`a01` to
@@ -62,9 +63,10 @@ const THE_THIRTEEN: [&str; 13] = [
     "Screenshot (58).png",
 ];
 
-/// MC-069 AC-3's named known exception (`a14`): its close call lies inside
-/// its crop, so it stays `Flag(Ambiguous)` at both margins. MC-070 fixes it.
-const STILL_AMBIGUOUS: &str = "Screenshot (2705).png";
+/// MC-069 AC-3's named known exception (`a14`), whose close call lies inside
+/// its crop: `Flag(Ambiguous)` at both margins until MC-070, whose AC-1 crops
+/// it.
+const SCREENSHOT_2705: &str = "Screenshot (2705).png";
 
 /// MC-069 AC-4's one measured exception: MC-056's known `Ambiguous` entry,
 /// whose close call is the same scrollbar (flat fraction 0.849273), outside
@@ -216,35 +218,32 @@ fn the_thirteen_screenshots_the_app_called_ambiguous_are_cropped_and_contain_the
     );
 }
 
-/// MC-069 AC-3's known exception, named: `Screenshot (2705).png` stays
-/// `Flagged Detector(Ambiguous)` at both margins. Its close call is the
-/// page's own bottom rows, inside the crop, which MC-069's rule still flags;
-/// its fix is MC-070, and that story empties this pin. Green on `main` and
-/// after MC-069, which is the point: it is the rule's other half on a real
-/// file, and it fails if a fix drops the close call wholesale.
+/// MC-070 AC-1: `Screenshot (2705).png`, MC-069's named known exception
+/// until MC-070, is `Cropped` at margin 0 and at margin 3, and the crop
+/// contains the user's mark, read from the manifest: `1073,133 399x1259`
+/// since MC-070's `## Amendments` (the user, "Mark ends at 1471"; it was
+/// `400x1259`).
+///
+/// **Red on `main`** (`eb54767`), where it is `Flagged Detector(Ambiguous)`
+/// at both: its bottom strip, the page's own white rows between two dark
+/// margins, is called a close call inside the crop (cause A). `main`'s
+/// `detect` rect is already the mark.
+///
+/// Until MC-070 this place held the opposite pin, that `(2705)` stays
+/// flagged, which also guarded MC-069's rule against "drop the close call
+/// wholesale". That guard now lives in `crates/core/tests/decide_page_bottom_rows.rs`
+/// (two edge-to-edge controls that must still flag) and in MC-069's own
+/// `decide_near_strip_outside_crop.rs` control.
 #[test]
 #[ignore = "integration: decodes the corpus"]
-fn screenshot_2705_whose_close_call_is_inside_its_crop_stays_flagged_ambiguous() {
-    let tmp = tempfile::tempdir().expect("a temp dir");
-    let (entry, mark) = marked_tuning(STILL_AMBIGUOUS);
-    let got: Vec<(u32, String)> = both_margins()
-        .iter()
-        .map(|t| (t.margin_px, outcome(&entry, &tmp, t)))
-        .map(|(m, o)| (m, shown(&o)))
-        .collect();
-    let flagged = format!("Flagged {:?}", Flag::Detector(FlagReason::Ambiguous));
-    let want: Vec<(u32, String)> = both_margins()
-        .iter()
-        .map(|t| (t.margin_px, flagged.clone()))
-        .collect();
-    assert_eq!(
-        got,
-        want,
-        "MC-069 AC-3: {STILL_AMBIGUOUS} (mark {}) is the named known exception - its \
-         nearly-chrome strip is its own bottom rows, inside the crop, so it stays \
-         Flagged Detector(Ambiguous) at margin_px 0 and 3 until MC-070. `left` is \
-         measured, as (margin_px, outcome)",
-        shown_rect(mark)
+fn screenshot_2705_is_cropped_and_contains_its_mark_at_both_margins() {
+    let (wrong, printed) = cropped_containing_the_mark(&[SCREENSHOT_2705]);
+    assert!(
+        wrong.is_empty(),
+        "MC-070 AC-1: {SCREENSHOT_2705}'s bottom strip is the page's own white rows \
+         between two dark margins, not a close call; it must be Cropped at margin_px 0 and 3 and contain the page the user marked:\n{}\
+         \n\n{printed}",
+        wrong.join("\n")
     );
 }
 

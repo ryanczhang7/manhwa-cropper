@@ -234,7 +234,11 @@ const RULED_ART_EDGES: [(&str, Side); 2] = [
 /// scrollbar, outside its crop - and is judged like every other entry, and
 /// `Screenshot (2705).png`, whose close call lies inside its crop, is the
 /// known exception until MC-070.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
+///
+/// **MC-070 empties it** (its AC-1): `(2705)` crops, to its mark at margin 0,
+/// and AC-2 judges its sides like every other entry's. Every marked `tuning`
+/// entry must be cropped; the list stays exact in both directions.
+const KNOWN_NOT_CROPPED: [&str; 0] = [];
 
 /// AC-2's control on the metric: on at least this many of the 26 marked
 /// `tuning` entries the predicate calls the mark's own first **and** last
@@ -687,9 +691,9 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
     assert_eq!(
         not_cropped_names,
         KNOWN_NOT_CROPPED.to_vec(),
-        "MC-053 (MC-055) AC-2: every marked tuning entry must be cropped, except \
-         MC-056's one known exception (KNOWN_NOT_CROPPED), which must still not be: \
-         if a fix makes it crop, empty the list. Not cropped: {not_cropped:?}"
+        "MC-053 (MC-055) AC-2: every marked tuning entry must be cropped - \
+         KNOWN_NOT_CROPPED is empty since MC-070 cropped (2705). Not cropped: \
+         {not_cropped:?}"
     );
     assert_eq!(
         sides,
@@ -697,10 +701,10 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 166,
-        "MC-053 (MC-055) AC-2 checks 166 sides: 84 entries less the one known exception, \
-         MC-069's (2705) (88 until MC-064 moved four, 96 until MC-068 moved 21, 138 until \
-         MC-069 added 14 and swapped MC-056's exception for its own)"
+        sides, 168,
+        "MC-053 (MC-055) AC-2 checks 168 sides: both sides of all 84 entries (88 until \
+         MC-064 moved four, 96 until MC-068 moved 21, 138 until MC-069 added 14 and \
+         swapped MC-056's exception for its own, 166 until MC-070 cropped (2705))"
     );
     assert!(
         failing.is_empty(),

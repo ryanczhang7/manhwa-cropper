@@ -509,7 +509,12 @@ const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 /// scrollbar, outside its crop - and is judged like every other entry, and
 /// `Screenshot (2705).png`, whose close call lies inside its crop, is the
 /// known exception until MC-070.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
+///
+/// **MC-070 empties it** (its AC-1): `(2705)` crops, to its mark at margin 0,
+/// and the three tests here judge its crop like every other entry's. Every
+/// marked `tuning` entry must be cropped; the list stays exact in both
+/// directions.
+const KNOWN_NOT_CROPPED: [&str; 0] = [];
 
 /// Whether `name` is one of MC-053's three. Their columns are MC-053's AC-1
 /// and AC-3 (`tests/corpus_page_column.rs`), not MC-048's or MC-052's, so the
@@ -722,9 +727,9 @@ fn no_crop_row_lies_in_the_browser_chrome_or_the_taskbar_where_the_viewport_was_
     assert_eq!(
         failed_names,
         KNOWN_NOT_CROPPED.to_vec(),
-        "AC-2: every entry here must be cropped except MC-056's one known exception \
-         (KNOWN_NOT_CROPPED), which must still not be - if a fix makes it crop, empty \
-         the list. `left` is the entries not cropped: {failed:?}\n\n{printed}"
+        "AC-2: every entry here must be cropped - KNOWN_NOT_CROPPED is empty since \
+         MC-070 cropped (2705). `left` is the entries not cropped: \
+         {failed:?}\n\n{printed}"
     );
     assert!(
         bad.is_empty(),
@@ -802,9 +807,8 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         not_cropped,
         KNOWN_NOT_CROPPED.map(String::from).to_vec(),
-        "AC-2's control: every entry must be cropped except MC-056's one known \
-         exception (KNOWN_NOT_CROPPED), which must still not be - if a fix makes it \
-         crop, empty the list. `left` is the entries not cropped.\n\n{printed}"
+        "AC-2's control: every entry must be cropped - KNOWN_NOT_CROPPED is empty \
+         since MC-070 cropped (2705). `left` is the entries not cropped.\n\n{printed}"
     );
     assert!(
         broken.is_empty(),
@@ -1127,9 +1131,8 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     assert_eq!(
         not_cropped, known,
         "MC-052 AC-4 / MC-053 AC-4: every marked tuning entry must be cropped at both \
-         margins except MC-056's one known exception (KNOWN_NOT_CROPPED), which must \
-         still not be - if a fix makes it crop, empty the list. `(file, margin_px)`, \
-         `left` measured"
+         margins - KNOWN_NOT_CROPPED is empty since MC-070 cropped (2705). \
+         `(file, margin_px)`, `left` measured"
     );
     // MC-053 adds its three to the set this counts, and its AC-4 is this
     // assertion at margin 3 over all 26: on post-MC-052 `main` it fails on

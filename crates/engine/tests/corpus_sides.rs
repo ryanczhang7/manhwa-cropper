@@ -129,7 +129,11 @@ const MARGIN_BEFORE_MC049: u32 = 3;
 /// scrollbar, outside its crop - and is judged like every other entry, and
 /// `Screenshot (2705).png`, whose close call lies inside its crop, is the
 /// known exception until MC-070.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
+///
+/// **MC-070 empties it** (its AC-1): `(2705)` crops, to its mark at margin 0,
+/// and AC-1 judges its sides like every other entry's. Every marked `tuning`
+/// entry must be cropped; the list stays exact in both directions.
+const KNOWN_NOT_CROPPED: [&str; 0] = [];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)
 /// of each of the four fresh entries MC-063 read per file, `(file, [x, y, w,
@@ -444,10 +448,9 @@ fn no_column_the_crop_keeps_outside_the_mark_is_page_background() {
     assert_eq!(
         not_cropped,
         KNOWN_NOT_CROPPED.map(String::from).to_vec(),
-        "AC-1: every marked tuning entry must be cropped, except MC-056's one known \
-         exception (KNOWN_NOT_CROPPED, the user's ruling of 2026-09-29), which must \
-         still not be: if a fix makes it crop, empty the list. `left` is the \
-         entries not cropped.\n\n{printed}"
+        "AC-1: every marked tuning entry must be cropped - KNOWN_NOT_CROPPED is \
+         empty since MC-070 cropped (2705). `left` is the entries not \
+         cropped.\n\n{printed}"
     );
     // MC-064: the known page-background sides, exact in both directions, and
     // their entries held to their measured crops.

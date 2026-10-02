@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 83] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 84] = [
     (
         "2025-08-05 00_11_13.webp",
         [950, 15, 646, 1425],
@@ -551,6 +551,20 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 83] = [
         [1030, 167, 486, 1225],
         [1033, 167, 480, 1225],
     ),
+    //
+    // MC-070 AC-1: `Screenshot (2705).png`, until MC-070 in KNOWN_NOT_CROPPED
+    // below. Its mark is `1073,133 399x1259` since MC-070's `## Amendments`
+    // (the user, "Mark ends at 1471"). `process_file` flags it on `main`, so
+    // this row is not `main`'s crop: margin 0 is `main`'s `detect(..).rect`,
+    // which is the mark exactly, and margin 3 is `process_file`'s crop on a
+    // candidate of MC-070's cause-A rule alone, measured in MC-070's RED on a
+    // scratch worktree of `eb54767` (release). The cause-A rule changes
+    // whether `decide` crops, not the rect.
+    (
+        "Screenshot (2705).png",
+        [1070, 133, 405, 1259],
+        [1073, 133, 399, 1259],
+    ),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -565,7 +579,11 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 83] = [
 /// `Screenshot (2705).png` here instead (MC-069 AC-3, the user's answer of
 /// 2026-10-01, "Its own story"): its close call is inside its crop, so it
 /// stays `Flagged Detector(Ambiguous)` at both margins until MC-070.
-const KNOWN_NOT_CROPPED: [&str; 1] = ["Screenshot (2705).png"];
+///
+/// **MC-070 empties it** (its AC-1): `(2705)` crops at both margins and has
+/// its row in [`MAIN_CROPS`]. Every marked `tuning` entry must be cropped at
+/// both margins now; the list stays, empty, so the test still says so exactly.
+const KNOWN_NOT_CROPPED: [&str; 0] = [];
 
 /// MC-066 AC-3: MC-052's two split-screen entries, named. They are the other
 /// split screens on the corpus - the same reader beside a second window, on
@@ -688,9 +706,9 @@ fn every_marked_tuning_crop_is_exactly_what_main_produces_at_both_margins() {
         .collect();
     assert_eq!(
         not_cropped, known,
-        "MC-056: at both margins, the only marked tuning entry main does not crop is the \
-         known exception (KNOWN_NOT_CROPPED), and it must still not be cropped - if a fix \
-         makes it crop, move it into MAIN_CROPS. `(file, margin_px)`, `left` measured"
+        "MC-056 / MC-070: at both margins every marked tuning entry must be cropped - \
+         KNOWN_NOT_CROPPED is empty since MC-070 moved (2705) into MAIN_CROPS. \
+         `(file, margin_px)` of the entries not cropped, `left` measured"
     );
     let mut pinned: Vec<String> = MAIN_CROPS
         .map(|(name, _, _)| name.to_string())
