@@ -109,6 +109,21 @@ screenshot that should be left alone, so it says nothing about either.
 reader"*. The fresh set is spent too, and the next held-out score needs a
 fresh draw with a new seed.
 
+**The third held-out score, 2026-10-02 ([MC-071](../stories/MC-071.md),
+[`held-out-score.md`](../../wiki/held-out-score.md)): not met, with a
+clip.** It ran on MC-068's 15 fresh screenshots at scored commit `4539e12`,
+whose detector has MC-065 to MC-070's five fixes:
+- **2 clips of 15**, both on the column axis, so the absolute half fails;
+- **11 of 15** meet the bar, against 14.
+
+It sits beside MC-051's and MC-063's and replaces neither. **It speaks for
+crops on four known readers, mid-chapter, dark pages.** The set holds no
+unseen reader, no screenshot that should be left alone, no light page and no
+`w-network` page, so it says nothing about any of those. The four failures
+(`n02`, `n05`, `n06`, `n13`) go to `tuning` in a follow-up chore, and each
+fix is its own story. The goal stays open. The 15 are spent, and the next
+held-out score needs another fresh draw.
+
 ## Stories
 
 To be written; the order below is the dependency order and the first is the
@@ -384,10 +399,14 @@ only one that can start.
    screenshots, an MC-063-shaped run. Unlike MC-063's, the detector has
    changed since the last score (MC-065 to MC-070), so it is the first test
    of whether those fixes hold on screenshots no rule was fitted on. The bar
-   is 0 clips and at least 14 of 15, pending the user's confirmation. It
+   is 0 clips and at least 14 of 15, confirmed by the user. It
    speaks for four known readers, mid-chapter, dark pages only. No entry is
    read per file before the totals are written, and any failure becomes its
    own story.
+
+   **Result (2026-10-02): not met, with a clip.** 2 clips of 15 (`n02`
+   cut on both sides, `n05` by one column), and 11 of 15 meet the bar against
+   14. Speaks for four known readers, mid-chapter, dark pages only.
 
 ## Deliberately not in this epic
 
