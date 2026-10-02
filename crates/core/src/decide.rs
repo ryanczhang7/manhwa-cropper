@@ -99,6 +99,13 @@
 //! [`ContentBox::ambiguous`](crate::content::ContentBox::ambiguous) still
 //! reports the close call - and no threshold moved.
 //!
+//! Which strips count as close calls in the first place narrowed in MC-070,
+//! in [`content`](crate::content) rather than here: a top or bottom strip
+//! whose tone over the page column differs from its own median by more than
+//! [`Tuning::uniform_tolerance`] is the page's own rows, not nearly chrome,
+//! and [`content_box`] never reports it. `Screenshot (2705).png`'s white gap
+//! below its art, between two dark margins, was one; it is cropped now.
+//!
 //! # Arithmetic
 //!
 //! The area share is computed in `f32`, for the same reason

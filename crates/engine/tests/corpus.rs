@@ -254,7 +254,13 @@ const AMBIGUOUS_PAST_THE_CLIFF: [&str; 5] = [
 /// marked `tuning` entry is flagged `Ambiguous`, and fail if this one stops
 /// being - so the story that fixes it has to empty this list, and cannot leave
 /// a stale exception behind.
-const KNOWN_AMBIGUOUS: [&str; 1] = ["Screenshot (2705).png"];
+///
+/// **MC-070 empties it** (its AC-1): `(2705)`'s bottom strip is the page's own
+/// white gap between two dark margins - its tone over the page column is 255
+/// against its median of 11 - so it is the page's rows and not a close call,
+/// and `(2705)` crops. No marked `tuning` entry is flagged `Ambiguous` now,
+/// and the list stays exact: any entry flagged `Ambiguous` fails.
+const KNOWN_AMBIGUOUS: [&str; 0] = [];
 
 /// MC-069 AC-4: the `tuning` entries whose **strip-level** judgement,
 /// `content_box(img, trim_uniform(img, t)?, t).ambiguous`, is true at the
@@ -268,7 +274,15 @@ const KNOWN_AMBIGUOUS: [&str; 1] = ["Screenshot (2705).png"];
 /// bottom rows on `(2705)`, 0.848708) - MC-069 `## Amendments`, read back by
 /// RED. Until MC-069 this list and [`KNOWN_AMBIGUOUS`] were the same list,
 /// because `decide` flagged every close call; they are not any more.
-const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 15] = [
+///
+/// **MC-070 takes `(2705)` off** (its AC-1 and AC-3): the rule MC-070 ships is
+/// a statement about the strip - a Top or Bottom strip whose tone over the
+/// page column differs from its own median by more than `uniform_tolerance`
+/// is the page's, "not chrome, and not nearly chrome" (MC-070 `## Notes`) -
+/// so `content_box` no longer calls `(2705)`'s bottom rows a close call. Every
+/// other entry here is the scrollbar, a Right strip, which the rule does not
+/// touch. 14 names.
+const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
     "2025-07-17 14_20_23.png",
     "Screenshot (14).png",
     "Screenshot (19).png",
@@ -283,7 +297,6 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 15] = [
     "Screenshot (53).png",
     "Screenshot (57).png",
     "Screenshot (58).png",
-    "Screenshot (2705).png",
 ];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -636,6 +649,9 @@ fn a_marked_page_with_both_sides_divided_by_three_is_rejected_by_the_size_gate()
 /// On `main` at `afeaf3b` this fails on `2025-07-17 14_20_23.png` and the 13
 /// of MC-069 (their close call is the browser scrollbar, outside the crop),
 /// and holds on `(2705)`, the new [`KNOWN_AMBIGUOUS`].
+///
+/// **MC-070 empties [`KNOWN_AMBIGUOUS`]**: no marked `tuning` entry may be
+/// flagged `Ambiguous`. On `main` at `eb54767` this fails on `(2705)` alone.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn no_marked_page_is_reported_ambiguous() {
@@ -676,11 +692,12 @@ fn no_marked_page_is_reported_ambiguous() {
         KNOWN_AMBIGUOUS.map(String::from).to_vec(),
         "AC-2: a page a person marked must not turn on a close call the detector is \
          not confident about - `decide` answers Flag(Ambiguous) before it ever \
-         reaches the size gate. The only marked page allowed to be flagged \
-         Ambiguous is the known exception (KNOWN_AMBIGUOUS: MC-069's (2705), whose \
-         close call lies inside its crop; MC-070 fixes it), and it must still be: \
-         if a fix makes it crop, empty the list. Since MC-069 a close call on a \
-         strip the crop lies wholly outside of does not flag. {} of {} are \
+         reaches the size gate. No marked page is allowed to be flagged \
+         Ambiguous: MC-070 emptied KNOWN_AMBIGUOUS, whose last entry, MC-069's \
+         (2705), had its close call on the page's own white bottom rows. Since \
+         MC-069 a close call on a strip the crop lies wholly outside of does not \
+         flag; since MC-070 a Top or Bottom strip whose tone over the page column \
+         is not its own median is the page's, not a close call. {} of {} are \
          flagged Ambiguous at ambiguity_band {}. `left` is measured, `right` is \
          KNOWN_AMBIGUOUS.\n\n{printed}",
         ambiguous.len(),
@@ -799,7 +816,8 @@ fn the_pages_closest_to_chrome_are_ambiguous_again_one_step_above_the_band() {
         "AC-2's control, as MC-069 AC-4 measures it: at the chosen band of {} \
          content_box calls a strip a close call on exactly \
          STRIP_AMBIGUOUS_AT_THE_BAND - MC-056's 2025-07-17 14_20_23.png and \
-         MC-069's 14 - and on nothing else, so the band sits strictly below the \
+         MC-069's 13 scrollbars; MC-070 took (2705)'s bottom rows off, as the \
+         page's and not nearly chrome - and on nothing else, so the band sits strictly below the \
          cliff. This is the strip judgement, which MC-069 leaves alone; which of \
          these `decide` flags is AC-2's question (KNOWN_AMBIGUOUS). `left` is \
          measured.\n\n{printed}",

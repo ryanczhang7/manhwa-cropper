@@ -987,6 +987,13 @@ known exception) has the same scrollbar close call and crops after MC-069.
 flags 14 : 0. The corpus is 125,214,059 bytes (119.4 MiB), under the 120 MiB
 ceiling, which MC-069 does not raise.
 
+**MC-070 (2026-10-01).** `Screenshot (2705).png`'s mark is amended on the user's
+answer ("Mark ends at 1471") from `1073,133 400x1259` to `1073,133 399x1259`:
+column 1472 is a dim edge column of the same kind as edge columns left outside
+the marks of six other entries (MC-070 `## Amendments`). Its close call on the
+page's own bottom rows is fixed, so it crops and there is no known `Ambiguous`
+exception left.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate

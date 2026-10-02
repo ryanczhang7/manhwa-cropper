@@ -55,6 +55,17 @@
 //! edge, sits just inside the band on two readers, and the crop already lies
 //! wholly left of it; the user's answer was "Ignore if crop excludes it".
 //!
+//! A top or bottom strip in that band is not a close call at all when it is
+//! the **page's own rows** (MC-070): when its tone over the page column - the
+//! median of its pixels inside the column
+//! [`locate_column`] finds over the rect being peeled - differs from the
+//! strip's own median by more than [`Tuning::uniform_tolerance`]. Chrome is
+//! painted edge to edge and has one tone across the page; `Screenshot
+//! (2705).png`'s bottom rows are 11 on the dark margins either side and 255
+//! over the page column, its white gap below the art. Such a strip is not
+//! chrome and not nearly chrome, so it is neither peeled nor reported. No
+//! threshold moved. `page_rows` below has the rule.
+//!
 //! One side strip that passes all three is still not chrome (MC-066): the
 //! **page margin**, where it runs flat from the image's edge to the page and
 //! its strong line is the page's own edge, on a page whose other edge is not
@@ -218,6 +229,9 @@ fn judge(img: &Luma, rect: Rect, side: Side, t: &Tuning) -> Verdict {
         }
         Verdict::Chrome(remainder)
     } else if flat >= t.chrome_flat_fraction - t.ambiguity_band {
+        if page_rows(img, rect, strip, side, t) {
+            return Verdict::Content;
+        }
         Verdict::NearlyChrome(strip)
     } else {
         Verdict::Content
@@ -263,6 +277,43 @@ fn page_margin(img: &Luma, rect: Rect, remainder: Rect, side: Side, t: &Tuning) 
         Side::Left => start == remainder.x && far.is_none_or(|far| end != far.x + far.w),
         _ => end == remainder.x + remainder.w && far.is_none_or(|far| start != far.x),
     }
+}
+
+/// Whether the nearly-chrome `strip` on `side` of `rect` is the **page's own
+/// rows** rather than chrome (MC-070): a top or bottom strip whose tone over
+/// the page column differs from the strip's own median by more than
+/// [`Tuning::uniform_tolerance`].
+///
+/// Chrome is painted edge to edge, so its tone over the page column is the
+/// tone it has everywhere else. `Screenshot (2705).png`'s bottom strip is
+/// not: median 11 from the two dark margins either side, 255 over the page
+/// column, where it is the page's white gap below an art edge. Such a strip
+/// is not chrome and not nearly chrome, so it never reaches the ambiguity
+/// band.
+///
+/// "Tone over the page column" is the median of the strip's pixels inside the
+/// x-range [`locate_column`] finds over `rect`, the rect being peeled, as
+/// [`page_margin`] locates it. Only the row axis is judged this way; a side
+/// strip runs along the page column rather than across it.
+fn page_rows(img: &Luma, rect: Rect, strip: Rect, side: Side, t: &Tuning) -> bool {
+    if matches!(side, Side::Left | Side::Right) {
+        return false;
+    }
+    let Some(column) = locate_column(img, rect, t) else {
+        return false;
+    };
+    let over_column = Rect {
+        x: column.x,
+        w: column.w,
+        ..strip
+    };
+    tone(img, over_column).abs_diff(tone(img, strip)) > t.uniform_tolerance
+}
+
+/// The median luma of `rect`'s pixels, by the same convention as
+/// [`flat_fraction`]'s.
+fn tone(img: &Luma, rect: Rect) -> u8 {
+    median(&histogram(img, rect), u64::from(rect.w) * u64::from(rect.h))
 }
 
 /// How many lines deep the outermost strip on `side` runs, or `None` when no
@@ -346,12 +397,7 @@ fn split(rect: Rect, side: Side, depth: u32) -> (Rect, Rect) {
 /// out of it: sorting the strip would allocate a copy of it for nothing, and
 /// there are only ever 256 distinct luma values to count.
 fn flat_fraction(img: &Luma, rect: Rect, tolerance: u8) -> f32 {
-    let mut histogram = [0u64; 256];
-    for row in rows(img, rect) {
-        for &px in row {
-            histogram[px as usize] += 1;
-        }
-    }
+    let histogram = histogram(img, rect);
     let total = u64::from(rect.w) * u64::from(rect.h);
     let centre = median(&histogram, total);
     // Saturating, so a median near either end of the range clips the window
@@ -361,6 +407,17 @@ fn flat_fraction(img: &Luma, rect: Rect, tolerance: u8) -> f32 {
     let flat: u64 = histogram[lo..=hi].iter().sum();
     // `f32`, deliberately: see the module note on arithmetic.
     flat as f32 / total as f32
+}
+
+/// How many of `rect`'s pixels take each luma value.
+fn histogram(img: &Luma, rect: Rect) -> [u64; 256] {
+    let mut histogram = [0u64; 256];
+    for row in rows(img, rect) {
+        for &px in row {
+            histogram[px as usize] += 1;
+        }
+    }
+    histogram
 }
 
 /// The luma at sorted position `total / 2`, which is the upper median when the

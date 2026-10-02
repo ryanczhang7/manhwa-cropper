@@ -180,11 +180,17 @@ const MIN_ENTRIES: usize = 20;
 /// row taller), so over the 98 `tuning` entries the bar reads 92 of 94 there,
 /// and 78 of 94 on `main` at `afeaf3b`, where the 13 and `14_20_23` are
 /// flagged.
-const KNOWN_MISSES: [&str; 4] = [
+///
+/// **MC-070 takes one off** (its AC-1): `Screenshot (2705).png` crops to its
+/// mark, `1073,133 399x1259` at margin 0 (as amended by MC-070's
+/// `## Amendments`), and counts toward the bar again:
+/// 93 of 95 there. On `main` at `eb54767`, where it is still flagged, it
+/// counts as a miss, 92 of 95 - still over the bar, so this file stays green
+/// on `main`; `(2705)`'s crop is pinned red elsewhere (MC-070 `## Test plan`).
+const KNOWN_MISSES: [&str; 3] = [
     "2025-02-27 22_46_15.png",
     "2025-03-03 11_00_13.png",
     "2025-05-12 20_48_42.png",
-    "Screenshot (2705).png",
 ];
 
 /// MC-064: the crop `process_file` makes at `Tuning::default()` (margin_px 0)

@@ -1698,7 +1698,9 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 84] = [
     ("Screenshot (53).png", 1003, 167, 540, 1225),
     ("Screenshot (57).png", 1033, 167, 479, 1225),
     ("Screenshot (58).png", 1033, 167, 480, 1225),
-    ("Screenshot (2705).png", 1073, 133, 400, 1259),
+    ("Screenshot (2705).png", 1073, 133, 399, 1259),
+    // MC-070 `## Amendments` (the user, 2026-10-01, "Mark ends at 1471"):
+    // `(2705)` was `1073,133 400x1259`; column 1472 is outside the mark.
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2792,7 +2794,8 @@ const MC069_REPORTED: [Reported; 14] = [
     Reported {
         file: "Screenshot (2705).png",
         bytes: 1_204_928,
-        rect: (1073, 133, 400, 1259),
+        // MC-070 `## Amendments`: was (1073, 133, 400, 1259), "Mark ends at 1471".
+        rect: (1073, 133, 399, 1259),
         site: "toongod",
         theme: Theme::Dark,
         gap: Gap::White,
