@@ -220,10 +220,14 @@ const KNOWN_MISSES: [&str; 3] = [
 /// values changed; they equal MC-071's recorded crops. They are held here for
 /// [`KNOWN_CLIPS`] only: neither is in [`KNOWN_MISSES`], because AC-2's bar
 /// holds with both counted (MC-072 `## Handoff`), so no test needs them there.
-const MC064_CROPS: [(&str, [u32; 4]); 2] = [
-    ("2025-03-07 00_05_58.png", [703, 0, 398, 1440]),
-    ("2025-11-01 12_34_31.png", [1007, 167, 531, 1233]),
-];
+///
+/// MC-073 took `n05` (`2025-11-01 12_34_31.png`) off this list and off
+/// [`KNOWN_CLIPS`] (its AC-2): the user re-marked it, ruling on 2026-10-02
+/// *"Box starts at 1007"* - column 1006 is the dark seam beside the art, as
+/// on `Screenshot (3605).png` and `2025-10-20 15_37_25.png`. Its mark is
+/// `1007,167 531x1233`, which its crop at margin 0 already equals, so AC-1
+/// judges it like every other entry. Its pin was `[1007, 167, 531, 1233]`.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-03-07 00_05_58.png", [703, 0, 398, 1440])];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
 /// crop clips the mark, AC-1's only known exceptions. **Exact in both
@@ -236,7 +240,11 @@ const MC064_CROPS: [(&str, [u32; 4]); 2] = [
 /// recommended"*): `n02` (`2025-03-07 00_05_58.png`) and `n05` (`2025-11-01
 /// 12_34_31.png`), whose crops MC-071 recorded as clips, each held to its
 /// measured pin in [`MC064_CROPS`]. The fix stories take them off.
-const KNOWN_CLIPS: [&str; 2] = ["2025-03-07 00_05_58.png", "2025-11-01 12_34_31.png"];
+///
+/// MC-073 took `n05` off (its AC-2): the user re-marked it to
+/// `1007,167 531x1233` (*"Box starts at 1007"*, 2026-10-02), which its crop
+/// already equals, so it no longer clips. The list stays exact both ways.
+const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 00_05_58.png"];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,

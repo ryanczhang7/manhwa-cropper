@@ -250,10 +250,18 @@ const RULED_ART_EDGES: [(&str, Side); 2] = [
 /// if any other edge reads as background, and fails if one of these stops
 /// reading so - so the story that rules on one moves it to
 /// [`RULED_ART_EDGES`] or corrects the mark, and cannot leave it here.
-const MC072_BACKGROUND_EDGES: [(&str, Side); 3] = [
+///
+/// MC-073 took `n05`'s left edge off (its AC-2) by correcting the mark: the
+/// user ruled on 2026-10-02 *"Box starts at 1007"* - column 1006 is the dark
+/// seam beside the art, as on `Screenshot (3605).png` and
+/// `2025-10-20 15_37_25.png`, not art - so the mark is `1007,167 531x1233`.
+/// Its new first column, 1007, is art (share 0.376 within 10 of its own
+/// median over the mark's rows, MC-073 `## Context`), so it is **not** added
+/// to [`RULED_ART_EDGES`] either: the predicate reads it as art, like every
+/// other edge.
+const MC072_BACKGROUND_EDGES: [(&str, Side); 2] = [
     ("2025-03-07 00_05_58.png", Side::Left),
     ("2025-03-07 00_05_58.png", Side::Right),
-    ("2025-11-01 12_34_31.png", Side::Left),
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
