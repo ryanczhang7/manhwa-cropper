@@ -6,10 +6,10 @@ and where the recorded numbers are less precise than they look.
 
 The corpus is 113 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 98 are `tuning` and 15 are
+`"flag"` for a screenshot that should be left alone. 102 are `tuning` and 11 are
 `held-out` (MC-069 added 14 to `tuning`; see "Screenshots the app called
-`Ambiguous`: MC-069" below). Since MC-068 (2026-10-01), `held-out` means only the 15 fresh
-screenshots drawn blind that day. Every earlier held-out entry is spent and
+`Ambiguous`: MC-069" below; MC-072 moved four more). Since MC-072 (2026-10-02), `held-out` means only the 11
+of the 15 fresh screenshots drawn blind on 2026-10-01 that were never read per file. They are spent. Every earlier held-out entry is spent and
 `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
 tuning / held-out split" below, which is the section to
@@ -1005,6 +1005,29 @@ is a re-score. The score speaks for crops on four known readers, mid-chapter,
 dark pages. The set holds no unseen reader, no screenshot that should be left
 alone, no light page and no `w-network` page, so it says nothing about any of
 those. See `held-out-score.md`.
+
+**Moved by MC-072 (2026-10-02).** The four read per file move to `tuning`:
+`2025-03-07 00_05_58.png` (`n02`), `2025-11-01 12_34_31.png` (`n05`),
+`2025-03-13 12_01_01.png` (`n06`) and `Screenshot (2507).png` (`n13`). Only
+their `split` changes; marks, tags and bytes are unchanged and no file is
+added. **New counts:** tuning 102 (88 marked + 14 flag), held-out 11 (11 marked
++ 0 flag) across 3 readers (`toongod` 4, `rolia-scans` 4, `xbato` 3).
+- **Floors:** `MIN_HELD_OUT_MARKED` 15 -> **11** and `MIN_HELD_OUT_SITES` 4
+  -> **3**, on the user's answer "all recommended" to the plain-language
+  questions in MC-072: the set is spent, and the next fresh draw sets them
+  again. `n13` was held-out's only `demonicrevolution` entry.
+- **Known exceptions, exact in both directions,** until their fixes land:
+  `n02` and `n05` clip (`KNOWN_CLIPS` in `corpus.rs`, `corpus_accuracy.rs`
+  and `corpus_sides.rs`; `n02` alone in `corpus_viewport.rs`, since `n05`'s
+  margin-3 crop contains its mark). Their marks' edge columns that read as
+  page background (`n02` left and right, `n05` left) are in
+  `MC072_BACKGROUND_EDGES`; that is not a ruling that they are art.
+- **The viewport stage declines on `n02`, `n06` and `n13`** (`STAGE_DECLINED`)
+  and locates 167..1400 on `n05`. Those three are MC-071's three declines, so
+  all 11 still held-out had their viewport located. A declined crop's rows are
+  judged by no tuning suite; the three are held by `MAIN_CROPS`.
+- Fixes: MC-073 (`n05`), MC-074 (`n02`'s columns), MC-075 (full-height crops),
+  MC-076 (`n13`).
 
 ## What the tests can and cannot say
 

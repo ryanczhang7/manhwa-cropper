@@ -394,11 +394,11 @@
     { "file": "2025-03-07 00_05_58.png",
       "expect": { "x": 643, "y": 115, "w": 533, "h": 1284 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
-      "split": "held-out" },
+      "split": "tuning" },
     { "file": "2025-03-13 12_01_01.png",
       "expect": { "x": 698, "y": 115, "w": 400, "h": 1277 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
-      "split": "held-out" },
+      "split": "tuning" },
     { "file": "2025-03-18 14_07_22.png",
       "expect": { "x": 643, "y": 115, "w": 533, "h": 1277 },
       "tags": ["dark-theme", "png", "site:toongod"],
@@ -438,7 +438,7 @@
     { "file": "2025-11-01 12_34_31.png",
       "expect": { "x": 1006, "y": 167, "w": 532, "h": 1233 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
-      "split": "held-out" },
+      "split": "tuning" },
     { "file": "2025-11-20 23_55_15.png",
       "expect": { "x": 1073, "y": 167, "w": 400, "h": 1233 },
       "tags": ["dark-theme", "png", "site:toongod"],
@@ -450,5 +450,5 @@
     { "file": "Screenshot (2507).png",
       "expect": { "x": 977, "y": 133, "w": 600, "h": 1259 },
       "tags": ["dark-theme", "png", "site:demonicrevolution"],
-      "split": "held-out" }
+      "split": "tuning" }
   ] }
