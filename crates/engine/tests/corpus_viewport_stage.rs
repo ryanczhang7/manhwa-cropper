@@ -155,7 +155,17 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// on flat white page paper the user ruled is page (*"Box stands"*,
 /// 2026-10-02); once the page column spans the paper, the stage locates the
 /// viewport beside it (MC-074 AC-1).
-const STAGE_MEASURED: [(&str, u32, u32); 63] = [
+///
+/// **MC-075 adds `2025-03-13 12_01_01.png` (`n06`)**, off [`STAGE_DECLINED`],
+/// in manifest order between `n02` and `n05`: 115..1392. **Settled, not
+/// measured or chosen**: MC-071's frozen oracle for `n06` (`T` 115, `B` 1392,
+/// the scrollbar start the user ruled), which MC-075 AC-1 requires the crop's
+/// rows to lie within, and which the Lead PO's scratch trial measured `locate`
+/// returning beside the page column `698,0 400x1440` (MC-075 `## Context`,
+/// trial rule 3). Beside a second window textured on every row the
+/// whole-margin share is 0.648 and the stage declined; after MC-075 it reads
+/// the reader's window.
+const STAGE_MEASURED: [(&str, u32, u32); 64] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -224,6 +234,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 63] = [
     ("Screenshot (2705).png", 133, 1392),
     // MC-074: `n02`, before `n05` in manifest order (see the doc comment).
     ("2025-03-07 00_05_58.png", 115, 1399),
+    // MC-075: `n06`, between `n02` and `n05` in manifest order (see the doc comment).
+    ("2025-03-13 12_01_01.png", 115, 1392),
     // MC-072: `n05`, last in manifest order (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
 ];
@@ -252,7 +264,12 @@ const STAGE_MEASURED: [(&str, u32, u32); 63] = [
 /// MC-074 took `n02` off (its AC-1): with its page column spanning the white
 /// page paper the user ruled is page (*"Box stands"*, 2026-10-02), the stage
 /// locates 115..1399 beside it, and [`STAGE_MEASURED`] holds those rows.
-const STAGE_DECLINED: [&str; 2] = ["2025-03-13 12_01_01.png", "Screenshot (2507).png"];
+///
+/// MC-075 took `n06` off (its AC-1): beside a second window textured on every
+/// row the stage reads the reader's window, and [`STAGE_MEASURED`] holds
+/// 115..1392, MC-071's frozen `T` and `B`. `n13` stays until MC-076, which
+/// owns its different cause (reader panels of another tone, share 0.889).
+const STAGE_DECLINED: [&str; 1] = ["Screenshot (2507).png"];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
