@@ -580,10 +580,18 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
     // MC-073 moves no crop: the user re-marked `n05` to `1007,167 531x1233`
     // ("Box starts at 1007", 2026-10-02), which its margin-0 crop below
     // already equals, so its row stands unchanged (MC-073 AC-3).
+    // MC-074 re-pins `n02` (its AC-1): its drawn panels sit on flat white page
+    // paper the user ruled is page ("Box stands", 2026-10-02), so its crop is
+    // the whole page and the viewport's rows. Margin 0 is **settled**: the
+    // mark, `643,115 533x1284`. Margin 3 is the Lead PO's scratch trial's
+    // measurement (MC-074 `## Context`, trial rule 1), `640,115 539x1284`: the
+    // mark widened by 3 columns a side, with the rows held to the viewport
+    // 115..1399. GREEN confirms it on the shipped fix. It was
+    // `[700, 0, 404, 1440]` and `[703, 0, 398, 1440]`.
     (
         "2025-03-07 00_05_58.png",
-        [700, 0, 404, 1440],
-        [703, 0, 398, 1440],
+        [640, 115, 539, 1284],
+        [643, 115, 533, 1284],
     ),
     (
         "2025-03-13 12_01_01.png",

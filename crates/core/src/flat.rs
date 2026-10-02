@@ -301,6 +301,57 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 //    the page's tone on, is the page's own paper. `2025-08-07 01_13_55.png`'s
 //    white strip (255) beside a site of 25 is the case.
 //
+// # Panels on the page's own paper (MC-074)
+//
+// Some readers draw the page's panels on paper of their own: a flat strip of
+// one exact value between the panels and the site, on both sides. The user
+// ruled that paper is page ("Box stands", as for `f20`'s white strip). On
+// `2025-03-07 00_05_58.png` (`n02`) the site is 11, the panels 703..1100 (edge
+// band medians 38 and 174), and the paper 643..702 and 1101..1175 is 255 -
+// every paper column holding one value on every band row holds exactly 255,
+// the two meeting the art at 251..254 - with the site directly past it.
+// Branch 3 returns margin at the first paper column (it does not carry the
+// art's edge tone on), and even past that, the viewport beside the panels is
+// `None`, so the widening could not cross it; beside the wrong column the
+// viewport stage declines too, and the crop kept the browser and taskbar.
+//
+// So once the widening above stops, the page column is widened over the
+// paper, where **both** sides have paper and both stop at the same site. A
+// side has paper when, read outward from the page column, every column is
+// page background over the band (MC-049's predicate), none is at the page
+// background tone, each is within `uniform_tolerance` of the column inside it
+// (branch 3's continuity, read along the strip), every column that holds one
+// value on every band row (MC-065's single-value test) holds the same one -
+// the paper's - and there is one, every band median is within
+// `uniform_tolerance` of it, and the strip ends directly at a column that is
+// page margin and holds one value on every band row: the site. Both sides'
+// paper must be the same exact value, and so must both sides' site.
+//
+// What tells the paper from what the two rejected trial rules annexed (MC-074
+// `## Context`) is that it is one sheet of one value, enclosed by one site on
+// both sides. Measured over all 113 corpus images, paper is found on both
+// sides of the chosen column on `n02` alone:
+// - on `2025-03-06 12_48_06.png` (`f18`) and `2025-03-13 12_01_01.png`
+//   (`n06`) the second window's video, the widest run, has such a strip on
+//   its left - the reader's scrollbar, exactly 66, 17 columns, then the
+//   site of 11 - but on its right it reaches the image's edge. One side is
+//   not enough;
+// - `demonicrevolution`'s container (`Screenshot (1720).png`, `(2461)`,
+//   `(2486)` and `n13`, `(2507)`) is a strip of exactly 34 on both sides, 70
+//   to 105 columns, with a one-column frame of exactly 42 before the site of
+//   21..22. The user marked it out of the page every time. A strip holding
+//   two exact values is a container and its frame, not one sheet of paper.
+//   Without that test (only one site, one paper tone within
+//   `uniform_tolerance`) all four crops widened over the container;
+// - on every other image no strip is found on either side.
+// The generated hazard (`tests/page_column_page_paper.rs`) is `f18`'s case:
+// its second window's background is 255, the paper's own value, and reaches
+// the image's edge on one side.
+//
+// No constant is added: the predicate, the tolerance, the tone, the
+// single-value test and `is_page_margin` are the instruments the branches
+// above already read. The single-value comparisons are exact, as MC-065's is.
+//
 // A widening that reaches either end of the rect falls under the interior
 // rule above exactly as the run itself does.
 //
@@ -413,7 +464,8 @@ pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect
 
 /// The first and last image column, both inclusive, of `run` widened outward
 /// on each side for as long as the next column [`Margin::belongs`] to the page,
-/// and whether the column so found sits in the page margin: whether a column
+/// then over the page's paper where [`Margin::paper`] finds it (MC-074), and
+/// whether the column so found sits in the page margin: whether a column
 /// just past it, on either side, [`Margin::is_page_margin`] (MC-066).
 fn extend_to_the_margin(
     img: &Luma,
@@ -456,6 +508,10 @@ fn extend_to_the_margin(
         }
     }
     let end = within.x + within.w;
+    if let Some((left, right)) = margin.paper(first, last) {
+        first = left;
+        last = right;
+    }
     let in_margin = margin.tone.is_none()
         || (first > within.x && margin.is_page_margin(first - 1))
         || (last + 1 < end && margin.is_page_margin(last + 1));
@@ -554,18 +610,83 @@ impl Margin<'_> {
     /// margin of one exact value has that value in every one of its columns,
     /// and this column is neither that value nor within tolerance of it.
     fn site_differs(&self, x: u32, median: u8, outward: bool) -> bool {
-        let width = self.img.width;
-        let single = |c: u32| {
-            let at = |y: u32| self.img.data[(y * width + c) as usize];
-            let first = at(self.band.start);
-            self.band.clone().all(|y| at(y) == first).then_some(first)
-        };
+        let single = |c: u32| self.single(c);
         let site = if outward {
             (x + 1..self.within.x + self.within.w).find_map(single)
         } else {
             (self.within.x..x).rev().find_map(single)
         };
         site.is_some_and(|value| value.abs_diff(median) > self.tol)
+    }
+
+    /// Column `c`'s value, where it holds one value on every row of the band.
+    fn single(&self, c: u32) -> Option<u8> {
+        let at = |y: u32| self.img.data[(y * self.img.width + c) as usize];
+        let first = at(self.band.start);
+        self.band.clone().all(|y| at(y) == first).then_some(first)
+    }
+
+    /// The page column `first ..= last` widened over the page's own paper
+    /// (MC-074), where there is paper on **both** sides: each side's
+    /// [`Margin::paper_strip`] exists, the two are paper of the same exact
+    /// value, and the site beyond them is the same exact value on both sides.
+    fn paper(&self, first: u32, last: u32) -> Option<(u32, u32)> {
+        if first == self.within.x || last + 1 == self.within.x + self.within.w {
+            return None;
+        }
+        let (left, left_paper, left_site) = self.paper_strip(first - 1, false)?;
+        let (right, right_paper, right_site) = self.paper_strip(last + 1, true)?;
+        (left_paper == right_paper && left_site == right_site).then_some((left, right))
+    }
+
+    /// From column `x`, just outside the page column, read outward: a strip
+    /// of the page's paper, and the site beyond it. Every column of the strip
+    /// is page background over the band, none is at the page background tone,
+    /// each is within `uniform_tolerance` of the column inside it, and every
+    /// one of its columns that holds one value on every row of the band holds
+    /// the **same** value - the paper's - of which there is at least one,
+    /// with every column's band median within `uniform_tolerance` of it. The
+    /// strip ends directly at a column that [`Margin::is_page_margin`] and
+    /// holds one value on every row of the band: the site.
+    ///
+    /// Returns the strip's outermost column, the paper's value and the site's;
+    /// `None` where any of that fails, or the strip reaches the end of the
+    /// rect.
+    fn paper_strip(&self, x: u32, outward: bool) -> Option<(u32, u8, u8)> {
+        let at_tone = |m: u8| self.tone.is_some_and(|tone| m.abs_diff(tone) <= self.tol);
+        let end = self.within.x + self.within.w;
+        let (mut inside, background) = self.over_band(x);
+        if !background || at_tone(inside) {
+            return None;
+        }
+        let (mut lo, mut hi) = (inside, inside);
+        let mut paper = self.single(x);
+        let mut outer = x;
+        loop {
+            let next = if outward {
+                (outer + 1 < end).then(|| outer + 1)?
+            } else {
+                (outer > self.within.x).then(|| outer - 1)?
+            };
+            if self.is_page_margin(next) {
+                let paper = paper?;
+                let site = self.single(next)?;
+                let near = |m: u8| m.abs_diff(paper) <= self.tol;
+                return (near(lo) && near(hi)).then_some((outer, paper, site));
+            }
+            let (median, background) = self.over_band(next);
+            if !background || at_tone(median) || median.abs_diff(inside) > self.tol {
+                return None;
+            }
+            if let Some(value) = self.single(next)
+                && *paper.get_or_insert(value) != value
+            {
+                return None;
+            }
+            (lo, hi) = (lo.min(median), hi.max(median));
+            outer = next;
+            inside = median;
+        }
     }
 }
 

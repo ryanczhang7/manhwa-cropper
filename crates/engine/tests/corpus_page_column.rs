@@ -230,9 +230,18 @@ const KNOWN_BACKGROUND_SIDES: [(&str, Side, [u32; 4]); 0] = [];
 /// RED), and the site's dark background starts at 1522. It was MC-064's
 /// `MC064_BACKGROUND_EDGES`, the list for an edge nobody had looked at; that
 /// list held only this edge, and MC-065 AC-2 deletes it.
-const RULED_ART_EDGES: [(&str, Side); 2] = [
+///
+/// MC-074 adds both edges of `2025-03-07 00_05_58.png` (`n02`), by the user's
+/// ruling of 2026-10-02 (*"Box stands"*, MC-074 `## Context`), as for `f20`:
+/// its drawn panels sit on flat white page paper (band median 255, share
+/// 1.000), and the mark's first column 643 and last column 1175 are that
+/// paper, the page's own, with the site's background (11) starting at 642
+/// and 1176. They come off [`MC072_BACKGROUND_EDGES`]. In manifest order.
+const RULED_ART_EDGES: [(&str, Side); 4] = [
     ("2025-07-17 14_20_23.png", Side::Left),
     ("2025-08-07 01_13_55.png", Side::Right),
+    ("2025-03-07 00_05_58.png", Side::Left),
+    ("2025-03-07 00_05_58.png", Side::Right),
 ];
 
 /// MC-072: the mark edges of the four fresh entries MC-071 read per file that
@@ -259,10 +268,13 @@ const RULED_ART_EDGES: [(&str, Side); 2] = [
 /// median over the mark's rows, MC-073 `## Context`), so it is **not** added
 /// to [`RULED_ART_EDGES`] either: the predicate reads it as art, like every
 /// other edge.
-const MC072_BACKGROUND_EDGES: [(&str, Side); 2] = [
-    ("2025-03-07 00_05_58.png", Side::Left),
-    ("2025-03-07 00_05_58.png", Side::Right),
-];
+///
+/// MC-074 took `n02`'s two edges off (its AC-1) to [`RULED_ART_EDGES`]: the
+/// user ruled on 2026-10-02 *"Box stands"* - its flat white page paper is
+/// page, so the mark stands and its edges, which read as page background, are
+/// ruled page. The list is empty: every edge it held has been ruled on, and
+/// it stays exact in both directions.
+const MC072_BACKGROUND_EDGES: [(&str, Side); 0] = [];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped - the detector flags
@@ -1081,7 +1093,7 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
          are art, so the predicate must call both not page background on at least \
          {METRIC_CONTROL_REQUIRED} of {} entries (it did on {ok}), and may call a \
          mark edge background only on MC-049's seven mark errors, the edges the \
-         user ruled art (RULED_ART_EDGES, MC-056 and MC-065) and MC-072's \
+         user ruled art (RULED_ART_EDGES, MC-056, MC-065 and MC-074) and MC-072's \
          unlooked-at edges (MC072_BACKGROUND_EDGES) (it also did on \
          {unexplained:?}).\n\n{printed}",
         entries.len()
