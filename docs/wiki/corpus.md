@@ -4,13 +4,12 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 113 real screenshots in `fixtures/corpus/` with one
+The corpus is 123 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 102 are `tuning` and 11 are
-`held-out` (MC-069 added 14 to `tuning`; see "Screenshots the app called
-`Ambiguous`: MC-069" below; MC-072 moved four more). Since MC-072 (2026-10-02), `held-out` means only the 11
-of the 15 fresh screenshots drawn blind on 2026-10-01 that were never read per file. They are spent. Every earlier held-out entry is spent and
-`tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
+`"flag"` for a screenshot that should be left alone. 113 are `tuning` and 10 are
+`held-out`. Since MC-077 (2026-10-03), `held-out` means only the 10 fresh
+screenshots drawn blind that day (see "The third fresh held-out set: MC-077"
+below). Every earlier held-out entry is spent and `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
 tuning / held-out split" below, which is the section to
 read before using any of them for anything. It is the oracle for every
@@ -1064,14 +1063,78 @@ left `KNOWN_CLIPS` in `corpus.rs`, `corpus_accuracy.rs` and `corpus_sides.rs`,
 alone. MC-071's held-out score is spent and is not re-computed under the
 amended mark.
 
+### The third fresh held-out set: MC-077, 2026-10-03
+
+[MC-077](../backlog/stories/MC-077.md) drew 10 new screenshots at random,
+after MC-073 to MC-076 fixed the four MC-071 read per file. The user asked
+for 10, "and pick some from manhwa_panels"; the Lead PO picked. **Held-out
+now means only these 10.**
+
+#### The draw
+
+MC-068's scripts unchanged (`dims.sh` `4a3c01721bb46c65`, `draw.awk`
+`f6bf09cb8472efe3`, re-extracted from MC-068 `## Notes`), with a new seed,
+read from names, sizes and file headers only; no drawn image was viewed or
+measured before the user marked it.
+1. **Pool:** MC-062's eight folders minus every corpus file by name without
+   extension. 1,425 whole-screen files (2560x1440): mahwa panels 514,
+   Eleceed 342, Hero Killer 464, Unholy Blood 105. The other four folders
+   had no file newer than 2026-10-01 and were not read.
+2. **Order:** within each folder by
+   `sha256("MC-077|2026-10-03|<folder>|<file name>")`, ascending.
+3. **No near-twins:** MC-062's rule, unchanged. 84 skipped.
+4. **Quotas:** round-robin starting with mahwa panels, until 10: mahwa
+   panels **3** (the user's "some"), Eleceed 3, Hero Killer 2, Unholy Blood 2.
+
+The 10 files, byte counts and SHA-256 prefixes are MC-077's `## Context`
+table; each copy in `fixtures/corpus/` was checked against it (0 mismatches).
+
+**The marks**, frozen by the user on 2026-10-03 from *Third Test Marks*
+(`marks-mc077`, MC-077 `## Notes`): all 10 are art boxes, 0 flags, all dark
+pages. Readers: `toongod` 5, `rolia-scans` 2, `xbato` 2, `w-network` 1.
+Every box runs from the browser bar's end (115 or 167) to the taskbar or
+scrollbar (1392 or 1400): mid-chapter screenshots.
+
+#### The 11 spent entries move to `tuning`
+
+The 11 that stayed `held-out` after MC-072, each scored once by MC-071,
+became `tuning`. No `expect` or tag changed. Nothing they do in the tuning
+suites is an exception: no clip at either margin, all 11 cropped, none
+ambiguous, no flag, every mark edge read as art (largest share 0.867), no
+page-background side, and the viewport located on all 11. Ten margin-0 crops
+equal their marks exactly; `2025-08-07 00_24_27.png` keeps one row below a
+mark ending at 1398. Read-out pins (`MAIN_CROPS`, `STAGE_MEASURED`, the
+page-column and viewport counts) record what the app does on them. The 90 %
+bar reads 108 of 110 (98.2 %); the two misses are unchanged.
+
+**New counts:** 123 screenshots; **tuning 113 : held-out 10**; marked 99 :
+10; flags 14 : 0. The size ceiling is **140 MiB** (the user's answer of
+2026-10-03, "Raise it to 140 MiB"); the corpus is 138,257,317 bytes
+(131.9 MiB).
+
+#### The floors, by the user's ruling of 2026-10-03
+
+"10 boxes, 4 sites": `MIN_HELD_OUT_MARKED` = **10** (was 11) and
+`MIN_HELD_OUT_SITES` = **4** (was 3), matching the set exactly.
+`MIN_HELD_OUT_FLAGS` = 0 and `MIN_UNSEEN_SITES` = 0 stand.
+
+**What this set can speak for:** crops on four known readers, mid-chapter,
+dark pages. It holds **no unseen reader, no screenshot that should be left
+alone, no light page and no `demonicrevolution` page**, so a score on it
+says nothing about any of those. With 10 entries, **each miss costs 10
+points** of accuracy, so EPIC-07's 90 % bar allows exactly one. The scored
+run is a later MC-071-shaped spike; until then the 10 must not be run as
+`held-out` by anything else.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
 and checks the corpus is *well formed*: every file present and decodable, every
 rectangle inside its image, the nine required tags covered, every tag in the
-vocabulary above, the `diagonal-gutter` list exact, the whole set under 120 MiB
-(60 MiB until MC-062, 100 MiB until MC-068, each raised at the user's request; the corpus
-is 107.2 MiB after MC-068 and 119.4 MiB after MC-069).
+vocabulary above, the `diagonal-gutter` list exact, the whole set under 140 MiB
+(60 MiB until MC-062, 100 MiB until MC-068, 120 MiB until MC-077, each raised at
+the user's request; the corpus is 107.2 MiB after MC-068, 119.4 MiB after
+MC-069 and 131.9 MiB after MC-077).
 
 It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the
