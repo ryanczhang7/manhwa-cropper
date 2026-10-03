@@ -70,9 +70,18 @@ const SECTION_4: [(&str, u32, u32); 19] = [
     ("Screenshot (3538).png", 137, 1392),
 ];
 
-/// The two entries section 4 and section 5e record the full-margin oracle
-/// declining on.
-const DECLINES: [&str; 2] = ["2025-08-05 00_11_13.webp", "2025-08-05 00_11_27.webp"];
+/// The entries section 4 and section 5e record the full-margin oracle
+/// declining on, and on which the stage must decline too.
+///
+/// It held the two `2025-08-05` WebPs until **MC-076 took both off** (its
+/// AC-2, the user's ruling of 2026-10-02, *"Fix all three"*; MC-048 AC-3
+/// reversed): a flat reader panel of another tone hugs the page on both, as
+/// on `n13`, and the stage is to locate the viewport beside it. Their rows are
+/// in [`STAGE_MEASURED`]. Section 5e's record of the oracle declining stands;
+/// what changes is that the stage no longer follows it there. The list is
+/// empty, and [`the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_declined`]
+/// still counts it.
+const DECLINES: [&str; 0] = [];
 
 /// MC-052's two split-screen screenshots, moved from `held-out` to `tuning`
 /// by the user on 2026-09-24. Section 4 never saw them, so they are in
@@ -165,7 +174,30 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// trial rule 3). Beside a second window textured on every row the
 /// whole-margin share is 0.648 and the stage declined; after MC-075 it reads
 /// the reader's window.
-const STAGE_MEASURED: [(&str, u32, u32); 64] = [
+///
+/// **MC-076 adds the two `2025-08-05` WebPs**, off [`DECLINES`], first in
+/// manifest order: 115..1400 on both. The **top is settled**, not measured or
+/// chosen: 115, the chrome end MC-028 section 5a and `chrome-row-search.md`
+/// section 5e both read, which MC-076 AC-2 requires the crop to start on. The
+/// **bottom is mechanical**: no oracle reads it (section 5e declines there);
+/// 1400 is what the Lead PO's scratch trial measured `locate` returning
+/// beside the page columns `953,18 640x1422` and `1006,18 533x1422` (MC-076
+/// `## Context`, trial rule 2), and what MC-076's `MAIN_CROPS` pins
+/// (`corpus_tuning_crops_unmoved.rs`, rows 115..1400 at both margins). GREEN
+/// confirms it on the shipped fix.
+///
+/// **MC-076 adds `Screenshot (2507).png` (`n13`)** too, off
+/// [`STAGE_DECLINED`], last in manifest order: 133..1392. **Settled, not
+/// measured or chosen**: MC-071's frozen oracle for `n13` (`T` 133, `B` 1392),
+/// which MC-076 AC-1 requires the crop's rows to lie within, and which the
+/// Lead PO's scratch trial measured `locate` returning beside the page column
+/// `977,40 600x1352` (MC-076 `## Context`, trial rules 1 and 2). Beside two
+/// flat reader panels of another tone hugging the page the whole-margin share
+/// is 0.889 and the stage declined.
+const STAGE_MEASURED: [(&str, u32, u32); 67] = [
+    // MC-076: the two WebPs, first in manifest order (see the doc comment).
+    ("2025-08-05 00_11_13.webp", 115, 1400),
+    ("2025-08-05 00_11_27.webp", 115, 1400),
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -236,8 +268,10 @@ const STAGE_MEASURED: [(&str, u32, u32); 64] = [
     ("2025-03-07 00_05_58.png", 115, 1399),
     // MC-075: `n06`, between `n02` and `n05` in manifest order (see the doc comment).
     ("2025-03-13 12_01_01.png", 115, 1392),
-    // MC-072: `n05`, last in manifest order (see the doc comment).
+    // MC-072: `n05` (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
+    // MC-076: `n13`, last in manifest order (see the doc comment).
+    ("Screenshot (2507).png", 133, 1392),
 ];
 
 /// MC-064: the marked `tuning` entry on which the stage, handed the
@@ -267,9 +301,13 @@ const STAGE_MEASURED: [(&str, u32, u32); 64] = [
 ///
 /// MC-075 took `n06` off (its AC-1): beside a second window textured on every
 /// row the stage reads the reader's window, and [`STAGE_MEASURED`] holds
-/// 115..1392, MC-071's frozen `T` and `B`. `n13` stays until MC-076, which
-/// owns its different cause (reader panels of another tone, share 0.889).
-const STAGE_DECLINED: [&str; 1] = ["Screenshot (2507).png"];
+/// 115..1392, MC-071's frozen `T` and `B`.
+///
+/// MC-076 took `n13` off (its AC-1): beside two flat reader panels of another
+/// tone hugging the page (share 0.889) the stage locates the viewport, and
+/// [`STAGE_MEASURED`] holds 133..1392, MC-071's frozen `T` and `B`. The list
+/// is empty, and stays exact.
+const STAGE_DECLINED: [&str; 0] = [];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
@@ -388,7 +426,8 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
     assert_eq!(
         seen.len(),
         SECTION_4.len() + DECLINES.len(),
-        "every one of the twenty-one marked tuning entries must be reached"
+        "every one of section 4's nineteen marked tuning entries, and DECLINES (empty \
+         since MC-076 took the two WebPs to STAGE_MEASURED), must be reached"
     );
     assert_eq!(
         skipped,

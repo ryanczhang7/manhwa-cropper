@@ -20,7 +20,7 @@
       "tags": ["all-art", "png", "site:w-network"],
       "split": "tuning" },
     { "file": "2025-08-05 00_11_13.webp",
-      "expect": { "x": 958, "y": 114, "w": 631, "h": 1216 },
+      "expect": { "x": 958, "y": 115, "w": 631, "h": 1215 },
       "tags": ["dark-theme", "black-gutter", "webp", "site:rolia-scans"],
       "split": "tuning" },
     { "file": "2025-08-05 00_11_27.webp",
