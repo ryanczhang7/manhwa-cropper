@@ -51,7 +51,14 @@
 //!    4 finds no run at all, the reader's window is found over the column's
 //!    rows, and only if it holds at least `MIN_WINDOW_MARGIN` columns on
 //!    each side of the page column, steps 3, 4 and 6 run over it, a row
-//!    page-like only when each side alone is. Otherwise the stage declines.
+//!    page-like only when each side alone is.
+//! 8. **Reader panels on both sides, after a decline** (MC-076, below): when
+//!    step 7 does not speak either, and on **each** side of the page column a
+//!    band of at least `MIN_PANEL` columns that are not page background hugs
+//!    it - no more than `MAX_SLIVER` page-background columns in a row between
+//!    page and band, or inside it - with page background beyond, steps 3, 4
+//!    and 6 run over the whole margin with both bands left out. Otherwise the
+//!    stage declines.
 //!
 //! # A strip must be as sure as the page (MC-054)
 //!
@@ -118,7 +125,8 @@
 //! whether the stage speaks over it; only a viewport that overlaps the
 //! column's rows is widened; and the window reading can only add rows. Every
 //! row MC-048's stage kept, this one keeps. Where MC-048's stage found no run
-//! at all, step 7 (MC-075, below) is the only reading that may still speak.
+//! at all, steps 7 and 8 (MC-075 and MC-076, below) are the only readings
+//! that may still speak.
 //!
 //! There is no minimum distance between the page column and a window edge
 //! **when widening**. GREEN had one (`MIN_WINDOW_MARGIN`, 16 columns) so that
@@ -182,22 +190,73 @@
 //! This reads only where MC-048's stage, and MC-052's, declined, so every row
 //! either kept, this one keeps.
 //!
+//! # After a decline: a page between reader panels (MC-076)
+//!
+//! Step 7 refuses a page hugged by a panel, and that is right for what it
+//! reads: the few page-tone columns between page and panel say nothing about
+//! where the browser ends. But the panels themselves are the reason the whole
+//! margin declined. On `Screenshot (2507).png` the page column (977..1577)
+//! sits between two flat reader panels of another tone (medians 34 and 42
+//! against the page background's 22), 105 columns each, with page background
+//! beyond them to the image's edges; a panel pixel is not within
+//! `uniform_tolerance` of the tone, so the whole-margin share is 0.889 on
+//! **every** viewport row, under [`PAGE_LIKE`], and the crop kept the browser
+//! toolbar. The two `2025-08-05` WebPs are the same shape (shares 0.862 and
+//! 0.894), with a sliver of page-tone columns between page and panel. With the
+//! panels left out, everything beside the page is flat on the viewport's rows.
+//! So when step 7 does not speak, step 8 looks for the panels:
+//!
+//! - A column is page background as step 5 reads it (a majority of the
+//!   column's rows within `uniform_tolerance` of the tone), over the column's
+//!   rows, since there is no viewport yet.
+//! - On each side the band hugging the page runs outward until page
+//!   background resumes: more than `MAX_SLIVER` background columns in a row.
+//!   Shorter runs - the sliver beside the page (MC-052: 0 to 4 columns on the
+//!   WebPs) and the columns at the majority boundary between it and the panel
+//!   (`00_11_27.webp`'s 1539..1544) - are the band's. It is a panel when it
+//!   holds at least `MIN_PANEL` columns that are not background
+//!   (`MIN_WINDOW_MARGIN`'s width: a margin of another tone, not a fade or an
+//!   edge), and when page background follows it inside the image.
+//! - **Both** sides must have a panel. A band on one side only says nothing
+//!   about the rows beside the other: left out, it leaves the far side to
+//!   decide alone, and where that side holds the site's own content beside
+//!   part of the page, the reading cuts the page's art there as if it were a
+//!   taskbar (MC-076 AC-4 control (b); MC-076's trial rule 1 broke
+//!   `tests/detect.rs`'s one-sided case the same way).
+//! - Steps 3, 4 and 6 then run unchanged over what is left: a row is
+//!   page-like at [`PAGE_LIKE`] of it, the viewport is the outer runs of
+//!   [`MIN_RUN`] such rows, and a side cuts the column's rows only over
+//!   [`MIN_RUN`] rows that are not page-like. The tone is step 2's, from the
+//!   whole margin, panels included.
+//!
+//! Like step 7 it reads only where MC-048's stage, MC-052's and MC-075's all
+//! declined, so every row any of them kept, this one keeps.
+//!
 //! # When it declines
 //!
 //! `None` when there is no pixel beside the column at all; and when the
 //! whole-margin reading finds no run of [`MIN_RUN`] page-like rows **and**
-//! step 7 does not speak: a side of the reader's window under
-//! `MIN_WINDOW_MARGIN` columns (a page against an image edge included), or
-//! no run of [`MIN_RUN`] rows page-like on both sides. A viewport clear of the
-//! column's rows, from either reading, is returned as it is, unwidened, and
-//! the pipeline declines on it as MC-048's did. The pipeline then leaves the
-//! rows exactly as the earlier stages did. MC-048 AC-3 relies on this, and it
-//! still holds: on the two `2025-08-05` WebPs the full-margin reading finds no
-//! run and the reader's window is 0 to 4 columns a side, so step 7 does not read
-//! and their crops are unchanged. MC-048 `## Amendments` ruled out a narrower
-//! reading tried after **any** decline, because on those WebPs it cuts the
-//! page; step 7 is not that. It reads after a decline only a window that is a
-//! margin on both sides, and the WebPs are exactly what it refuses.
+//! neither step 7 nor step 8 speaks. Step 7 does not when a side of the
+//! reader's window is under `MIN_WINDOW_MARGIN` columns (a page against an
+//! image edge included), or when no run of [`MIN_RUN`] rows is page-like on
+//! both sides. Step 8 does not when either side has no panel - a band under
+//! `MIN_PANEL` columns, more than `MAX_SLIVER` page-background columns before
+//! one, or a band that runs to the image's edge - or when the margin left
+//! holds no run of [`MIN_RUN`] page-like rows. A viewport clear of the
+//! column's rows, from any reading, is returned as it is, unwidened, and the
+//! pipeline declines on it as MC-048's did. The pipeline then leaves the rows
+//! exactly as the earlier stages did.
+//!
+//! **MC-048 AC-3 is reversed for the two `2025-08-05` WebPs.** MC-048 pinned
+//! their crops as they were (the stage declined, the browser chrome kept) and
+//! named chrome removal on them a limitation; MC-048 `## Amendments` ruled out
+//! a narrower reading tried after **any** decline, because on those WebPs it
+//! cut the page. MC-076's user ruling (2026-10-02, MC-076 `## Notes`) moves
+//! them: step 8 locates rows 115..1400 on both, below the browser chrome, and
+//! `00_11_13.webp`'s mark top, row 114, was ruled browser bar. Steps 7 and 8
+//! are still not that ruled-out reading: each reads after a decline only a
+//! shape it names on both sides of the page - a window that is a margin, or a
+//! panel with page background beyond.
 
 use crate::{Luma, Rect, Tuning};
 
@@ -271,8 +330,10 @@ pub fn locate(img: &Luma, column: Rect, t: &Tuning) -> Option<Viewport> {
     let (first, end) = (column.y as usize, column.y as usize + column.h as usize);
     let Some((mut top, mut bottom)) = outer_runs(&page_like) else {
         // MC-075: the whole margin found nothing. Only a reader window that
-        // is a window on both sides of the page may still speak.
-        return beside_a_textured_window(img, left_end, right_start, first..end, tone, tol);
+        // is a window on both sides of the page may still speak; failing
+        // that (MC-076), only a page between reader panels on both sides.
+        return beside_a_textured_window(img, left_end, right_start, first..end, tone, tol)
+            .or_else(|| between_reader_panels(img, left_end, right_start, first..end, tone, tol));
     };
     // A viewport clear of the column's rows is one the pipeline treats as a
     // decline; the window reading must not turn it into a crop.
@@ -386,6 +447,114 @@ fn beside_a_textured_window(
     viewport(top, bottom)
 }
 
+/// The longest run of page-background columns that does **not** separate a
+/// reader panel from the page, for [`between_reader_panels`] (MC-076): a run
+/// one longer ends the band hugging the page.
+///
+/// Not calibrated on the files that needed it. It is the sliver MC-052
+/// measured on the two `2025-08-05` WebPs before MC-076 existed, the
+/// page-background columns between the page column and the panel - 0 to 4 a
+/// side (1 and 4 on `00_11_13.webp`: 952 and 1593..1597) - and it is the
+/// same sliver `MIN_WINDOW_MARGIN` refuses to read as a window. Between the
+/// sliver and the panel proper the WebPs also hold a few columns at the
+/// majority boundary (`00_11_27.webp`, right: 1539..1544 read 0.47, 0.56,
+/// 0.47, 0.55, 0.58 over the column's rows), so the sliver is a run of
+/// background columns anywhere in the band, not only next to the page.
+/// MC-076 `## Notes` records which values pass the whole suite.
+const MAX_SLIVER: usize = 4;
+
+/// The fewest columns that are **not** page background a band beside the
+/// page must hold for [`between_reader_panels`] to read it as a reader panel
+/// and leave it out (MC-076): `MIN_WINDOW_MARGIN`, the width MC-052 set as
+/// the least that is a margin of its own rather than a sliver or an edge. A
+/// reader panel is a margin of another tone (105 columns on `n13`, 107 to 133
+/// on the WebPs, MC-076 `## Context`); the 5 fade columns beside a generated
+/// page at `uniform_tolerance` 0 (`tests/viewport.rs`,
+/// `the_stage_reads_uniform_tolerance_from_the_tuning`) are not.
+const MIN_PANEL: usize = MIN_WINDOW_MARGIN;
+
+/// MC-076's reading, after the whole margin and MC-075's both declined: a page
+/// between two **reader panels** of another tone hugging it, with the page
+/// background beyond them (`Screenshot (2507).png`; the two `2025-08-05`
+/// WebPs). A panel is flat but not within `uniform_tolerance` of the tone, so
+/// it holds the whole-margin share under [`PAGE_LIKE`] on every viewport row
+/// (`n13`: 0.889) though everything else beside the page is flat.
+///
+/// A column is page background as [`reader_window`] reads it, over `column`'s
+/// rows. On each side, outward from the page column, the **band** runs until
+/// more than [`MAX_SLIVER`] background columns in a row - page background
+/// resuming - and it is a panel when it holds at least [`MIN_PANEL`] columns
+/// that are not background ([`hugging_panel`]). Both sides must have one: a
+/// band on one side only says nothing about the rows beside the other (MC-076
+/// AC-4 control (b); `tests/detect.rs`'s one-sided case). Steps 3, 4 and 6
+/// then run over the whole margin with both bands left out, as MC-048 and
+/// MC-054 read it: a row is page-like at [`PAGE_LIKE`] of what is left, and a
+/// side cuts the column's rows only over [`MIN_RUN`] rows that are not.
+fn between_reader_panels(
+    img: &Luma,
+    left_end: usize,
+    right_start: usize,
+    column_rows: std::ops::Range<usize>,
+    tone: u8,
+    tol: u8,
+) -> Option<Viewport> {
+    let width = img.width as usize;
+    let rows = img.height as usize;
+    let background = background_columns(img, column_rows.clone(), tone, tol);
+    let left = hugging_panel((0..left_end).rev().map(|x| background[x]))?;
+    let right = hugging_panel((right_start..width).map(|x| background[x]))?;
+    let (lo, hi) = (left_end - left, right_start + right);
+    let kept = (lo + width - hi) as f32;
+    let page_like: Vec<bool> = img
+        .data
+        .chunks_exact(width)
+        .map(|row| {
+            let near = row[..lo]
+                .iter()
+                .chain(&row[hi..])
+                .filter(|&&v| v.abs_diff(tone) <= tol)
+                .count();
+            near as f32 / kept >= PAGE_LIKE
+        })
+        .collect();
+    let (mut top, mut bottom) = outer_runs(&page_like)?;
+    let (first, end) = (column_rows.start, column_rows.end.min(rows));
+    if top >= end || bottom <= first {
+        return viewport(top, bottom);
+    }
+    let chrome = |ys: std::ops::Range<usize>| has_run(ys.map(|y| !page_like[y]));
+    if top > first && !chrome(first..top) {
+        top = 0;
+    }
+    if bottom < end && !chrome(bottom..end) {
+        bottom = rows;
+    }
+    viewport(top, bottom)
+}
+
+/// How many columns, outward from the page column, the band hugging the page
+/// takes up, read from `background` (each column outward, nearest first,
+/// `true` where it is page background): every column up to the first run of
+/// more than [`MAX_SLIVER`] background columns. `None` when the band holds
+/// under [`MIN_PANEL`] columns that are not background, or when no such run
+/// comes before the image's edge - a band to the edge leaves no page
+/// background beyond it to read (MC-075's `Hugged` control).
+fn hugging_panel(background: impl Iterator<Item = bool>) -> Option<usize> {
+    let (mut run, mut panel) = (0, 0);
+    for (i, is_background) in background.enumerate() {
+        if !is_background {
+            run = 0;
+            panel += 1;
+            continue;
+        }
+        run += 1;
+        if run > MAX_SLIVER {
+            return (panel >= MIN_PANEL).then_some(i + 1 - run);
+        }
+    }
+    None
+}
+
 /// Whether `rows` holds a run of at least [`MIN_RUN`] consecutive `true`s.
 fn has_run(rows: impl Iterator<Item = bool>) -> bool {
     let mut run = 0;
@@ -468,22 +637,30 @@ fn reader_window(
     tol: u8,
 ) -> (usize, usize) {
     let width = img.width as usize;
-    let rows = viewport.len();
+    let background = background_columns(img, viewport, tone, tol);
+    let lo = (0..left_end)
+        .rev()
+        .find(|&x| !background[x])
+        .map_or(0, |edge| edge + 1);
+    let hi = (right_start..width)
+        .find(|&x| !background[x])
+        .unwrap_or(width);
+    (lo, hi)
+}
+
+/// For each column of `img`, whether it is **page background** over `rows`:
+/// a majority of its pixels there lie within `tol` of `tone` (MC-052's
+/// reading, which [`reader_window`] and [`between_reader_panels`] share).
+fn background_columns(img: &Luma, rows: std::ops::Range<usize>, tone: u8, tol: u8) -> Vec<bool> {
+    let width = img.width as usize;
+    let n = rows.len();
     let mut near = vec![0usize; width];
-    for row in img.data.chunks_exact(width).skip(viewport.start).take(rows) {
+    for row in img.data.chunks_exact(width).skip(rows.start).take(n) {
         for (count, &v) in near.iter_mut().zip(row) {
             *count += usize::from(v.abs_diff(tone) <= tol);
         }
     }
-    let background = |x: usize| near[x] * 2 > rows;
-    let lo = (0..left_end)
-        .rev()
-        .find(|&x| !background(x))
-        .map_or(0, |edge| edge + 1);
-    let hi = (right_start..width)
-        .find(|&x| !background(x))
-        .unwrap_or(width);
-    (lo, hi)
+    near.into_iter().map(|c| c * 2 > n).collect()
 }
 
 /// The upper median of `values`, which must be non-empty: the element at

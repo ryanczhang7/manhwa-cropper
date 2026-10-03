@@ -1633,8 +1633,17 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// **MC-073 moves one mark**, by the user's ruling of 2026-10-02, in their
 /// words *"Box starts at 1007"*: `n05` (`2025-11-01 12_34_31.png`) from
 /// `1006,167 532x1233` to `1007,167 531x1233`, as in [`FRESH_HELD_OUT`].
+///
+/// **MC-076 moves one mark**, by the user's ruling of 2026-10-02 (*"Fix all
+/// three"*, MC-076 `## Notes`): `2025-08-05 00_11_13.webp`'s top row, 114, is
+/// the browser toolbar's one-pixel bottom line, the same tone across page and
+/// margin (zoom of rows 100..130, columns 930..1130, x8), and the art starts on
+/// row 115. The mark goes from `958,114 631x1216` to `958,115 631x1215`,
+/// bottom unchanged at 1330.
 const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 88] = [
-    ("2025-08-05 00_11_13.webp", 958, 114, 631, 1216),
+    // MC-076: the top moves down 1 row by the user's ruling of 2026-10-02:
+    // row 114 is browser bar. Bottom unchanged at 1330. Was `958,114 631x1216`.
+    ("2025-08-05 00_11_13.webp", 958, 115, 631, 1215),
     ("2025-08-05 00_11_27.webp", 1008, 118, 528, 1225),
     ("2025-10-14 23_29_06.png", 1003, 188, 540, 1138),
     ("2025-10-14 23_30_20.png", 1040, 171, 473, 1208),

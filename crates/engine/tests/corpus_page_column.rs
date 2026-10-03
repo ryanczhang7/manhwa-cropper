@@ -330,15 +330,21 @@ const LET_IN_ON: (&str, Side) = ("Screenshot (2630).jpg", Side::Left);
 /// measured in MC-053's RED. The 21 are MC-052's `ORIGINALS_BEFORE`
 /// unchanged; the last two are MC-052's split-screen shots.
 const ORIGINALS_AT_BOTH_MARGINS: [(&str, [u32; 4], [u32; 4]); 23] = [
+    // MC-076 re-pins both WebPs (its AC-2, the user's ruling of 2026-10-02;
+    // MC-048 AC-3 reversed): the crop starts at row 115, below the browser
+    // chrome, columns kept exactly, bottom 1400 as the Lead PO's scratch trial
+    // measured it (mechanical; `corpus_tuning_crops_unmoved.rs` says why).
+    // They were `[950, 15, 646, 1425]` / `[953, 18, 640, 1422]` and
+    // `[1003, 15, 539, 1425]` / `[1006, 18, 533, 1422]`.
     (
         "2025-08-05 00_11_13.webp",
-        [950, 15, 646, 1425],
-        [953, 18, 640, 1422],
+        [950, 115, 646, 1285],
+        [953, 115, 640, 1285],
     ),
     (
         "2025-08-05 00_11_27.webp",
-        [1003, 15, 539, 1425],
-        [1006, 18, 533, 1422],
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
     ),
     (
         "2025-10-14 23_29_06.png",

@@ -254,6 +254,21 @@ box"*.
 `1012,290 523x1098` → `1012,293 523x1095`. Only the top edge moves; the
 bottom stays at 1388.
 
+### `2025-08-05 00_11_13.webp`, top edge moved down one row: the user, 2026-10-02
+
+Found by MC-048, whose original AC-3 could not be met because this mark
+started at row 114, one row above the chrome end that two independent
+readings place at 115 (MC-028 section 5a; `chrome-row-search.md` section
+5e). MC-076's Lead PO zoomed rows 100..130 at columns 930..1130 (x8): row 114
+is the dark one-pixel line closing the browser toolbar, one tone across the
+page and the margin, and the art starts on row 115. The user was told this
+in words, not shown the zoom, as part of a question about the WebPs' crops,
+and answered *"Fix all three"*, which ruled row 114 browser bar (MC-076
+`## Notes`).
+
+`958,114 631x1216` → `958,115 631x1215`. Only the top edge moves; the
+bottom stays at 1330.
+
 ## Tag vocabulary
 
 Every tag on every manifest entry must appear in this table — it is parsed from

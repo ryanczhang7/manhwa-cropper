@@ -658,12 +658,29 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
 
 /// Sides on which the margin must be seen to reach: a side MC-048's viewport
 /// stage did not cut, with room for the whole margin before the image edge.
-/// Mechanical: the two WebPs' tops (`2025-08-05 00_11_13.webp` and
-/// `00_11_27.webp`), where the stage declines (`corpus_viewport.rs`, AC-3) and
-/// the located top is row 18. Their bottoms reach the image edge. Without this
-/// floor, a corpus on which the stage cut every side would pass AC-4 with the
-/// margin never exercised at all.
-const MARGIN_REACHED_SIDES_REQUIRED: usize = 2;
+/// Without this floor, a corpus on which the stage cut every side would pass
+/// AC-4 with the margin never exercised at all.
+///
+/// Until MC-076 it was a count, 2: the two WebPs' tops (`2025-08-05
+/// 00_11_13.webp` and `00_11_27.webp`), where the stage declined and the
+/// located top was row 18. MC-076 AC-2 has the stage cut both WebPs' tops at
+/// row 115, and AC-1 `n13`'s top and bottom (the other two sides the margin
+/// reached on `main`, `1d7a921`, where the stage declined on it too). So the
+/// control is **moved, not loosened** (MC-076 AC-3), to the two sides that
+/// still exercise it and that no story moves: the **bottoms** of
+/// `Screenshot (3605).png` and `Screenshot (3606).png`, where the stage cut
+/// the top at 137 but the page column ends at row 1379 and 1385, above the
+/// viewport's 1392, so the margin grows the bottom by 3 (1382, 1388).
+/// Mechanical: read off this test's own table on `1d7a921`.
+///
+/// **Named, and exact in both directions**, where it was a floor: the test
+/// fails if either side stops being reached, and fails if any other side is
+/// reached in full - which on this corpus means the stage declined, or cut
+/// nothing, where it should have cut. `(file, side)` in manifest order.
+const MARGIN_REACHED_SIDES: [(&str, &str); 2] = [
+    ("Screenshot (3605).png", "bottom"),
+    ("Screenshot (3606).png", "bottom"),
+];
 
 /// The page column `detect` locates before the viewport stage and before the
 /// margin: its first five stages, composed exactly as `decide.rs` composes
@@ -735,12 +752,15 @@ impl RowEdges {
         (top, bottom)
     }
 
-    /// How many sides the margin `by` reaches in full: sides the stage did
-    /// not cut, with room for all of `by` before the image edge.
-    fn reached_in_full(&self, by: u32) -> usize {
+    /// The sides the margin `by` reaches in full: sides the stage did not
+    /// cut, with room for all of `by` before the image edge.
+    fn reached_in_full(&self, by: u32) -> Vec<&'static str> {
         let top = !self.top_cut() && self.column.y >= by;
         let bottom = !self.bottom_cut() && self.column.y + self.column.h + by <= self.height;
-        usize::from(top) + usize::from(bottom)
+        [(top, "top"), (bottom, "bottom")]
+            .into_iter()
+            .filter_map(|(reached, side)| reached.then_some(side))
+            .collect()
     }
 }
 
@@ -753,8 +773,8 @@ impl RowEdges {
 /// from the crop: [`page_column_of`] is the rect the stage is handed, and
 /// [`viewport_rows`] is what `viewport::locate` finds beside it. A side is cut
 /// where the viewport's edge lies inside the page column's rows or on its
-/// edge ([`RowEdges::top_cut`]). Where the stage declines (the two WebPs)
-/// no side is cut.
+/// edge ([`RowEdges::top_cut`]). Where the stage declines no side is cut (the
+/// two WebPs and `n13` on `main`, `1d7a921`; none after MC-076).
 ///
 /// Three detections per entry: `margin_px` 0, the margin before MC-049
 /// ([`MARGIN_BEFORE_MC049`]), and `Tuning::default()`. Each must have exactly
@@ -776,7 +796,8 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
     };
     let mut rows = Vec::new();
     let mut wrong = Vec::new();
-    let (mut cut, mut reached) = (0usize, 0usize);
+    let mut cut = 0usize;
+    let mut reached: Vec<(String, &str)> = Vec::new();
 
     for (entry, mark) in marked() {
         let img = luma(&entry.path);
@@ -793,7 +814,12 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
             height: img.height,
         };
         cut += usize::from(edges.top_cut()) + usize::from(edges.bottom_cut());
-        reached += edges.reached_in_full(MARGIN_BEFORE_MC049);
+        reached.extend(
+            edges
+                .reached_in_full(MARGIN_BEFORE_MC049)
+                .into_iter()
+                .map(|side| (entry.name(), side)),
+        );
 
         let mut ok = true;
         for (margin, tuning) in [
@@ -846,8 +872,9 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
     let printed = table(
         &format!(
             "AC-4: rows at margin {MARGIN_BEFORE_MC049} and {}; {cut} sides cut by the viewport \
-             stage, {reached} sides the margin {MARGIN_BEFORE_MC049} reaches in full",
-            t.margin_px
+             stage, {} sides the margin {MARGIN_BEFORE_MC049} reaches in full: {reached:?}",
+            t.margin_px,
+            reached.len()
         ),
         &rows,
     );
@@ -859,10 +886,16 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
         wrong.len(),
         wrong.join("\n")
     );
-    assert!(
-        reached >= MARGIN_REACHED_SIDES_REQUIRED,
-        "AC-4's control: the margin {MARGIN_BEFORE_MC049} must reach in full on at least \
-         {MARGIN_REACHED_SIDES_REQUIRED} sides (the two WebPs' tops), or the test above \
-         never sees a row move. It reaches on {reached}.\n\n{printed}"
+    let named: Vec<(String, &str)> = MARGIN_REACHED_SIDES
+        .iter()
+        .map(|&(file, side)| (file.to_string(), side))
+        .collect();
+    assert_eq!(
+        reached, named,
+        "AC-4's control (moved by MC-076 AC-3 from the WebPs' tops): the margin \
+         {MARGIN_BEFORE_MC049} must reach in full on exactly MARGIN_REACHED_SIDES - \
+         the bottoms of (3605) and (3606) - or the test above never sees a row move; \
+         any other side reached is a side the viewport stage did not cut. \
+         `(file, side)`, `left` measured.\n\n{printed}"
     );
 }

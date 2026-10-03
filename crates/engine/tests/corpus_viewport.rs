@@ -3,7 +3,7 @@
 //!
 //! Every test here goes through the real pipeline - [`process_file`] at
 //! `Tuning::default()`, or at `margin_px` 3 written out where a pin was
-//! measured at the default before MC-049 moved it to 0 ([`WEBPS_BEFORE`]
+//! measured at the default before MC-049 moved it to 0 ([`WEBPS_MAIN`]
 //! and MC-052's "both margins") - and reads nothing but the rect it returns, so this
 //! file compiles against the tree before MC-048 as well as after it. The
 //! stage's own located rows are asked of the stage directly in
@@ -20,8 +20,9 @@
 //!   containment predicate.
 //! * **Mechanical**: AC-2's predicate, `chromeEnd <= r < taskbar` for every
 //!   crop row `r = y .. y + h - 1`, on 19 of 19; AC-3's two WebP rects
-//!   ([`WEBPS_BEFORE`]) and AC-8's `(x, w)` per file ([`COLUMNS_BEFORE`]),
-//!   both pinned from the RED measurement on `cb2deef`.
+//!   (`WEBPS_BEFORE`, until MC-076 AC-2 reversed it: [`WEBPS_MAIN`]) and
+//!   AC-8's `(x, w)` per file ([`COLUMNS_BEFORE`]), both pinned from the RED
+//!   measurement on `cb2deef`.
 //!
 //! # MC-052: split-screen screenshots
 //!
@@ -96,20 +97,36 @@ const VIEWPORT: [(&str, u32, u32); 19] = [
 
 /// AC-3's two entries: the marked `tuning` entries on which the oracle
 /// declines at its full-margin setting.
+///
+/// **MC-076 AC-2** (the user's ruling of 2026-10-02, *"Fix all three"*):
+/// the viewport stage no longer declines on them, and they are no longer
+/// kept as they were. They stay out of [`VIEWPORT`] - section 4 still has no
+/// row for them - and [`both_webps_start_below_the_browser_bar_at_both_margins`]
+/// judges them.
 const WEBPS: [&str; 2] = ["2025-08-05 00_11_13.webp", "2025-08-05 00_11_27.webp"];
 
-/// AC-3, as amended on 2026-09-23: each WebP's whole crop as `process_file`
-/// produces it at `Tuning::default()` on `cb2deef`, measured in RED (release)
-/// and pinned. The stage declines on both and the pipeline must fall back to
-/// exactly this; chrome removal on them is a named limitation.
-///
-/// **At `margin_px` 3, explicitly (MC-049, 2026-09-28).** `cb2deef`'s default
-/// margin was 3; MC-049 moved it to 0. What this pins is that the stage
-/// declines and moves nothing, so the test runs at [`at_margin_3`], the margin
-/// these rects were measured at.
-const WEBPS_BEFORE: [(&str, Rect); 2] = [
+/// MC-076 AC-2: the first row below the browser chrome on both WebPs, **settled
+/// by two independent readings** and read out here, never derived: MC-028
+/// section 5a and `chrome-row-search.md` section 5e. `00_11_13.webp`'s mark
+/// starts on it since the user ruled its row 114 browser bar (MC-076 `## Notes`).
+const WEBP_TOP: u32 = 115;
+
+/// MC-076 AC-2: each WebP's crop on `main` (`1d7a921`), `(file, at margin_px
+/// 0, at margin_px 3)` - the crops MC-048 AC-3 pinned, re-measured at margin
+/// 0 by MC-052 ([`ORIGINALS_BEFORE`]'s rows until MC-076). AC-2 reads two
+/// things off them: the columns, which must not move, and the bottom, which
+/// has no oracle and must not move down. Until MC-076 this was `WEBPS_BEFORE`
+/// and pinned the whole crop at margin 3: the stage declined on both, and
+/// chrome removal on them was a named limitation.
+const WEBPS_MAIN: [(&str, Rect, Rect); 2] = [
     (
         "2025-08-05 00_11_13.webp",
+        Rect {
+            x: 953,
+            y: 18,
+            w: 640,
+            h: 1422,
+        },
         Rect {
             x: 950,
             y: 15,
@@ -119,6 +136,12 @@ const WEBPS_BEFORE: [(&str, Rect); 2] = [
     ),
     (
         "2025-08-05 00_11_27.webp",
+        Rect {
+            x: 1006,
+            y: 18,
+            w: 533,
+            h: 1422,
+        },
         Rect {
             x: 1003,
             y: 15,
@@ -212,15 +235,19 @@ const READER_WINDOW_COLUMNS: [(&str, Columns, Columns); 2] = [
 /// reads different pixels on a split-screen shot must not move a single-window
 /// one by a row.
 const ORIGINALS_BEFORE: [(&str, [u32; 4], [u32; 4]); 21] = [
+    // MC-076 re-pins both WebPs (its AC-2, the user's ruling of 2026-10-02;
+    // MC-048 AC-3 reversed): [`WEBPS_MAIN`] says how. They were
+    // `[950, 15, 646, 1425]` / `[953, 18, 640, 1422]` and
+    // `[1003, 15, 539, 1425]` / `[1006, 18, 533, 1422]`.
     (
         "2025-08-05 00_11_13.webp",
-        [950, 15, 646, 1425],
-        [953, 18, 640, 1422],
+        [950, 115, 646, 1285],
+        [953, 115, 640, 1285],
     ),
     (
         "2025-08-05 00_11_27.webp",
-        [1003, 15, 539, 1425],
-        [1006, 18, 533, 1422],
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
     ),
     (
         "2025-10-14 23_29_06.png",
@@ -416,7 +443,16 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// crop's rows to lie. Beside a second window textured on every row the
 /// whole-margin share is 0.648 and the stage declined, so the crop kept rows
 /// 0..1440 and this file could not judge it (MC-075 `## Context`).
-const STAGE_MEASURED: [(&str, u32, u32); 64] = [
+///
+/// **MC-076 adds `Screenshot (2507).png` (`n13`)**, off [`STAGE_DECLINED`],
+/// last in manifest order: 133..1392. **Settled, not measured or chosen**:
+/// MC-071's frozen oracle for `n13` (`T` 133, `B` 1392), within which MC-076
+/// AC-1 requires its crop's rows to lie, and which the Lead PO's scratch trial
+/// measured `locate` returning beside the page column `977,40 600x1352`
+/// (MC-076 `## Context`, trial rules 1 and 2). Beside two flat reader panels
+/// of another tone hugging the page the whole-margin share is 0.889 and the
+/// stage declined, so the crop kept the browser toolbar from row 40.
+const STAGE_MEASURED: [(&str, u32, u32); 65] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -484,8 +520,10 @@ const STAGE_MEASURED: [(&str, u32, u32); 64] = [
     ("2025-03-07 00_05_58.png", 115, 1399),
     // MC-075: `n06`, between `n02` and `n05` in manifest order (see the doc comment).
     ("2025-03-13 12_01_01.png", 115, 1392),
-    // MC-072: `n05`, last in manifest order (see the doc comment).
+    // MC-072: `n05` (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
+    // MC-076: `n13`, last in manifest order (see the doc comment).
+    ("Screenshot (2507).png", 133, 1392),
 ];
 
 /// MC-064: the marked `tuning` entry on which `viewport::locate`, handed the
@@ -521,10 +559,13 @@ const STAGE_MEASURED: [(&str, u32, u32); 64] = [
 ///
 /// MC-075 took `n06` off (its AC-1): beside a second window textured on every
 /// row the stage reads the reader's window, and [`STAGE_MEASURED`] holds
-/// 115..1392, MC-071's frozen `T` and `B`. `n13` stays until MC-076; its rows
-/// are judged against MC-071's oracle in `tests/corpus_furniture_rows.rs`
-/// (MC-075 AC-3), where it is a named known exception.
-const STAGE_DECLINED: [&str; 1] = ["Screenshot (2507).png"];
+/// 115..1392, MC-071's frozen `T` and `B`.
+///
+/// MC-076 took `n13` off (its AC-1): beside two flat reader panels of another
+/// tone hugging the page the stage locates the viewport, and
+/// [`STAGE_MEASURED`] holds 133..1392, MC-071's frozen `T` and `B`. The list
+/// is empty, and stays exact.
+const STAGE_DECLINED: [&str; 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
@@ -875,10 +916,10 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all eighty-three: section 4's nineteen, MC-053's three, \
+        "the control must see all eighty-four: section 4's nineteen, MC-053's three, \
          MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
-         off STAGE_DECLINED), MC-068's 21, MC-069's 14 and three of MC-072's four \
-         (MC-074 took n02 and MC-075 took n06 off STAGE_DECLINED; n13 is on it)"
+         off STAGE_DECLINED), MC-068's 21, MC-069's 14 and all four of MC-072's \
+         (MC-074 took n02, MC-075 n06 and MC-076 n13 off STAGE_DECLINED)"
     );
     assert_eq!(
         not_cropped,
@@ -894,76 +935,109 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     );
 }
 
-// --- AC-3: the two WebPs ----------------------------------------------------
+// --- AC-3, reversed by MC-076 AC-2: the two WebPs ---------------------------
 
-/// AC-3, as amended on 2026-09-23. On both `2025-08-05` WebPs, where the
-/// oracle declines at its full-margin setting, the crop is **identical** -
-/// `x`, `y`, `w` and `h` - to the one made on `cb2deef` ([`WEBPS_BEFORE`]), and
-/// neither crop clips its mark. Chrome removal on them is a named limitation.
+/// MC-076 AC-2 (the user's ruling of 2026-10-02; MC-048 AC-3, which pinned
+/// these crops exactly as they were, reversed). On both `2025-08-05` WebPs, at
+/// margins 0 and 3, the outcome is `Cropped` and the crop:
 ///
-/// Green on arrival by construction, since the rects were measured off this
-/// tree, and earned by a probe recorded in the story's `## Handoff`: one pinned
-/// value changed by one, watched to fail naming that file, reverted.
+/// - starts at row [`WEBP_TOP`], 115, the settled chrome end;
+/// - contains its mark (`00_11_13.webp`'s top ruled browser bar by the user:
+///   `958,115 631x1215`);
+/// - keeps its columns exactly as on `main` ([`WEBPS_MAIN`]);
+/// - ends at or above `main`'s bottom (the bottom has no oracle; the exact
+///   crop is pinned in `corpus_tuning_crops_unmoved.rs`).
+///
+/// On `main` (`1d7a921`) the crop starts at row 18 (15 at margin 3): the
+/// viewport stage declines beside a flat reader panel of another tone hugging
+/// the page, and the crop keeps the browser chrome.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
-fn both_webp_crops_are_exactly_as_before_and_keep_their_marks() {
+fn both_webps_start_below_the_browser_bar_at_both_margins() {
     let tmp = tempfile::tempdir().expect("a temp dir");
     let mut rows = Vec::new();
     let mut wrong = Vec::new();
     let mut seen = Vec::new();
 
     for (entry, mark) in marked() {
-        if !WEBPS.contains(&entry.name().as_str()) {
+        let name = entry.name();
+        if !WEBPS.contains(&name.as_str()) {
             continue;
         }
-        seen.push(entry.name());
-        let pinned = WEBPS_BEFORE
+        seen.push(name.clone());
+        let &(_, main_m0, main_m3) = WEBPS_MAIN
             .iter()
-            .find(|(name, _)| *name == entry.name())
-            .map(|&(_, rect)| rect);
-        match crop_at(&entry, &tmp, &at_margin_3()) {
-            Ok(rect) => {
-                let moved = pinned != Some(rect);
-                let clips = !contains(rect, mark);
-                if moved {
-                    wrong.push(format!(
-                        "{}: cropped to {rect:?}, pinned {pinned:?}",
-                        entry.name()
+            .find(|(file, _, _)| *file == name)
+            .unwrap_or_else(|| panic!("{name} must have its main crops in WEBPS_MAIN"));
+        for (t, main) in both_margins().into_iter().zip([main_m3, main_m0]) {
+            let m = t.margin_px;
+            match crop_at(&entry, &tmp, &t) {
+                Ok(rect) => {
+                    if rect.y != WEBP_TOP {
+                        wrong.push(format!(
+                            "{name} m{m}: the crop starts at row {}, must start at row \
+                             {WEBP_TOP} (browser chrome kept: {})",
+                            rect.y,
+                            WEBP_TOP.saturating_sub(rect.y)
+                        ));
+                    }
+                    if !contains(rect, mark) {
+                        wrong.push(format!(
+                            "{name} m{m}: the crop {rect:?} clips the mark {mark:?}"
+                        ));
+                    }
+                    if (rect.x, rect.w) != (main.x, main.w) {
+                        wrong.push(format!(
+                            "{name} m{m}: the columns (x, w) are ({}, {}), main's are ({}, {})",
+                            rect.x, rect.w, main.x, main.w
+                        ));
+                    }
+                    if rect.y + rect.h > main.y + main.h {
+                        wrong.push(format!(
+                            "{name} m{m}: the crop ends at row {}, below main's {}",
+                            rect.y + rect.h,
+                            main.y + main.h
+                        ));
+                    }
+                    rows.push(format!(
+                        "{name:<26} m{m} crop {},{} {}x{}  main {},{} {}x{}  mark {},{} {}x{}",
+                        rect.x,
+                        rect.y,
+                        rect.w,
+                        rect.h,
+                        main.x,
+                        main.y,
+                        main.w,
+                        main.h,
+                        mark.x,
+                        mark.y,
+                        mark.w,
+                        mark.h
                     ));
                 }
-                if clips {
-                    wrong.push(format!("{}: the crop clips the mark", entry.name()));
+                Err(what) => {
+                    wrong.push(format!("{name} m{m}: not cropped - {what}"));
+                    rows.push(format!("{name:<26} m{m} {what}"));
                 }
-                rows.push(format!(
-                    "{:<26} crop {},{} {}x{}  mark {},{} {}x{}  moved {moved}  clips {clips}",
-                    entry.name(),
-                    rect.x,
-                    rect.y,
-                    rect.w,
-                    rect.h,
-                    mark.x,
-                    mark.y,
-                    mark.w,
-                    mark.h
-                ));
-            }
-            Err(what) => {
-                wrong.push(format!("{}: {what}", entry.name()));
-                rows.push(format!("{:<26} {what}", entry.name()));
             }
         }
     }
 
-    let printed = table("AC-3: the two WebPs", "file / crop / mark", &rows);
+    let printed = table(
+        "MC-076 AC-2: the two WebPs",
+        "file / crop / main / mark",
+        &rows,
+    );
     assert_eq!(
         seen,
         WEBPS.map(String::from).to_vec(),
-        "AC-3 must reach both WebPs, in manifest order"
+        "MC-076 AC-2 must reach both WebPs, in manifest order"
     );
     assert!(
         wrong.is_empty(),
-        "AC-3: on the WebPs the viewport stage declines, and the crop must be \
-         exactly the one made on cb2deef and still contain the mark.\n{}\n\n{printed}",
+        "MC-076 AC-2: on both WebPs the crop must start at row {WEBP_TOP}, below the \
+         browser chrome, contain the mark, keep main's columns and end at or above \
+         main's bottom, at margins 0 and 3.\n{}\n\n{printed}",
         wrong.join("\n")
     );
 }

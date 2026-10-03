@@ -37,15 +37,26 @@ use cropper_engine::{Outcome, process_file};
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
 const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
+    // MC-076 re-pins both `2025-08-05` WebPs (its AC-2, the user's ruling of
+    // 2026-10-02, "Fix all three"; MC-048 AC-3 reversed): beside a flat reader
+    // panel of another tone hugging the page the viewport stage declined, and
+    // the crop kept the browser chrome from row 18 (15 at margin 3). The top is
+    // now row 115 at both margins (settled: MC-028 section 5a,
+    // `chrome-row-search.md` section 5e); the columns are kept exactly; the
+    // bottom, 1400, has no oracle and is what the Lead PO's scratch trial
+    // measured (MC-076 `## Context`, trial rule 2) - mechanical, so GREEN
+    // confirms it on the shipped fix. They were `[950, 15, 646, 1425]` /
+    // `[953, 18, 640, 1422]` and `[1003, 15, 539, 1425]` /
+    // `[1006, 18, 533, 1422]`.
     (
         "2025-08-05 00_11_13.webp",
-        [950, 15, 646, 1425],
-        [953, 18, 640, 1422],
+        [950, 115, 646, 1285],
+        [953, 115, 640, 1285],
     ),
     (
         "2025-08-05 00_11_27.webp",
-        [1003, 15, 539, 1425],
-        [1006, 18, 533, 1422],
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
     ),
     (
         "2025-10-14 23_29_06.png",
@@ -612,10 +623,19 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
         [1004, 167, 537, 1233],
         [1007, 167, 531, 1233],
     ),
+    // MC-076 re-pins `n13` (its AC-1): beside two flat reader panels of
+    // another tone hugging the page the viewport stage declined, and the crop
+    // kept the browser toolbar from row 40 (37 at margin 3). Its rows are now
+    // MC-071's frozen `T` and `B`, 133..1392 (settled), and its columns are
+    // kept: margin 0 is the mark, `977,133 600x1259`; margin 3 is the mark
+    // widened by 3 columns a side with the rows held to the viewport,
+    // `974,133 606x1259` - both what the Lead PO's scratch trial measured
+    // (MC-076 `## Context`, trial rules 1 and 2). GREEN confirms them on the
+    // shipped fix. It was `[974, 37, 606, 1358]` and `[977, 40, 600, 1352]`.
     (
         "Screenshot (2507).png",
-        [974, 37, 606, 1358],
-        [977, 40, 600, 1352],
+        [974, 133, 606, 1259],
+        [977, 133, 600, 1259],
     ),
 ];
 

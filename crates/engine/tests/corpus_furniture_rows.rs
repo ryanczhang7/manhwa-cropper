@@ -1,5 +1,5 @@
-//! MC-075 AC-1 and AC-3: on the corpus, the crop keeps no row of browser or
-//! OS furniture on the entries MC-071's held-out run moved to `tuning`, judged
+//! MC-075 AC-1 and AC-3, and MC-076 AC-1: on the corpus, the crop keeps no
+//! row of browser or OS furniture on the entries MC-071's held-out run moved to `tuning`, judged
 //! against MC-071's **frozen** furniture oracle rather than against the rows
 //! the viewport stage locates.
 //!
@@ -18,7 +18,8 @@
 //! * **Settled, read out and never derived**: [`MC071_FURNITURE`] (`T`, `B`
 //!   per entry, from MC-071 `## Notes`, "The furniture oracle, FROZEN
 //!   2026-10-02"); the marks (MC-068, in the manifest).
-//! * **Mechanical**: AC-1's columns for `n06` ([`N06_COLUMNS`], MC-075 AC-1);
+//! * **Mechanical**: AC-1's columns for `n06` ([`N06_COLUMNS`], MC-075 AC-1)
+//!   and for `n13` ([`N13_COLUMNS`], MC-076 AC-1);
 //!   the known exception list ([`KNOWN_FURNITURE_KEPT`]), exact in both
 //!   directions.
 //!
@@ -66,14 +67,26 @@ const N06: &str = "2025-03-13 12_01_01.png";
 /// The columns are kept: the story moves rows.
 const N06_COLUMNS: [(u32, (u32, u32)); 2] = [(0, (698, 400)), (3, (695, 406))];
 
+/// MC-076 AC-1: `n13`.
+const N13: &str = "Screenshot (2507).png";
+
+/// MC-076 AC-1: `n13`'s crop columns, `(x, w)` at `margin_px` 0 and at 3 -
+/// its mark's columns, 977..1577, and those widened by the margin, 974..1580.
+/// The columns are kept: the story moves rows.
+const N13_COLUMNS: [(u32, (u32, u32)); 2] = [(0, (977, 600)), (3, (974, 606))];
+
 /// The moved entries whose crop still keeps a furniture row, each owned by an
-/// open story that removes it here: `Screenshot (2507).png` (`n13`), whose
-/// crop starts at row 40 (37 at margin 3) against `T` 133, until MC-076 -
-/// a different cause from `n06`'s (MC-075 `## Context`, "Measured"). **Exact
-/// in both directions**: [`the_rows_of_every_moved_mc071_entrys_crop_lie_between_its_frozen_t_and_b`]
-/// fails if any other entry keeps furniture, and fails if `n13` stops keeping
-/// it at either margin, so MC-076 has to empty this list.
-const KNOWN_FURNITURE_KEPT: [&str; 1] = ["Screenshot (2507).png"];
+/// open story that removes it here. **Exact in both directions**:
+/// [`the_rows_of_every_moved_mc071_entrys_crop_lie_between_its_frozen_t_and_b`]
+/// fails if any other entry keeps furniture, and fails if a listed entry stops
+/// keeping it at either margin.
+///
+/// **MC-076 empties it** (its AC-1): `Screenshot (2507).png` (`n13`), whose
+/// crop started at row 40 (37 at margin 3) against `T` 133 - the viewport
+/// stage declined beside two flat reader panels of another tone hugging the
+/// page (MC-076 `## Context`, "Measured") - is judged like the other three.
+/// The check still runs on all four entries at both margins.
+const KNOWN_FURNITURE_KEPT: [&str; 0] = [];
 
 // --- Harness ----------------------------------------------------------------------
 
@@ -262,6 +275,67 @@ fn n06s_crop_drops_the_browser_bar_scrollbar_and_taskbar_and_keeps_its_page_at_b
     );
 }
 
+// --- MC-076 AC-1: n13 starts below the browser bar ------------------------------
+
+/// MC-076 AC-1. `n13` (`Screenshot (2507).png`), at margins 0 and 3, is
+/// `Cropped`; the crop contains the mark `977,133 600x1259` (MC-068), lies
+/// within rows 133..1392 (MC-071's frozen `T` and `B`: no tab-strip or
+/// toolbar row, no taskbar row), and keeps its columns, 977..1577 at margin 0
+/// and 974..1580 at margin 3.
+///
+/// On `main` (`1d7a921`) the crop is rows 40..1392 at margin 0 and 37..1395 at
+/// margin 3: the viewport stage declines beside two flat reader panels of
+/// another tone hugging the page (whole-margin share 0.889), and only the
+/// chrome peel's tab strip and taskbar come off.
+#[test]
+#[ignore = "integration: decodes the whole corpus"]
+fn n13s_crop_starts_below_the_browser_bar_and_keeps_its_page_at_both_margins() {
+    let tmp = tempfile::tempdir().expect("a temp dir");
+    let (_, entry, mark, top, bottom) = moved_entries()
+        .into_iter()
+        .find(|(_, entry, _, _, _)| entry.name() == N13)
+        .expect("n13 is one of MC-071's four");
+    let mut bad = Vec::new();
+    let mut rows = Vec::new();
+    for (margin, (x, w)) in N13_COLUMNS {
+        match crop_at(&entry, &tmp, &at_margin(margin)) {
+            Ok(rect) => {
+                rows.push(format!(
+                    "m{margin}: crop {},{} {}x{} (rows {}..{})",
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
+                    rect.y,
+                    rect.y + rect.h
+                ));
+                if !contains(rect, mark) {
+                    bad.push(format!(
+                        "m{margin}: the crop {rect:?} clips the mark {mark:?}"
+                    ));
+                }
+                if let Some(what) = furniture_kept(rect, top, bottom) {
+                    bad.push(format!("m{margin}: the crop keeps furniture, {what}"));
+                }
+                if (rect.x, rect.w) != (x, w) {
+                    bad.push(format!(
+                        "m{margin}: the crop's columns (x, w) are ({}, {}), must be ({x}, {w})",
+                        rect.x, rect.w
+                    ));
+                }
+            }
+            Err(what) => bad.push(format!("m{margin}: not cropped - {what}")),
+        }
+    }
+    assert!(
+        bad.is_empty(),
+        "MC-076 AC-1: {N13} (n13) must be cropped to its page, within rows {top}..{bottom}, \
+         columns kept, at both margins.\n{}\n\n{}",
+        bad.join("\n"),
+        rows.join("\n")
+    );
+}
+
 // --- AC-3: a corpus check that sees a declined stage ---------------------------
 
 /// MC-075 AC-3. On each of MC-071's four moved entries, at margins 0 and 3,
@@ -308,7 +382,7 @@ fn the_rows_of_every_moved_mc071_entrys_crop_lie_between_its_frozen_t_and_b() {
         kept, known,
         "MC-075 AC-3: on MC-071's moved entries every crop row must lie between the frozen \
          T and B at margins 0 and 3; the only entries that may keep a furniture row are \
-         KNOWN_FURNITURE_KEPT (n13, until MC-076), and those must still keep it. \
+         KNOWN_FURNITURE_KEPT (empty since MC-076 took n13 off), and those must still keep it. \
          `(file, margin_px)`, `left` measured.\n\n{printed}"
     );
 }
