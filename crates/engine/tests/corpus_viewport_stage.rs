@@ -194,7 +194,15 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// `977,40 600x1352` (MC-076 `## Context`, trial rules 1 and 2). Beside two
 /// flat reader panels of another tone hugging the page the whole-margin share
 /// is 0.889 and the stage declined.
-const STAGE_MEASURED: [(&str, u32, u32); 67] = [
+///
+/// **MC-077 adds 11**, the rest of MC-068's fresh draw, spent by MC-071's one
+/// scored run and moved to `tuning` (MC-077 AC-4), interleaved with MC-072's
+/// four in manifest order (nine between `n06` and `n05`, two between `n05` and
+/// `n13`). Section 4 never saw them either. Same provenance as MC-068's: what
+/// `locate` returns beside the page column on `4272252` (release), read out of
+/// one run in MC-077's RED on a scratch copy with the move applied - not
+/// chosen. The stage locates a viewport on all 11.
+const STAGE_MEASURED: [(&str, u32, u32); 78] = [
     // MC-076: the two WebPs, first in manifest order (see the doc comment).
     ("2025-08-05 00_11_13.webp", 115, 1400),
     ("2025-08-05 00_11_27.webp", 115, 1400),
@@ -268,8 +276,21 @@ const STAGE_MEASURED: [(&str, u32, u32); 67] = [
     ("2025-03-07 00_05_58.png", 115, 1399),
     // MC-075: `n06`, between `n02` and `n05` in manifest order (see the doc comment).
     ("2025-03-13 12_01_01.png", 115, 1392),
+    // MC-077: nine of its 11, between `n06` and `n05` in manifest order (see the doc comment).
+    ("2025-03-18 14_07_22.png", 115, 1392),
+    ("2025-04-16 17_00_49.png", 115, 1400),
+    ("2025-07-17 16_13_54.png", 167, 1400),
+    ("2025-07-18 00_21_31.png", 167, 1400),
+    ("2025-07-18 08_30_58.png", 167, 1400),
+    ("2025-08-04 08_22_11.png", 115, 1400),
+    ("2025-08-05 08_44_44.png", 115, 1400),
+    ("2025-08-05 11_01_27.png", 115, 1400),
+    ("2025-08-07 00_24_27.png", 115, 1400),
     // MC-072: `n05` (see the doc comment).
     ("2025-11-01 12_34_31.png", 167, 1400),
+    // MC-077: the last two of its 11, between `n05` and `n13` in manifest order.
+    ("2025-11-20 23_55_15.png", 167, 1400),
+    ("Screenshot (1460).png", 133, 1392),
     // MC-076: `n13`, last in manifest order (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
 ];
@@ -438,7 +459,8 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
         "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
-         21 and MC-069's 14 must be marked tuning entries, reached here in manifest order"
+         21, MC-069's 14, MC-072's four and MC-077's 11 must be marked tuning entries, \
+         reached here in manifest order"
     );
     assert_eq!(
         declined_seen,

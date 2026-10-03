@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 99] = [
     // MC-076 re-pins both `2025-08-05` WebPs (its AC-2, the user's ruling of
     // 2026-10-02, "Fix all three"; MC-048 AC-3 reversed): beside a flat reader
     // panel of another tone hugging the page the viewport stage declined, and
@@ -618,10 +618,76 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 88] = [
         [695, 115, 406, 1277],
         [698, 115, 400, 1277],
     ),
+    // MC-077: the other 11 of MC-068's fresh draw, spent by MC-071's one
+    // scored run and moved to `tuning` (MC-077 AC-4), interleaved with
+    // MC-072's four in manifest order (nine here, two after `n05`). Read out
+    // of one run of `process_file` on `4272252` (release) in MC-077's RED, on
+    // a scratch copy with the move applied. **Measured, never chosen.** All 11
+    // are cropped at both margins; every margin-0 crop is exactly its mark but
+    // `2025-08-07 00_24_27.png`'s, which keeps row 1399 below a mark ending at
+    // 1398 - no clip. Each margin-3 crop is the margin-0 crop widened by 3
+    // columns a side, rows unchanged.
+    (
+        "2025-03-18 14_07_22.png",
+        [640, 115, 539, 1277],
+        [643, 115, 533, 1277],
+    ),
+    (
+        "2025-04-16 17_00_49.png",
+        [1070, 115, 406, 1285],
+        [1073, 115, 400, 1285],
+    ),
+    (
+        "2025-07-17 16_13_54.png",
+        [959, 167, 627, 1233],
+        [962, 167, 621, 1233],
+    ),
+    (
+        "2025-07-18 00_21_31.png",
+        [994, 167, 558, 1233],
+        [997, 167, 552, 1233],
+    ),
+    (
+        "2025-07-18 08_30_58.png",
+        [1040, 167, 466, 1233],
+        [1043, 167, 460, 1233],
+    ),
+    (
+        "2025-08-04 08_22_11.png",
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
+    ),
+    (
+        "2025-08-05 08_44_44.png",
+        [1136, 115, 273, 1285],
+        [1139, 115, 267, 1285],
+    ),
+    (
+        "2025-08-05 11_01_27.png",
+        [1136, 115, 273, 1285],
+        [1139, 115, 267, 1285],
+    ),
+    (
+        "2025-08-07 00_24_27.png",
+        [869, 115, 806, 1285],
+        [872, 115, 800, 1285],
+    ),
     (
         "2025-11-01 12_34_31.png",
         [1004, 167, 537, 1233],
         [1007, 167, 531, 1233],
+    ),
+    // MC-077: the last two of its 11, after `n05` in manifest order (see the
+    // comment above).
+    (
+        "2025-11-20 23_55_15.png",
+        [1070, 167, 406, 1233],
+        [1073, 167, 400, 1233],
+    ),
+    (
+        "Screenshot (1460).png",
+        [950, 133, 645, 1259],
+        [953, 133, 639, 1259],
     ),
     // MC-076 re-pins `n13` (its AC-1): beside two flat reader panels of
     // another tone hugging the page the viewport stage declined, and the crop

@@ -62,7 +62,12 @@ const MIN_ENTRIES: usize = 20;
 /// (89.5 MiB) before MC-068's second fresh draw, and the 15 drawn files add
 /// 18,611,679 bytes, which brings it to 112,436,016 bytes (107.2 MiB): over
 /// 100, under 120.
-const MAX_BYTES: u64 = 120 * 1024 * 1024;
+///
+/// **Raised from 120 MiB to 140 MiB by MC-077, on the user's answer of
+/// 2026-10-03** ("Raise it to 140 MiB"). The corpus was 125,214,051 bytes
+/// (119.4 MiB) before MC-077's third fresh draw, and the 10 drawn files add
+/// 13,041,341 bytes, which brings it to about 131.9 MiB: over 120, under 140.
+const MAX_BYTES: u64 = 140 * 1024 * 1024;
 
 /// MC-018 AC-3. The union of every entry's tags must cover all nine; extra
 /// tags are valid and deliberately not constrained.
@@ -264,7 +269,7 @@ fn all_art_and_mostly_white_entries_expect_a_flag_and_not_a_rect() {
 // --- AC-4: the corpus stays clonable ----------------------------------------
 
 #[test]
-fn the_whole_corpus_fits_under_one_hundred_and_twenty_mebibytes() {
+fn the_whole_corpus_fits_under_one_hundred_and_forty_mebibytes() {
     let dir = corpus::dir();
     let total: u64 = fs::read_dir(&dir)
         .unwrap_or_else(|err| panic!("reading {}: {err}", dir.display()))
@@ -278,7 +283,8 @@ fn the_whole_corpus_fits_under_one_hundred_and_twenty_mebibytes() {
         "AC-4: the corpus is {:.1} MiB, over the {:.0} MiB ceiling that keeps \
          this repository clonable without LFS (MC-062 raised it from 60 to 100 \
          MiB, the user's request of 2026-09-30; MC-068 from 100 to 120 MiB, the \
-         user's answer of 2026-10-01)",
+         user's answer of 2026-10-01; MC-077 from 120 to 140 MiB, the user's \
+         answer of 2026-10-03, \"Raise it to 140 MiB\")",
         total as f64 / 1_048_576.0,
         MAX_BYTES as f64 / 1_048_576.0
     );
@@ -952,7 +958,16 @@ fn the_loader_still_reports_path_expect_and_tags_exactly_as_the_manifest_gives_t
 /// which leaves 11. The 11 are spent and cannot give another real score, so
 /// the floor only guards against losing one by accident; the next fresh draw
 /// sets its own minimum. At 11 one miss is 9.1 %.
-const MIN_HELD_OUT_MARKED: usize = 11;
+///
+/// **Set to 10 by MC-077, on the user's ruling of 2026-10-03** ("10 boxes, 4
+/// sites"). MC-071 took the second fresh draw's one scored run, so all 15 of
+/// it are `tuning` now (MC-077 AC-4), and the held-out set is only MC-077's
+/// third fresh draw: 10 whole-screen screenshots the Lead PO drew blind (the
+/// user asked for 10, "and pick some from manhwa_panels"), marked by the user
+/// (`marks-mc077`, "Yes, freeze them"), all 10 art boxes. The floor matches
+/// the set exactly, so losing any one of the 10 is caught. At 10 one miss is
+/// 10 points of accuracy.
+const MIN_HELD_OUT_MARKED: usize = 10;
 
 /// MC-037 AC-2. The detector has two jobs - crop the croppable and decline the
 /// rest - and a held-out set of rectangles alone measures one of them.
@@ -972,6 +987,11 @@ const MIN_HELD_OUT_MARKED: usize = 11;
 /// question 2: the other three floors stand). MC-068's blind draw of 15 is
 /// all art boxes, with no screenshot to leave alone, so the held-out set
 /// still carries no flag entry, and `tuning`'s 14 still carry that job.
+///
+/// **Kept at 0 by MC-077, on the user's rulings of 2026-10-03** (its Open
+/// question 2: `MIN_HELD_OUT_FLAGS` = 0 stands). MC-077's blind draw of 10 is
+/// all art boxes - no flag entry was drawn - so the held-out set still carries
+/// none, and `tuning`'s 14 still carry the "decline the rest" job.
 const MIN_HELD_OUT_FLAGS: usize = 0;
 
 /// MC-037 AC-4. Twenty held-out entries from a single reader would measure
@@ -998,7 +1018,12 @@ const MIN_HELD_OUT_FLAGS: usize = 0;
 /// (2507).png` (`n13`) was the held-out set's only `demonicrevolution` entry
 /// and is one of the four MC-071 read per file, so held-out spans `toongod` 4,
 /// `rolia-scans` 4 and `xbato` 3.
-const MIN_HELD_OUT_SITES: usize = 3;
+///
+/// **Set to 4 by MC-077, on the user's ruling of 2026-10-03** ("10 boxes, 4
+/// sites"). The third fresh draw spans exactly 4 readers - `toongod` 5,
+/// `rolia-scans` 2, `xbato` 2, `w-network` 1 - as the user marked them
+/// (`marks-mc077`), so losing every screenshot from one reader is caught.
+const MIN_HELD_OUT_SITES: usize = 4;
 
 /// MC-037 AC-4. The readers appearing *only* in the held-out set are the only
 /// entries that can answer "does this generalise to an unseen reader?".
@@ -1027,6 +1052,11 @@ const MIN_HELD_OUT_SITES: usize = 3;
 /// question 2: the other three floors stand). MC-068 drew from the same eight
 /// folders, and its four readers all have `tuning` entries, so a score on the
 /// second fresh set also speaks for crops on known readers only.
+///
+/// **Kept at 0 by MC-077, on the user's rulings of 2026-10-03** (its Open
+/// question 2: `MIN_UNSEEN_SITES` = 0 stands). MC-077 drew from the same
+/// eight folders, and its four readers all have `tuning` entries, so a score
+/// on the third fresh set also speaks for crops on known readers only.
 const MIN_UNSEEN_SITES: usize = 0;
 
 /// The prefix marking a tag as naming the reader an entry was captured from.
@@ -1082,7 +1112,7 @@ fn held_out_sites(entries: &[CorpusEntry]) -> BTreeSet<String> {
 // --- AC-1: the held-out set carries enough marked entries to mean something -
 
 #[test]
-fn the_held_out_set_carries_at_least_eleven_marked_entries() {
+fn the_held_out_set_carries_at_least_ten_marked_entries() {
     let entries = corpus::load();
     let held = held_out(&entries);
 
@@ -1113,7 +1143,9 @@ fn the_held_out_set_carries_at_least_eleven_marked_entries() {
          ruling of 2026-10-01, MC-068, whose second fresh draw carries exactly \
          15, 6.7 % a miss; eleven on the user's ruling of 2026-10-02, MC-072, \
          \"all recommended\", which moved the four MC-071 read per file to \
-         `tuning` and left 11, spent), and below that the reported \
+         `tuning` and left 11, spent; ten on the user's ruling of 2026-10-03, \
+         MC-077, \"10 boxes, 4 sites\", whose third fresh draw carries exactly \
+         10, 10 points a miss), and below that the reported \
          number is decided by which screenshot happened to land here. The \
          whole-corpus floor is a different question and stays green while this \
          one fails - a floor that only fires when the *total* drops is not \
@@ -1153,9 +1185,11 @@ fn the_held_out_set_carries_exactly_the_zero_flag_entries_the_user_ruled_on() {
          made about a fresh draw with none: MIN_HELD_OUT_FLAGS is \
          {MIN_HELD_OUT_FLAGS}, pinned exactly because a floor of 0 cannot \
          fail; MC-068 kept it at 0 on the user's rulings of 2026-10-01, its \
-         15 being art boxes too. `tuning`'s flag entries carry the \"decline \
-         the rest\" job. A flag entry in held-out is either a spent entry \
-         MC-062 or MC-068 moved to `tuning`, or a new one the story adding it \
+         15 being art boxes too, and MC-077 on the user's rulings of \
+         2026-10-03, its 10 being art boxes too. `tuning`'s flag entries carry \
+         the \"decline the rest\" job. A flag entry in held-out is either a \
+         spent entry MC-062, MC-068 or MC-077 moved to `tuning`, or a new one \
+         the story adding it \
          must rule on and raise this constant for. Held-out flag entries: \
          {flags:?}. Held-out \
          entries in total: {}",
@@ -1239,7 +1273,7 @@ fn every_held_out_entry_carries_exactly_one_site_tag() {
 }
 
 #[test]
-fn the_held_out_set_spans_at_least_three_readers() {
+fn the_held_out_set_spans_at_least_four_readers() {
     let entries = corpus::load();
     let sites = held_out_sites(&entries);
 
@@ -1249,10 +1283,10 @@ fn the_held_out_set_spans_at_least_three_readers() {
          {MIN_HELD_OUT_SITES}. A reader's furniture - navigation bar, header, \
          page margins - is pixel-identical across every screenshot from it, so \
          twenty entries from one reader would let a rule score well by \
-         learning that geometry instead of learning what a page is. Three since \
-         MC-072, the user's ruling of 2026-10-02 (\"all recommended\"): \
-         `Screenshot (2507).png`, held-out's only `demonicrevolution` entry, \
-         moved to `tuning` with the other three MC-071 read per file. Readers \
+         learning that geometry instead of learning what a page is. Four since \
+         MC-077, the user's ruling of 2026-10-03 (\"10 boxes, 4 sites\"): the \
+         third fresh draw spans `toongod`, `rolia-scans`, `xbato` and \
+         `w-network`, exactly four (three under MC-072, 2026-10-02). Readers \
          found: {sites:?}",
         sites.len()
     );
@@ -1295,8 +1329,9 @@ fn no_held_out_reader_is_absent_from_both_the_pre_epic_07_set_and_tuning() {
          because a floor of 0 cannot fail. So a score on held-out speaks for \
          crops on known readers only, and `docs/wiki/corpus.md` says so; MC-068 \
          kept it at 0 on the user's rulings of 2026-10-01, its four readers all \
-         being in `tuning`. An unseen reader in held-out is either a spent entry \
-         MC-062 or MC-068 moved to `tuning` (`manhwaclan`, MC-062's), or a new \
+         being in `tuning`, and MC-077 on the user's rulings of 2026-10-03, for \
+         the same reason. An unseen reader in held-out is either a spent entry \
+         MC-062, MC-068 or MC-077 moved to `tuning` (`manhwaclan`, MC-062's), or a new \
          one the story adding it must rule on and raise this constant for. \
          Readers with `tuning` entries: \
          {tuned_on:?}. Held-out readers: {sites:?}. Pre-EPIC-07 readers: \
@@ -1338,8 +1373,10 @@ fn no_held_out_reader_is_absent_from_both_the_pre_epic_07_set_and_tuning() {
 /// Ninety-eight since MC-069, which adds the 14 screenshots the app called
 /// `Ambiguous` in the user's run, with the readers the user named on MC-069's
 /// marking page. A hundred and two since MC-072, which moved the four of
-/// MC-068's fresh draw that MC-071 read per file.
-const READER_BY_FILE: [(&str, &str); 102] = [
+/// MC-068's fresh draw that MC-071 read per file. A hundred and thirteen
+/// since MC-077, which moved the other 11 of that draw once MC-071 had spent
+/// it.
+const READER_BY_FILE: [(&str, &str); 113] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1465,11 +1502,26 @@ const READER_BY_FILE: [(&str, &str); 102] = [
     // (`n02`, `n06`, `n05`, `n13`), moved to `tuning` by the user's answer of
     // 2026-10-02 ("all recommended"), in manifest order. Their `site:` tag is
     // the one they carried in held-out, read out of the manifest at `0f9c579`,
-    // and equal to FRESH_HELD_OUT's rows.
+    // and equal to MC068_DRAW's rows.
     ("2025-03-07 00_05_58.png", "toongod"),
     ("2025-03-13 12_01_01.png", "toongod"),
     ("2025-11-01 12_34_31.png", "toongod"),
     ("Screenshot (2507).png", "demonicrevolution"),
+    // MC-077: the other 11 of MC-068's fresh draw, spent by MC-071's one
+    // scored run and moved to `tuning` (MC-077 AC-4), in manifest order.
+    // Their `site:` tag is the one they carried in held-out, read out of the
+    // manifest at `4272252` (awk), and equal to MC068_DRAW's rows.
+    ("2025-03-18 14_07_22.png", "toongod"),
+    ("2025-04-16 17_00_49.png", "toongod"),
+    ("2025-07-17 16_13_54.png", "xbato"),
+    ("2025-07-18 00_21_31.png", "xbato"),
+    ("2025-07-18 08_30_58.png", "xbato"),
+    ("2025-08-04 08_22_11.png", "rolia-scans"),
+    ("2025-08-05 08_44_44.png", "rolia-scans"),
+    ("2025-08-05 11_01_27.png", "rolia-scans"),
+    ("2025-08-07 00_24_27.png", "rolia-scans"),
+    ("2025-11-20 23_55_15.png", "toongod"),
+    ("Screenshot (1460).png", "toongod"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1565,13 +1617,24 @@ const READER_BY_FILE: [(&str, &str); 102] = [
 /// `15, 15, 0, 1` to `16, 16, 0, 0`; no other row moves, and no reader is
 /// re-attributed. `demonicrevolution` leaves the held-out set. Sums: `tuning`
 /// 102 (88 marked, 14 flag), `held-out` 11.
+///
+/// **MC-077, 2026-10-03.** The other 11 of MC-068's fresh draw, all marked,
+/// move to `tuning` once MC-071's run has spent them (`toongod` 4,
+/// `rolia-scans` 4, `xbato` 3), and MC-077's third fresh draw of 10, all
+/// marked, arrives in `held-out` with the readers the user named on the
+/// marking page (`toongod` 5, `rolia-scans` 2, `xbato` 2, `w-network` 1).
+/// `toongod` goes from `48, 41, 7, 4` to `52, 45, 7, 5`, `rolia-scans` from
+/// `14, 13, 1, 4` to `18, 17, 1, 2`, `xbato` from `6, 6, 0, 3` to
+/// `9, 9, 0, 2` and `w-network` from `12, 6, 6, 0` to `12, 6, 6, 1`.
+/// `demonicrevolution`, `kunmanga` and `manhwaclan` do not move. No reader is
+/// re-attributed. Sums: `tuning` 113 (99 marked, 14 flag), `held-out` 10.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 48, 41, 7, 4),
-    ("w-network", 12, 6, 6, 0),
+    ("toongod", 52, 45, 7, 5),
+    ("w-network", 12, 6, 6, 1),
     ("demonicrevolution", 16, 16, 0, 0),
-    ("rolia-scans", 14, 13, 1, 4),
+    ("rolia-scans", 18, 17, 1, 2),
     ("kunmanga", 4, 4, 0, 0),
-    ("xbato", 6, 6, 0, 3),
+    ("xbato", 9, 9, 0, 2),
     ("manhwaclan", 2, 2, 0, 0),
 ];
 
@@ -1621,18 +1684,18 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 ///
 /// **MC-068 moves no mark.** It adds the other 21 of MC-062's fresh draw, with
 /// the marks [`MC062_DRAW`] freezes for them, and pins its own 15 fresh marks
-/// in [`FRESH_HELD_OUT`].
+/// in [`MC068_DRAW`] (`FRESH_HELD_OUT` until MC-077).
 ///
 /// **MC-069 moves no mark.** It adds its 14 reported screenshots with the
 /// marks [`MC069_REPORTED`] freezes for them (`Screenshot (42).png` as
 /// amended there).
 ///
 /// **MC-072 moves no mark.** It adds the four fresh entries MC-071 read per
-/// file, with the marks [`FRESH_HELD_OUT`] freezes for them.
+/// file, with the marks [`MC068_DRAW`] freezes for them.
 ///
 /// **MC-073 moves one mark**, by the user's ruling of 2026-10-02, in their
 /// words *"Box starts at 1007"*: `n05` (`2025-11-01 12_34_31.png`) from
-/// `1006,167 532x1233` to `1007,167 531x1233`, as in [`FRESH_HELD_OUT`].
+/// `1006,167 532x1233` to `1007,167 531x1233`, as in [`MC068_DRAW`].
 ///
 /// **MC-076 moves one mark**, by the user's ruling of 2026-10-02 (*"Fix all
 /// three"*, MC-076 `## Notes`): `2025-08-05 00_11_13.webp`'s top row, 114, is
@@ -1640,7 +1703,11 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// margin (zoom of rows 100..130, columns 930..1130, x8), and the art starts on
 /// row 115. The mark goes from `958,114 631x1216` to `958,115 631x1215`,
 /// bottom unchanged at 1330.
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 88] = [
+///
+/// **MC-077 moves no mark.** It adds the other 11 of MC-068's fresh draw,
+/// with the marks [`MC068_DRAW`] freezes for them, and pins its own 10 fresh
+/// marks in [`FRESH_HELD_OUT`].
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 99] = [
     // MC-076: the top moves down 1 row by the user's ruling of 2026-10-02:
     // row 114 is browser bar. Bottom unchanged at 1330. Was `958,114 631x1216`.
     ("2025-08-05 00_11_13.webp", 958, 115, 631, 1215),
@@ -1765,13 +1832,28 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 88] = [
     // MC-072: the four of MC-068's fresh draw that MC-071 read per file, moved
     // to `tuning` on 2026-10-02, with the marks they carried in held-out,
     // unchanged, read out of the manifest at `0f9c579` (they equal
-    // FRESH_HELD_OUT's rows `n02`, `n06`, `n05`, `n13`), in manifest order.
+    // MC068_DRAW's rows `n02`, `n06`, `n05`, `n13`), in manifest order.
     ("2025-03-07 00_05_58.png", 643, 115, 533, 1284),
     ("2025-03-13 12_01_01.png", 698, 115, 400, 1277),
     // MC-073 AC-1: `n05` re-marked by the user's ruling of 2026-10-02, in
     // their words "Box starts at 1007". It was `1006,167 532x1233`.
     ("2025-11-01 12_34_31.png", 1007, 167, 531, 1233),
     ("Screenshot (2507).png", 977, 133, 600, 1259),
+    // MC-077: the other 11 of MC-068's fresh draw, spent by MC-071's one
+    // scored run and moved to `tuning` on 2026-10-03, with the marks they
+    // carried in held-out, unchanged, read out of the manifest at `4272252`
+    // (awk; they equal MC068_DRAW's rows), in manifest order.
+    ("2025-03-18 14_07_22.png", 643, 115, 533, 1277),
+    ("2025-04-16 17_00_49.png", 1073, 115, 400, 1285),
+    ("2025-07-17 16_13_54.png", 962, 167, 621, 1233),
+    ("2025-07-18 00_21_31.png", 997, 167, 552, 1233),
+    ("2025-07-18 08_30_58.png", 1043, 167, 460, 1233),
+    ("2025-08-04 08_22_11.png", 1006, 115, 533, 1285),
+    ("2025-08-05 08_44_44.png", 1139, 115, 267, 1285),
+    ("2025-08-05 11_01_27.png", 1139, 115, 267, 1285),
+    ("2025-08-07 00_24_27.png", 872, 115, 800, 1284),
+    ("2025-11-20 23_55_15.png", 1073, 167, 400, 1233),
+    ("Screenshot (1460).png", 953, 133, 639, 1259),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2045,8 +2127,9 @@ impl Gap {
     }
 }
 
-/// One drawn screenshot - one of MC-062's 25 ([`MC062_DRAW`]) or MC-068's 15
-/// ([`FRESH_HELD_OUT`]) - as the draw recorded it and the user marked it.
+/// One drawn screenshot - one of MC-062's 25 ([`MC062_DRAW`]), MC-068's 15
+/// ([`MC068_DRAW`]) or MC-077's 10 ([`FRESH_HELD_OUT`]) - as the draw
+/// recorded it and the user marked it.
 struct Fresh {
     /// The file's own name, which is also its name in the corpus (AC-1: no
     /// collision, so none is renamed).
@@ -2080,8 +2163,8 @@ struct Fresh {
 /// **Spent since MC-068.** This was `FRESH_HELD_OUT` until MC-068. MC-063
 /// took the draw's one scored run; MC-064 moved the four it read per file to
 /// `tuning`, and MC-068 the other 21 (its AC-4). All 25 are `tuning` now, and
-/// keep these frozen marks, tags and files: the held-out set is
-/// [`FRESH_HELD_OUT`], MC-068's second draw.
+/// keep these frozen marks, tags and files: the held-out set was
+/// [`MC068_DRAW`], MC-068's second draw, until MC-077 drew [`FRESH_HELD_OUT`].
 const MC062_DRAW: [Fresh; 25] = [
     Fresh {
         file: "Screenshot (2461).png",
@@ -2282,7 +2365,13 @@ const MC062_DRAW: [Fresh; 25] = [
 /// is the dark seam beside the art, as on `Screenshot (3605).png` and
 /// `2025-10-20 15_37_25.png` (MC-073 `## Context`). MC-071's held-out score
 /// was taken against the old mark and is not re-computed.
-const FRESH_HELD_OUT: [Fresh; 15] = [
+///
+/// **Spent since MC-077.** This was `FRESH_HELD_OUT` until MC-077. MC-071
+/// took the draw's one scored run; MC-072 moved the four it read per file to
+/// `tuning`, and MC-077 the other 11 (its AC-4). All 15 are `tuning` now, and
+/// keep these frozen marks, tags and files: the held-out set is
+/// [`FRESH_HELD_OUT`], MC-077's third draw.
+const MC068_DRAW: [Fresh; 15] = [
     Fresh {
         file: "Screenshot (1460).png",
         bytes: 1_159_792,
@@ -2394,40 +2483,120 @@ const FRESH_HELD_OUT: [Fresh; 15] = [
     }, // n15
 ];
 
-/// MC-062's and MC-068's draws took whole-screen captures only: exactly this
-/// size, by header (each story's `## Context`, step 2). None of the 40 is
-/// 1920x1080.
+/// MC-077 AC-1 and AC-2. The 10 screenshots the Lead PO drew blind on
+/// 2026-10-03, in the draw's order (`n01`..`n10`): the bytes from MC-077's
+/// `## Context` table, and the user's marks, readers and gap answers from
+/// `## Notes`'s read-back of `marks-mc077`, **frozen by the user the same day**
+/// ("Yes, freeze them"). Every page was dark, every one is a PNG, and every
+/// one is an art box - no flag. The page's "light" gap is `Gap::White` and its
+/// "can't tell" (read back as "none") `Gap::None`; no "dark" gap was given.
+/// Three are from `mahwa panels` (`n01`, `n05`, `n09`), the user's request
+/// ("pick some from manhwa_panels").
+///
+/// **This is the oracle, not a derivation.** Nothing in the repository can
+/// re-derive a row - the marking page is an Artifact outside the tree - and
+/// MC-077's criteria forbid adjusting one. A change to a row is an Amendment.
+///
+/// The SHA-256 of each copy is checked against `## Context` when SCAFFOLD
+/// copies it (no hashing crate is in this workspace); the byte count and the
+/// header dimensions are what a test here can hold.
+const FRESH_HELD_OUT: [Fresh; 10] = [
+    Fresh {
+        file: "2025-10-08 13_14_05.png",
+        bytes: 799_297,
+        rect: (1073, 167, 399, 1233),
+        site: "toongod",
+        gap: Gap::White,
+    }, // n01
+    Fresh {
+        file: "2025-03-21 11_19_03.png",
+        bytes: 1_315_525,
+        rect: (972, 115, 600, 1285),
+        site: "toongod",
+        gap: Gap::None,
+    }, // n02
+    Fresh {
+        file: "2025-08-05 16_30_27.png",
+        bytes: 1_290_884,
+        rect: (1006, 115, 533, 1285),
+        site: "rolia-scans",
+        gap: Gap::None,
+    }, // n03
+    Fresh {
+        file: "2025-07-18 16_28_07.png",
+        bytes: 1_282_133,
+        rect: (1014, 115, 517, 1285),
+        site: "xbato",
+        gap: Gap::White,
+    }, // n04
+    Fresh {
+        file: "2025-10-26 12_13_16.png",
+        bytes: 1_441_939,
+        rect: (973, 167, 600, 1233),
+        site: "toongod",
+        gap: Gap::White,
+    }, // n05
+    Fresh {
+        file: "2025-03-18 23_33_50.png",
+        bytes: 1_124_799,
+        rect: (710, 115, 400, 1277),
+        site: "toongod",
+        gap: Gap::None,
+    }, // n06
+    Fresh {
+        file: "2025-08-05 12_21_01.png",
+        bytes: 1_577_799,
+        rect: (1006, 115, 533, 1285),
+        site: "rolia-scans",
+        gap: Gap::None,
+    }, // n07
+    Fresh {
+        file: "2025-07-18 21_55_50.png",
+        bytes: 1_324_777,
+        rect: (997, 115, 552, 1285),
+        site: "xbato",
+        gap: Gap::White,
+    }, // n08
+    Fresh {
+        file: "2025-12-04 22_40_23.png",
+        bytes: 1_247_184,
+        rect: (1002, 167, 540, 1233),
+        site: "w-network",
+        gap: Gap::White,
+    }, // n09
+    Fresh {
+        file: "2025-03-12 23_13_21.png",
+        bytes: 1_637_004,
+        rect: (700, 115, 400, 1277),
+        site: "toongod",
+        gap: Gap::White,
+    }, // n10
+];
+
+/// MC-062's, MC-068's and MC-077's draws took whole-screen captures only:
+/// exactly this size, by header (each story's `## Context`, step 2). None of
+/// the 50 is 1920x1080.
 const FRESH_DIMENSIONS: (u32, u32) = (2560, 1440);
 
-/// MC-068 AC-4. The 21 entries that were `held-out` before MC-068, at
-/// `345a9eb`, in manifest order: MC-062's fresh draw of 25 less the four
-/// MC-064 moved. **Spent** - MC-063 took their one scored run - and moved to
-/// `tuning` by MC-068, whose request (the user, 2026-10-01) was a fresh
-/// held-out set because these "can no longer score anything honestly". Read
-/// out of `git show 345a9eb:fixtures/corpus/manifest.json`. (MC-062's own 23
-/// spent entries stay `tuning`: [`READER_BY_FILE`] pins each as `tuning`.)
-const MC068_SPENT_HELD_OUT: [&str; 21] = [
-    "2025-03-04 14_28_54.png",
-    "2025-03-06 02_01_06.png",
-    "2025-03-07 16_07_21.png",
-    "2025-03-18 12_37_27.png",
-    "2025-03-23 23_56_16.png",
-    "2025-03-24 22_44_31.png",
-    "2025-03-25 22_06_29.png",
-    "2025-07-17 23_45_48.png",
-    "2025-07-21 08_26_37.png",
-    "2025-07-21 17_47_22.png",
-    "2025-08-04 17_10_16.png",
-    "2025-08-07 11_20_12.png",
-    "2025-08-07 14_33_43.png",
-    "2025-10-23 11_31_40.png",
-    "2025-11-12 17_43_44.png",
-    "2025-12-09 00_00_17.png",
-    "Screenshot (9).png",
-    "Screenshot (2368).png",
-    "Screenshot (2461).png",
-    "Screenshot (2486).png",
-    "Screenshot (2669).png",
+/// MC-077 AC-4. The 11 entries that were `held-out` before MC-077, at
+/// `4272252`, in manifest order: MC-068's fresh draw of 15 less the four
+/// MC-072 moved. **Spent** - MC-071 took their one scored run - and moved to
+/// `tuning` by MC-077, whose request (the user, 2026-10-03) was a fresh
+/// held-out set. Read out of the manifest at `4272252` (every `held-out`
+/// entry in it). MC-068's own 21 spent entries stay `tuning`:
+/// [`MC062_DRAW`]'s test pins all 25 of that draw as `tuning`.
+const MC077_SPENT_HELD_OUT: [&str; 11] = [
+    "2025-03-18 14_07_22.png",
+    "2025-04-16 17_00_49.png",
+    "2025-07-17 16_13_54.png",
+    "2025-07-18 00_21_31.png",
+    "2025-07-18 08_30_58.png",
+    "2025-08-04 08_22_11.png",
+    "2025-08-05 08_44_44.png",
+    "2025-08-05 11_01_27.png",
+    "2025-08-07 00_24_27.png",
+    "2025-11-20 23_55_15.png",
+    "Screenshot (1460).png",
 ];
 
 /// MC-068 AC-4: after the move, `tuning` holds this many marked entries and
@@ -2438,7 +2607,10 @@ const MC068_SPENT_HELD_OUT: [&str; 21] = [
 ///
 /// **88 marked since MC-072**, which moved the four marked entries MC-071 read
 /// per file (MC-072 AC-1). The flags do not move.
-const TUNING_MARKED: usize = 88;
+///
+/// **99 marked since MC-077**, which moved the other 11 of MC-068's draw, all
+/// marked (MC-077 AC-4). The flags do not move.
+const TUNING_MARKED: usize = 99;
 const TUNING_FLAGS: usize = 14;
 
 /// MC-068 AC-2 and AC-5: after the move, `held-out` holds this many marked
@@ -2447,26 +2619,18 @@ const TUNING_FLAGS: usize = 14;
 ///
 /// **11 across 3 since MC-072** (`toongod` 4, `rolia-scans` 4, `xbato` 3);
 /// 15 across 4 before it (MC-072 AC-1).
-const HELD_OUT_MARKED: usize = 11;
-const HELD_OUT_READERS: usize = 3;
+///
+/// **10 across 4 since MC-077** (`toongod` 5, `rolia-scans` 2, `xbato` 2,
+/// `w-network` 1): MC-077's third fresh draw and nothing else (MC-077 AC-2,
+/// AC-4).
+const HELD_OUT_MARKED: usize = 10;
+const HELD_OUT_READERS: usize = 4;
 
-/// MC-072 AC-1. The four of [`FRESH_HELD_OUT`] that MC-071 read per file
-/// after taking its score (`n02`, `n06`, `n05`, `n13`), in manifest order.
-/// Being read, they are `tuning` for any later rule, and MC-073 to MC-076 are
-/// designed while looking at them; the user's answer of 2026-10-02 to MC-072's
-/// Open questions was *"all recommended"*. The other 11 fresh entries stay
-/// `held-out` (its Open question 4, *"no, leave them"*).
-const MC072_READ_PER_FILE: [&str; 4] = [
-    "2025-03-07 00_05_58.png",
-    "2025-03-13 12_01_01.png",
-    "2025-11-01 12_34_31.png",
-    "Screenshot (2507).png",
-];
-
-/// MC-072 AC-1: "no file is added to or removed from `fixtures/corpus/`". The
-/// image files in the corpus directory, `manifest.json` aside: 113 since
-/// MC-069 (MC-068's 15 and MC-069's 14 were the last additions).
-const CORPUS_FILES: usize = 113;
+/// MC-077: the image files in the corpus directory, `manifest.json` aside,
+/// one manifest entry each. 113 from MC-069 to MC-076 (MC-072 AC-1: "no file
+/// is added to or removed from `fixtures/corpus/`"); 123 since MC-077 added
+/// its 10.
+const CORPUS_FILES: usize = 123;
 
 /// The tags a drawn entry must carry, sorted: `dark-theme`, `png`,
 /// `site:<site>`, and the gutter tag the user's gap answer gives (MC-062 AC-2,
@@ -2628,12 +2792,49 @@ fn every_mc062_drawn_screenshot_is_one_tuning_entry_with_the_users_mark_and_tags
 // --- MC-068 AC-1: the 15 files are in the corpus, as drawn ------------------
 
 #[test]
+fn every_mc068_drawn_screenshot_is_still_in_the_corpus_at_the_size_it_was_drawn_at() {
+    assert_eq!(
+        drawn_files_wrong(&MC068_DRAW),
+        Vec::<String>::new(),
+        "MC-068 AC-1: each of the 15 screenshots the Lead PO drew blind on \
+         2026-10-01 must be in fixtures/corpus/ under its own name, byte for \
+         byte the size the draw recorded and a {}x{} whole-screen capture. Spent \
+         and `tuning` since MC-077, they are still corpus files. Each row is \
+         `file: what differs`",
+        FRESH_DIMENSIONS.0,
+        FRESH_DIMENSIONS.1
+    );
+}
+
+// --- MC-068 AC-2: one tuning entry per drawn file, as the user marked it ----
+
+#[test]
+fn every_mc068_drawn_screenshot_is_one_tuning_entry_with_the_users_mark_and_tags() {
+    let entries = corpus::load();
+    assert_eq!(
+        drawn_entries_wrong(&entries, &MC068_DRAW, Split::Tuning),
+        Vec::<String>::new(),
+        "MC-068 AC-2, as MC-072 and MC-077 move it: each of MC-068's 15 drawn \
+         screenshots must be exactly one manifest entry, `tuning` now - MC-071 \
+         spent the draw, MC-072 moved the four it read per file and MC-077 the \
+         other 11 - whose `expect` is still the box the user marked on \
+         2026-10-01 (frozen, \"Yes, freeze them\"; the read-back table in \
+         MC-068's `## Notes`, `n05` as MC-073 re-marked it) and whose tags are \
+         still exactly `dark-theme`, `png`, its `site:` and the gutter the \
+         user's gap answer gives (`white-gutter` for light, `black-gutter` for \
+         dark, none for can't tell). Each row is `file: what differs`"
+    );
+}
+
+// --- MC-077 AC-1: the 10 files are in the corpus, as drawn ------------------
+
+#[test]
 fn every_freshly_drawn_screenshot_is_in_the_corpus_at_the_size_it_was_drawn_at() {
     assert_eq!(
         drawn_files_wrong(&FRESH_HELD_OUT),
         Vec::<String>::new(),
-        "MC-068 AC-1: each of the 15 screenshots the Lead PO drew blind on \
-         2026-10-01 must be in fixtures/corpus/ under its own name, byte for \
+        "MC-077 AC-1: each of the 10 screenshots the Lead PO drew blind on \
+         2026-10-03 must be in fixtures/corpus/ under its own name, byte for \
          byte the size the draw recorded and a {}x{} whole-screen capture. The \
          SHA-256 of each copy is checked against `## Context` when it is copied \
          (no hashing crate is in this workspace); the size is what this test \
@@ -2643,44 +2844,32 @@ fn every_freshly_drawn_screenshot_is_in_the_corpus_at_the_size_it_was_drawn_at()
     );
 }
 
-// --- MC-068 AC-2: one held-out entry per drawn file, as the user marked it --
+// --- MC-077 AC-2: one held-out entry per drawn file, as the user marked it --
 
 #[test]
 fn every_freshly_drawn_screenshot_is_one_held_out_entry_with_the_users_mark_and_tags() {
     let entries = corpus::load();
-    // MC-072: the four MC-071 read per file are `tuning`, and only those four,
-    // by name. A fifth fresh entry turning `tuning` fails here naming it.
-    let wanted = |read: bool| {
-        FRESH_HELD_OUT
-            .iter()
-            .filter(move |f| MC072_READ_PER_FILE.contains(&f.file) == read)
-            .map(|f| (f.file, f.rect, fresh_tags(f)))
-    };
-    let mut wrong = entries_wrong(&entries, wanted(true), Split::Tuning);
-    wrong.extend(entries_wrong(&entries, wanted(false), Split::HeldOut));
     assert_eq!(
-        wrong,
+        drawn_entries_wrong(&entries, &FRESH_HELD_OUT, Split::HeldOut),
         Vec::<String>::new(),
-        "MC-068 AC-2, as MC-072 moves it: each of the 15 drawn screenshots must \
-         be exactly one manifest entry - `tuning` for exactly the four MC-071 \
-         read per file and MC-072 moved (MC072_READ_PER_FILE), `held-out` for \
-         the other 11 - whose `expect` is the box the user marked on \
-         2026-10-01 (frozen, \"Yes, freeze them\"; the read-back table in \
-         MC-068's `## Notes`) and whose tags are exactly `dark-theme`, `png`, \
-         its `site:` and the gutter the user's gap answer gives \
-         (`white-gutter` for light, `black-gutter` for dark, none for can't \
-         tell). Each row is `file: what differs`"
+        "MC-077 AC-2: each of the 10 drawn screenshots must be exactly one \
+         manifest entry, `held-out`, whose `expect` is the box the user marked \
+         on 2026-10-03 (frozen, \"Yes, freeze them\"; the read-back table in \
+         MC-077's `## Notes`, `x,y wxh`) and whose tags are exactly \
+         `dark-theme`, `png`, its `site:` and the gutter the user's gap answer \
+         gives (`white-gutter` for white, none for none). Each row is `file: \
+         what differs`"
     );
 }
 
-// --- MC-068 AC-4: the 21 spent entries are tuning; held-out is only fresh ---
+// --- MC-077 AC-4: the 11 spent entries are tuning; held-out is only fresh ---
 
 #[test]
 fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw() {
     let entries = corpus::load();
     let mut wrong: Vec<String> = Vec::new();
 
-    for name in MC068_SPENT_HELD_OUT {
+    for name in MC077_SPENT_HELD_OUT {
         match entries.iter().find(|e| e.name() == name) {
             None => wrong.push(format!(
                 "{name}: a spent held-out entry no longer in the manifest"
@@ -2696,7 +2885,7 @@ fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw(
         let name = entry.name();
         if !FRESH_HELD_OUT.iter().any(|f| f.file == name) {
             wrong.push(format!(
-                "{name}: `held-out`, and not one of MC-068's 15 fresh screenshots"
+                "{name}: `held-out`, and not one of MC-077's 10 fresh screenshots"
             ));
         }
     }
@@ -2704,69 +2893,21 @@ fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw(
     assert_eq!(
         wrong,
         Vec::<String>::new(),
-        "MC-068 AC-4: the 21 entries that were `held-out` before MC-068 have \
-         each given their one score (MC-063), so they are `tuning` now, and \
+        "MC-077 AC-4: the 11 entries that were `held-out` before MC-077 have \
+         each given their one score (MC-071), so they are `tuning` now, and \
          `held-out` means only the screenshots nothing has been run on: \
-         MC-068's 15. Each row names an entry that breaks one or the other"
+         MC-077's 10. Each row names an entry that breaks one or the other"
     );
 }
 
-// --- MC-068: the counts after the move ----------------------------------------
+// --- MC-077: the counts after the move ----------------------------------------
 
 #[test]
-fn tuning_holds_eighty_eight_marked_and_fourteen_flags_and_held_out_eleven_marked_across_three_readers()
- {
+fn tuning_holds_ninety_nine_marked_and_fourteen_flags_and_held_out_ten_marked_across_four_readers()
+{
     let entries = corpus::load();
 
-    let count = |split: Split, marked: bool| {
-        entries
-            .iter()
-            .filter(|e| e.split == split && matches!(e.expect, Expect::Rect(_)) == marked)
-            .count()
-    };
-    let measured = format!(
-        "tuning {} marked + {} flag | held-out {} marked + {} flag across {} readers",
-        count(Split::Tuning, true),
-        count(Split::Tuning, false),
-        count(Split::HeldOut, true),
-        count(Split::HeldOut, false),
-        held_out_sites(&entries).len(),
-    );
-    let recorded = format!(
-        "tuning {TUNING_MARKED} marked + {TUNING_FLAGS} flag | held-out \
-         {HELD_OUT_MARKED} marked + {MIN_HELD_OUT_FLAGS} flag across \
-         {HELD_OUT_READERS} readers"
-    );
-
-    assert_eq!(
-        measured, recorded,
-        "MC-068 AC-2, AC-4 and AC-5, as MC-072 AC-1 moves them: with MC-062's \
-         draw spent and all 25 of it `tuning`, `tuning` holds 88 marked and 14 \
-         flag entries (84 + 14 until MC-072 moved the four MC-071 read per \
-         file; 70 + 14 until MC-069 added its 14 reported screenshots; 49 + 14 \
-         until MC-068 moved 21), and `held-out` is the other 11 of MC-068's 15, \
-         all marked, no flag, across 3 readers (15 across 4 until MC-072; 21 \
-         marked across 5 until MC-068). Which entries, and with which marks, is \
-         the fresh-set and spent-set tests' job; this is the summary a person \
-         reads first"
-    );
-}
-
-// --- MC-072 AC-1: the four MC-071 read per file are tuning; the rest stay ----
-
-#[test]
-fn the_four_entries_mc071_read_per_file_are_tuning_and_the_other_eleven_stay_held_out() {
-    let entries = corpus::load();
-
-    // The fresh entries that are `tuning`, in manifest order, must be exactly
-    // the four, by name: not "four of them", which a swap would satisfy.
-    let fresh_tuning: Vec<String> = entries
-        .iter()
-        .filter(|e| e.split == Split::Tuning && FRESH_HELD_OUT.iter().any(|f| f.file == e.name()))
-        .map(|e| e.name())
-        .collect();
-
-    // Held-out by reader, so the failure says which reader lost entries.
+    // Held-out by reader, so the failure says which reader gained or lost.
     let mut by_site: BTreeMap<String, usize> = BTreeMap::new();
     for entry in held_out(&entries) {
         for site in site_tags(entry) {
@@ -2774,8 +2915,7 @@ fn the_four_entries_mc071_read_per_file_are_tuning_and_the_other_eleven_stay_hel
         }
     }
 
-    // "No file is added to or removed from fixtures/corpus/": the image files
-    // in the directory, the manifest aside.
+    // The image files in the directory, the manifest aside.
     let dir = corpus::dir();
     let files = fs::read_dir(&dir)
         .unwrap_or_else(|err| panic!("reading {}: {err}", dir.display()))
@@ -2790,9 +2930,8 @@ fn the_four_entries_mc071_read_per_file_are_tuning_and_the_other_eleven_stay_hel
             .count()
     };
     let measured = format!(
-        "fresh tuning {fresh_tuning:?} | tuning {} marked + {} flag | held-out \
-         {} marked + {} flag across {} readers {by_site:?} | corpus files {files} \
-         | manifest entries {}",
+        "tuning {} marked + {} flag | held-out {} marked + {} flag across {} readers \
+         {by_site:?} | corpus files {files} | manifest entries {}",
         count(Split::Tuning, true),
         count(Split::Tuning, false),
         count(Split::HeldOut, true),
@@ -2800,31 +2939,33 @@ fn the_four_entries_mc071_read_per_file_are_tuning_and_the_other_eleven_stay_hel
         held_out_sites(&entries).len(),
         entries.len(),
     );
-    let recorded_sites: BTreeMap<String, usize> =
-        [("rolia-scans", 4), ("toongod", 4), ("xbato", 3)]
-            .into_iter()
-            .map(|(s, n)| (s.to_owned(), n))
-            .collect();
+    let recorded_sites: BTreeMap<String, usize> = [
+        ("rolia-scans", 2),
+        ("toongod", 5),
+        ("w-network", 1),
+        ("xbato", 2),
+    ]
+    .into_iter()
+    .map(|(s, n)| (s.to_owned(), n))
+    .collect();
     let recorded = format!(
-        "fresh tuning {MC072_READ_PER_FILE:?} | tuning {TUNING_MARKED} marked + \
-         {TUNING_FLAGS} flag | held-out {HELD_OUT_MARKED} marked + \
-         {MIN_HELD_OUT_FLAGS} flag across {HELD_OUT_READERS} readers \
-         {recorded_sites:?} | corpus files {CORPUS_FILES} | manifest entries \
-         {CORPUS_FILES}"
+        "tuning {TUNING_MARKED} marked + {TUNING_FLAGS} flag | held-out \
+         {HELD_OUT_MARKED} marked + {MIN_HELD_OUT_FLAGS} flag across \
+         {HELD_OUT_READERS} readers {recorded_sites:?} | corpus files \
+         {CORPUS_FILES} | manifest entries {CORPUS_FILES}"
     );
 
     assert_eq!(
         measured, recorded,
-        "MC-072 AC-1: the four fresh entries MC-071 read per file - `n02` \
-         2025-03-07 00_05_58, `n06` 2025-03-13 12_01_01, `n05` 2025-11-01 \
-         12_34_31 and `n13` Screenshot (2507) - are `tuning` (the user, \
-         2026-10-02: \"all recommended\"), and no other fresh entry is: the \
-         other 11 stay `held-out`. So `tuning` holds 88 marked and 14 flag \
-         entries (84 + 14 until MC-072 moved four), and `held-out` 11 marked \
-         and 0 flag across 3 readers - `toongod` 4, `rolia-scans` 4, `xbato` 3 \
-         (15 across 4 until MC-072). The corpus adds no file: 113 images, one \
-         manifest entry each. Their `expect` and tags are MC-068's frozen \
-         FRESH_HELD_OUT rows, checked by the fresh-set test"
+        "MC-077 AC-2, AC-4 and AC-5: with MC-068's draw spent and all 15 of it \
+         `tuning`, `tuning` holds 99 marked and 14 flag entries (88 + 14 until \
+         MC-077 moved 11; 84 + 14 until MC-072 moved four; 70 + 14 until MC-069 \
+         added 14; 49 + 14 until MC-068 moved 21), and `held-out` is MC-077's \
+         10, all marked, no flag, across 4 readers - `toongod` 5, `rolia-scans` \
+         2, `xbato` 2, `w-network` 1 (11 across 3 until MC-077). The corpus \
+         holds 123 images, one manifest entry each (113 until MC-077 added its \
+         10). Which entries, and with which marks, is the fresh-set and \
+         spent-set tests' job; this is the summary a person reads first"
     );
 }
 
