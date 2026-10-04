@@ -470,7 +470,22 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// MC-079's RED on a scratch copy with the move applied - not chosen; the same
 /// row `tests/corpus_viewport_stage.rs` holds. It equals MC-078's frozen `T`
 /// and `B` for `n05`, 167 / 1400. Not an original either.
-const STAGE_MEASURED: [(&str, u32, u32); 77] = [
+///
+/// **MC-081 adds four of its seven** Eleceed screenshots, in manifest order
+/// between `n13` and MC-077's `n05`: `e01` (`2025-03-16 22_56_00.png`) and
+/// `e04` (`22_48_01`) 121..1259, `e06` (`22_51_49`) 179..1259 and `e07`
+/// (`22_54_27`) 173..1259. Same provenance as MC-068's: what
+/// `viewport::locate` returns beside the pipeline's page column, read out of
+/// one run on `ebdedd7` (release) in MC-081's RED on a scratch copy with the
+/// seven added - not chosen; the same rows `tests/corpus_viewport_stage.rs`
+/// holds. **These are rows of the wrong window**: the page column is the
+/// right-hand (YouTube) window's, `1820,0 402x1400` (`1820,0 402x1440` for
+/// `e07`), and the viewport is located beside it, so the rows the crop keeps
+/// lie inside it and the row predicate here passes on a crop of the wrong
+/// window. What judges them is the known-clip lists (`KNOWN_CLIPS` here and in
+/// `tests/corpus.rs`, `corpus_accuracy.rs`, `corpus_sides.rs`). The other three
+/// are [`STAGE_DECLINED`]. Not originals either. MC-082 re-measures them.
+const STAGE_MEASURED: [(&str, u32, u32); 81] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -555,6 +570,12 @@ const STAGE_MEASURED: [(&str, u32, u32); 77] = [
     ("Screenshot (1460).png", 133, 1392),
     // MC-076: `n13` (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
+    // MC-081: four of its seven, between `n13` and MC-077's `n05` in manifest
+    // order (see the doc comment).
+    ("2025-03-16 22_56_00.png", 121, 1259),
+    ("2025-03-16 22_48_01.png", 121, 1259),
+    ("2025-03-16 22_51_49.png", 179, 1259),
+    ("2025-03-16 22_54_27.png", 173, 1259),
     // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
     ("2025-10-26 12_13_16.png", 167, 1400),
 ];
@@ -598,7 +619,26 @@ const STAGE_MEASURED: [(&str, u32, u32); 77] = [
 /// tone hugging the page the stage locates the viewport, and
 /// [`STAGE_MEASURED`] holds 133..1392, MC-071's frozen `T` and `B`. The list
 /// is empty, and stays exact.
-const STAGE_DECLINED: [&str; 0] = [];
+///
+/// **MC-081 adds three of its seven** Eleceed screenshots (its AC-4), in
+/// manifest order: `e02` (`2025-03-07 00_20_37.png`, page column
+/// `1936,0 609x1440`, the right-hand window), `e03` (`2025-03-07
+/// 01_02_31.png`, `727,0 483x1440`, the manhwa's window less 117 columns of
+/// art) and `e05` (`2025-03-16 22_51_37.png`, `1820,0 402x1400`, the right-hand
+/// window). Beside each `locate` returns `None`, measured on `ebdedd7`
+/// (release) in MC-081's RED on a scratch copy with the seven added; their
+/// crops keep rows 0..1440 (`e05` 0..1400). With no viewport rows this file's
+/// row predicate cannot judge them: `e03`'s kept bookmarks bar and taskbar,
+/// the half of the user's report about it that is not the column clip, are
+/// judged by **no** `tuning` suite, as MC-075 found for `n06` (MC-081
+/// `## Notes`). All three are held by `tests/corpus_tuning_crops_unmoved.rs`
+/// and by [`KNOWN_CLIPS`]. Not originals either. MC-082 and MC-083 take them
+/// off.
+const STAGE_DECLINED: [&str; 3] = [
+    "2025-03-07 00_20_37.png",
+    "2025-03-07 01_02_31.png",
+    "2025-03-16 22_51_37.png",
+];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
@@ -656,7 +696,52 @@ const STAGE_DECLINED: [&str; 0] = [];
 /// MC-080: the user re-marked that `n05` to `974,167 599x1233` (*"Box starts
 /// at 974"*, 2026-10-04), which its margin-0 crop equals and its margin-3
 /// crop contains. It still does not belong here; nothing on this list changes.
-const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), in
+/// manifest order: at margin 3, where all four sides count, every one of them
+/// clips its mark - six are cropped to the right-hand (YouTube) window, and
+/// `e03` starts at column 724 against a mark that starts at 610. **Measured,
+/// not chosen**: one run of `process_file` on `ebdedd7` (release) in MC-081's
+/// RED, on a scratch copy with the seven added. Four of them (`e01`, `e04`,
+/// `e06`, `e07`) clip the mark's rows at margin 0 too. MC-082 and MC-083 take
+/// them off.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 7] = [
+    (
+        "2025-03-16 22_56_00.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e01
+    (
+        "2025-03-07 00_20_37.png",
+        [1933, 0, 615, 1440],
+        [1936, 0, 609, 1440],
+    ), // e02
+    (
+        "2025-03-07 01_02_31.png",
+        [724, 0, 489, 1440],
+        [727, 0, 483, 1440],
+    ), // e03
+    (
+        "2025-03-16 22_48_01.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e04
+    (
+        "2025-03-16 22_51_37.png",
+        [1817, 0, 408, 1403],
+        [1820, 0, 402, 1400],
+    ), // e05
+    (
+        "2025-03-16 22_51_49.png",
+        [1817, 179, 408, 1080],
+        [1820, 179, 402, 1080],
+    ), // e06
+    (
+        "2025-03-16 22_54_27.png",
+        [1817, 173, 408, 1086],
+        [1820, 173, 402, 1086],
+    ), // e07
+];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped at either margin -
@@ -962,11 +1047,12 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all ninety-six: section 4's nineteen, MC-053's three, \
+        "the control must see all one hundred: section 4's nineteen, MC-053's three, \
          MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
          off STAGE_DECLINED), MC-068's 21, MC-069's 14, all four of MC-072's \
          (MC-074 took n02, MC-075 n06 and MC-076 n13 off STAGE_DECLINED), \
-         MC-077's 11 and MC-079's one"
+         MC-077's 11, MC-079's one and four of MC-081's seven (the other three \
+         are STAGE_DECLINED)"
     );
     assert_eq!(
         not_cropped,
@@ -1336,13 +1422,13 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        100,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 100 marked tuning entries \
+        107,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 107 marked tuning entries \
          (23 until MC-053 moved three, 26 until MC-056 moved three more, 29 until \
          MC-062 moved the 16 marked among the 23 spent held-out entries, 45 until \
          MC-064 moved four, 49 until MC-068 moved 21, 70 until MC-069 added 14, 84 \
          until MC-072 moved four, 88 until MC-077 moved 11, 99 until MC-079 moved \
-         one)"
+         one, 100 until MC-081 added seven)"
     );
     // MC-064: the known clips, each at its pinned crop at both margins.
     let known_want: Vec<(String, u32, Option<Rect>)> = both_margins()
@@ -1356,14 +1442,14 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
         .collect();
     assert_eq!(
         known_got, known_want,
-        "MC-064, MC-072: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02) must be a \
+        "MC-064, MC-072, MC-081: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02, MC-081 AC-4) must be a \
          marked tuning entry still cropped to exactly its pin at both margins - if a fix \
          moves one, take it off the list and let this test judge it. `(file, margin_px, \
          crop)`, `left` measured"
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 100 marked tuning entries at \
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 107 marked tuning entries at \
          both margins (top and bottom only at margin 0), besides the known clips \
          (KNOWN_CLIPS). {} clip:\n{}",
         clips.len(),

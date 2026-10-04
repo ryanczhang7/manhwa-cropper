@@ -210,7 +210,17 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// column (`974,40 599x1400`) on `6343029` (release), read out of one run in
 /// MC-079's RED on a scratch copy with the move applied - not chosen:
 /// 167..1400.
-const STAGE_MEASURED: [(&str, u32, u32); 79] = [
+///
+/// **MC-081 adds four of its seven** Eleceed screenshots, in manifest order
+/// between `n13` and MC-077's `n05`: `e01` (`2025-03-16 22_56_00.png`) and
+/// `e04` (`22_48_01`) 121..1259, `e06` (`22_51_49`) 179..1259 and `e07`
+/// (`22_54_27`) 173..1259. Section 4 never saw them either. Same provenance
+/// as MC-068's: what `locate` returns beside the page column on `ebdedd7`
+/// (release), read out of one run in MC-081's RED on a scratch copy with the
+/// seven added - not chosen. The page column is the right-hand (YouTube)
+/// window's (`1820,0 402x1400`; `1820,0 402x1440` for `e07`), so these are
+/// that window's rows, not the reader's. MC-082 re-measures them.
+const STAGE_MEASURED: [(&str, u32, u32); 83] = [
     // MC-076: the two WebPs, first in manifest order (see the doc comment).
     ("2025-08-05 00_11_13.webp", 115, 1400),
     ("2025-08-05 00_11_27.webp", 115, 1400),
@@ -301,6 +311,12 @@ const STAGE_MEASURED: [(&str, u32, u32); 79] = [
     ("Screenshot (1460).png", 133, 1392),
     // MC-076: `n13` (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
+    // MC-081: four of its seven, between `n13` and MC-077's `n05` in manifest
+    // order (see the doc comment).
+    ("2025-03-16 22_56_00.png", 121, 1259),
+    ("2025-03-16 22_48_01.png", 121, 1259),
+    ("2025-03-16 22_51_49.png", 179, 1259),
+    ("2025-03-16 22_54_27.png", 173, 1259),
     // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
     ("2025-10-26 12_13_16.png", 167, 1400),
 ];
@@ -338,7 +354,19 @@ const STAGE_MEASURED: [(&str, u32, u32); 79] = [
 /// tone hugging the page (share 0.889) the stage locates the viewport, and
 /// [`STAGE_MEASURED`] holds 133..1392, MC-071's frozen `T` and `B`. The list
 /// is empty, and stays exact.
-const STAGE_DECLINED: [&str; 0] = [];
+///
+/// **MC-081 adds three of its seven** Eleceed screenshots, in manifest order:
+/// `e02` (`2025-03-07 00_20_37.png`, page column `1936,0 609x1440`), `e03`
+/// (`2025-03-07 01_02_31.png`, `727,0 483x1440`) and `e05`
+/// (`2025-03-16 22_51_37.png`, `1820,0 402x1400`). Beside each, `locate`
+/// returns `None`, measured on `ebdedd7` (release) in MC-081's RED on a
+/// scratch copy with the seven added. Section 4 never saw them, so they are
+/// not [`DECLINES`] either. MC-082 and MC-083 take them off.
+const STAGE_DECLINED: [&str; 3] = [
+    "2025-03-07 00_20_37.png",
+    "2025-03-07 01_02_31.png",
+    "2025-03-16 22_51_37.png",
+];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
@@ -469,7 +497,7 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
         "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
-         21, MC-069's 14, MC-072's four, MC-077's 11 and MC-079's one must be marked tuning entries, \
+         21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one and four of MC-081's seven must be marked tuning entries, \
          reached here in manifest order"
     );
     assert_eq!(

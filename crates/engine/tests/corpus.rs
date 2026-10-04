@@ -369,7 +369,29 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// these tests judge it like every other entry. Its pin was
 /// `[974, 167, 599, 1233]`. The list is empty, and stays exact in both
 /// directions: no known clip is left.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), in manifest
+/// order. In each, two browser windows sit side by side, the `toongod` reader
+/// on the left and YouTube on the right. Six (`e01`, `e02`, `e04`..`e07`) are
+/// cropped to the right-hand window, columns 1820.. or 1936.., nowhere near
+/// the marked page. `e03` (`2025-03-07 01_02_31.png`) is cropped to the
+/// manhwa's window at full height, keeping the bookmarks bar and taskbar, and
+/// starting at column 727 against a page that starts at 610, so it cuts 117
+/// columns of art off the left. **Measured, not chosen**: one run of
+/// `process_file` on `ebdedd7` (release, `Tuning::default()`, margin_px 0) in
+/// MC-081's RED, on a scratch copy with the seven files and entries added;
+/// they equal this suite's own table and the crops the Lead PO measured on
+/// `main` (MC-081 AC-4). MC-082 (the wrong window) and MC-083 (`e03`'s rows
+/// and left edge) fix them, and each takes its own entries off.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 7] = [
+    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01, right window
+    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02, right window
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03, 117 columns cut
+    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04, right window
+    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05, right window
+    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06, right window
+    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07, right window
+];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {
@@ -1184,7 +1206,7 @@ fn no_crop_clips_a_marked_page() {
     let moved = known_clips_moved(&got_all);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
+        "MC-064, MC-072, MC-079, MC-081: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3, MC-081 AC-4) must \
          still be cropped to exactly its pinned rect - if a fix moves one, take it \
          off the list and let this test judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -1193,7 +1215,7 @@ fn no_crop_clips_a_marked_page() {
         clips.is_empty(),
         "AC-5: a crop that does not contain the page a person marked is the worst \
          defect this product has, and opening the size gate is what could cause \
-         one. {} of {} cropped entries clip besides the {} known clips (MC-064, MC-072, MC-079); the \
+         one. {} of {} cropped entries clip besides the {} known clips (MC-064, MC-072, MC-079, MC-081); the \
          first is {}.\n\n{printed}\n\
          all clips:\n{}",
         clips.len(),
@@ -1547,7 +1569,7 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
     let moved = known_clips_moved(&got_all);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
+        "MC-064, MC-072, MC-079, MC-081: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3, MC-081 AC-4) must \
          still be cropped to exactly its pinned rect - if a fix moves one, take it \
          off the list and let this test judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -1557,7 +1579,7 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
         "AC-5: a crop whose left or right edge cuts into the page a person marked \
          is the worst defect this product has, and locating those two edges is \
          exactly what this story does. {} of {cropped} cropped entries clip \
-         besides the {} known clips (MC-064, MC-072, MC-079); the first is {}.\n\n{printed}\nall clips:\n{}",
+         besides the {} known clips (MC-064, MC-072, MC-079, MC-081); the first is {}.\n\n{printed}\nall clips:\n{}",
         clips.len(),
         KNOWN_CLIPS.len(),
         clips[0],

@@ -204,7 +204,27 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// stays exact. Equal to its mark, its crop keeps no column outside it, so it
 /// has no page-background side either and [`KNOWN_BACKGROUND_SIDES`] stays
 /// empty.
-const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), in manifest
+/// order, each the crop that does not contain its mark: six of the right-hand
+/// (YouTube) window, and `e03` (`2025-03-07 01_02_31.png`) of the manhwa's
+/// window at full height, starting at column 727 against a page that starts at
+/// 610. **Measured, not chosen**: read out of one run on `ebdedd7` (release,
+/// margin_px 0) in MC-081's RED, on a scratch copy with the seven files and
+/// entries added; they equal the crops the Lead PO measured on `main`. They are
+/// held here for [`KNOWN_CLIPS`] only: AC-1 passes with all seven read and
+/// unlisted, so [`KNOWN_BACKGROUND_SIDES`] stays empty. Four of them clip the
+/// mark's rows too, which [`KNOWN_ROW_CLIPS`] names at both margins. MC-082
+/// and MC-083 take them off.
+const MC064_CROPS: [(&str, [u32; 4]); 7] = [
+    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01
+    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03
+    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04
+    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05
+    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06
+    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07
+];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
@@ -236,7 +256,58 @@ const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 /// `974,167 599x1233` (*"Box starts at 974"*, 2026-10-04), which its crop
 /// already equals, so it no longer clips. The list is empty, and stays exact
 /// both ways: no known clip is left.
-const KNOWN_CLIPS: [&str; 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), each held
+/// to its measured pin in [`MC064_CROPS`]: six cropped to the right-hand
+/// (YouTube) window, and `e03` cut 117 columns short on the left. MC-082 and
+/// MC-083 take them off.
+const KNOWN_CLIPS: [&str; 7] = [
+    "2025-03-16 22_56_00.png",
+    "2025-03-07 00_20_37.png",
+    "2025-03-07 01_02_31.png",
+    "2025-03-16 22_48_01.png",
+    "2025-03-16 22_51_37.png",
+    "2025-03-16 22_51_49.png",
+    "2025-03-16 22_54_27.png",
+];
+
+/// MC-081 AC-4: AC-4's known row clips here,
+/// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)`, in
+/// manifest order. Four of MC-081's seven Eleceed screenshots are cropped to
+/// the right-hand (YouTube) window, where the viewport stage, handed that
+/// window's column, locates rows that end at 1259, above the marked page's
+/// bottom row 1391: `e01` and `e04` 121..1259, `e06` 179..1259, `e07`
+/// 173..1259 - so at margin 0 the crop's rows do not contain the mark's
+/// 115..1392. The other three (`e02`, `e03`, `e05`) keep rows 0..1440 or
+/// 0..1400 there, which do contain the mark's rows, so they are not here.
+/// **Measured, not chosen**: `detect`'s rect at margins 3 and 0, read out of
+/// one run on `ebdedd7` (release) in MC-081's RED, on a scratch copy with the
+/// seven files and entries added; they equal `process_file`'s crops there.
+/// **Exact in both directions**: AC-4 fails if any other entry's rows do not
+/// contain its mark, if a listed entry's rows come to contain it, or if a
+/// listed entry's rect is not its pin at either margin. MC-082 takes them off.
+const KNOWN_ROW_CLIPS: [(&str, [u32; 4], [u32; 4]); 4] = [
+    (
+        "2025-03-16 22_56_00.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e01
+    (
+        "2025-03-16 22_48_01.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e04
+    (
+        "2025-03-16 22_51_49.png",
+        [1817, 179, 408, 1080],
+        [1820, 179, 402, 1080],
+    ), // e06
+    (
+        "2025-03-16 22_54_27.png",
+        [1817, 173, 408, 1086],
+        [1820, 173, 402, 1086],
+    ), // e07
+];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
@@ -657,7 +728,7 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
     let moved = mc064_crops_moved(&got_all, &KNOWN_CLIPS);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
+        "MC-064, MC-072, MC-079, MC-081: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3, MC-081 AC-4) must \
          still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, take \
          it off the list and let AC-2 judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -666,7 +737,7 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
         clips.is_empty(),
         "AC-2: a crop that cuts into the page a person marked is the worst defect \
          this product has, and with margin_px {} nothing but the locator stands \
-         between the art and the cut. {} of {cropped_count} clip besides MC-064's, MC-072's and MC-079's \
+         between the art and the cut. {} of {cropped_count} clip besides MC-064's, MC-072's, MC-079's and MC-081's \
          known clips (KNOWN_CLIPS); the first is {}.\n\n\
          All:\n{}\n\n{printed}",
         t.margin_px,
@@ -708,9 +779,21 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
 /// fails if either side stops being reached, and fails if any other side is
 /// reached in full - which on this corpus means the stage declined, or cut
 /// nothing, where it should have cut. `(file, side)` in manifest order.
-const MARGIN_REACHED_SIDES: [(&str, &str); 2] = [
+///
+/// **MC-081 adds one** (its AC-4): the bottom of `e05`,
+/// `2025-03-16 22_51_37.png`, one of its seven Eleceed screenshots. Its crop is
+/// the right-hand (YouTube) window's column, rows 0..1400, and beside that
+/// column the viewport stage declines, so the margin grows the bottom by 3
+/// (1403 at margin 3). It is exactly that: the stage declining where it should
+/// have cut, beside the wrong window. **Measured, not chosen**: this test's
+/// own table on `ebdedd7` (release) in MC-081's RED, on a scratch copy with the
+/// seven added (`column 0..1400 viewport None cut -- m3 (0, 1403) m0 (0,
+/// 1400)`). `e02` and `e03`, where the stage declines too, have columns 0..1440,
+/// the whole height, so no side has room. MC-082 takes `e05` off.
+const MARGIN_REACHED_SIDES: [(&str, &str); 3] = [
     ("Screenshot (3605).png", "bottom"),
     ("Screenshot (3606).png", "bottom"),
+    ("2025-03-16 22_51_37.png", "bottom"), // MC-081's e05
 ];
 
 /// The page column `detect` locates before the viewport stage and before the
@@ -813,6 +896,9 @@ impl RowEdges {
 /// more (or less) than the change fails, as does one that grows a cut side
 /// past the viewport. The margin 0 leg also checks the premise: the stage's
 /// cut, read here, is the one the pipeline made.
+///
+/// MC-081: the mark's rows are excused only for [`KNOWN_ROW_CLIPS`], each held
+/// to its rect at margins 3 and 0, exact in both directions.
 #[test]
 #[ignore = "integration: decodes the whole corpus"]
 fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
@@ -829,6 +915,7 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
     let mut wrong = Vec::new();
     let mut cut = 0usize;
     let mut reached: Vec<(String, &str)> = Vec::new();
+    let mut known_row_clips_seen: Vec<String> = Vec::new();
 
     for (entry, mark) in marked() {
         let img = luma(&entry.path);
@@ -875,7 +962,39 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
         }
         let (top, bottom) = at(&t);
         let contains_rows = top <= mark.y && bottom >= mark.y + mark.h;
-        if !contains_rows {
+        // MC-081: a known row clip is excused only at exactly its pins, and
+        // only while it still clips.
+        let rect_at = |tuning: &Tuning| {
+            let r = detect(&img, tuning)
+                .unwrap_or_else(|| panic!("{} is not a uniform image", entry.name()))
+                .rect;
+            [r.x, r.y, r.w, r.h]
+        };
+        if let Some(&(_, m3, m0)) = KNOWN_ROW_CLIPS
+            .iter()
+            .find(|(file, _, _)| *file == entry.name())
+        {
+            known_row_clips_seen.push(entry.name());
+            let got = (rect_at(&before), rect_at(&bare));
+            if contains_rows {
+                ok = false;
+                wrong.push(format!(
+                    "{}: a known row clip (KNOWN_ROW_CLIPS) whose rows {top}..{bottom} now \
+                     contain the mark's {}..{} - take it off the list",
+                    entry.name(),
+                    mark.y,
+                    mark.y + mark.h
+                ));
+            } else if got != (m3, m0) {
+                ok = false;
+                wrong.push(format!(
+                    "{}: a known row clip (KNOWN_ROW_CLIPS) at margins \
+                     {MARGIN_BEFORE_MC049} and 0 is {got:?}, pinned {:?}",
+                    entry.name(),
+                    (m3, m0)
+                ));
+            }
+        } else if !contains_rows {
             ok = false;
             wrong.push(format!(
                 "{}: at margin {} rows {top}..{bottom} do not contain the mark's {}..{}",
@@ -899,6 +1018,14 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
             if ok { "ok" } else { "MOVED" }
         ));
     }
+    for (file, _, _) in KNOWN_ROW_CLIPS {
+        if !known_row_clips_seen.iter().any(|seen| seen == file) {
+            wrong.push(format!(
+                "{file}: a known row clip (KNOWN_ROW_CLIPS) that is not a marked tuning \
+                 entry here"
+            ));
+        }
+    }
 
     let printed = table(
         &format!(
@@ -913,7 +1040,8 @@ fn the_top_and_bottom_edges_move_by_exactly_the_margin_change() {
         wrong.is_empty(),
         "AC-4: on each side the rows may move by the change in margin_px, clamped at \
          the image edge or at the viewport's edge where the viewport stage cut that \
-         side, and nothing else, and the crop must contain the mark. {} failures:\n{}\n\n{printed}",
+         side, and nothing else, and the crop must contain the mark - besides \
+         MC-081's KNOWN_ROW_CLIPS, each held to its pins. {} failures:\n{}\n\n{printed}",
         wrong.len(),
         wrong.join("\n")
     );
