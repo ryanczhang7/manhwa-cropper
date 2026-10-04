@@ -652,6 +652,10 @@ const STAGE_DECLINED: [&str; 0] = [];
 /// Measured on `6343029` (release) in MC-079's RED, on a scratch copy with the
 /// move applied: this test passes with it read and unlisted, so naming it
 /// would be an exception nothing needs. The list stays empty.
+///
+/// MC-080: the user re-marked that `n05` to `974,167 599x1233` (*"Box starts
+/// at 974"*, 2026-10-04), which its margin-0 crop equals and its margin-3
+/// crop contains. It still does not belong here; nothing on this list changes.
 const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question

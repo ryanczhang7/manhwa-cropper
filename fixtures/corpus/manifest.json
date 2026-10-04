@@ -468,7 +468,7 @@
       "tags": ["dark-theme", "white-gutter", "png", "site:xbato"],
       "split": "held-out" },
     { "file": "2025-10-26 12_13_16.png",
-      "expect": { "x": 973, "y": 167, "w": 600, "h": 1233 },
+      "expect": { "x": 974, "y": 167, "w": 599, "h": 1233 },
       "tags": ["dark-theme", "white-gutter", "png", "site:toongod"],
       "split": "tuning" },
     { "file": "2025-03-18 23_33_50.png",

@@ -360,7 +360,16 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// only its `split` value changed. It equals MC-078's recorded crop: columns
 /// 974..1573, rows 167..1400 (end exclusive). MC-080 fixes it or re-marks it,
 /// and takes it off.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [("2025-10-26 12_13_16.png", [974, 167, 599, 1233])];
+///
+/// MC-080 took `n05` (`2025-10-26 12_13_16.png`) off (its AC-2): the user
+/// re-marked it, ruling on 2026-10-04 *"Box starts at 974"* - column 973 is
+/// the dark seam beside the art, as on MC-073's `2025-11-01 12_34_31.png`,
+/// `Screenshot (3605).png` and `2025-10-20 15_37_25.png`, not art. Its mark
+/// is `974,167 599x1233` now, which its crop at margin 0 already equals, so
+/// these tests judge it like every other entry. Its pin was
+/// `[974, 167, 599, 1233]`. The list is empty, and stays exact in both
+/// directions: no known clip is left.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {
