@@ -461,7 +461,16 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// MC-077's RED on a scratch copy with the move applied - the same rows
 /// `tests/corpus_viewport_stage.rs` holds. The stage locates a viewport on all
 /// 11. Not originals either.
-const STAGE_MEASURED: [(&str, u32, u32); 76] = [
+///
+/// **MC-079 adds one**: `n05` of MC-077's fresh draw,
+/// `2025-10-26 12_13_16.png`, the one entry MC-078 read per file, moved to
+/// `tuning` (MC-079 AC-1), last in manifest order: 167..1400. Same provenance
+/// as MC-068's: what `viewport::locate` returns beside the pipeline's page
+/// column (`974,40 599x1400`), read out of one run on `6343029` (release) in
+/// MC-079's RED on a scratch copy with the move applied - not chosen; the same
+/// row `tests/corpus_viewport_stage.rs` holds. It equals MC-078's frozen `T`
+/// and `B` for `n05`, 167 / 1400. Not an original either.
+const STAGE_MEASURED: [(&str, u32, u32); 77] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -544,8 +553,10 @@ const STAGE_MEASURED: [(&str, u32, u32); 76] = [
     // MC-077: the last two of its 11, between `n05` and `n13` in manifest order.
     ("2025-11-20 23_55_15.png", 167, 1400),
     ("Screenshot (1460).png", 133, 1392),
-    // MC-076: `n13`, last in manifest order (see the doc comment).
+    // MC-076: `n13` (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
+    // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
+    ("2025-10-26 12_13_16.png", 167, 1400),
 ];
 
 /// MC-064: the marked `tuning` entry on which `viewport::locate`, handed the
@@ -632,6 +643,15 @@ const STAGE_DECLINED: [&str; 0] = [];
 /// 115..1399, and this test judges it like every other entry. Its pins were
 /// `[700, 0, 404, 1440]` (margin 3) and `[703, 0, 398, 1440]` (margin 0). The
 /// list is empty, and stays exact in both directions.
+///
+/// MC-079: `2025-10-26 12_13_16.png` (MC-077's `n05`), the one entry MC-078
+/// read per file, is **not** here, as MC-072's `n05` was not: its margin-3
+/// crop `971,167 605x1233` contains its mark `973,167 600x1233` (columns
+/// 971..1576 against 973..1573), and at margin 0 its one-column clip is on a
+/// side, which this test does not count - its rows, 167..1400, are the mark's.
+/// Measured on `6343029` (release) in MC-079's RED, on a scratch copy with the
+/// move applied: this test passes with it read and unlisted, so naming it
+/// would be an exception nothing needs. The list stays empty.
 const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
@@ -938,11 +958,11 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all ninety-five: section 4's nineteen, MC-053's three, \
+        "the control must see all ninety-six: section 4's nineteen, MC-053's three, \
          MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
          off STAGE_DECLINED), MC-068's 21, MC-069's 14, all four of MC-072's \
-         (MC-074 took n02, MC-075 n06 and MC-076 n13 off STAGE_DECLINED) and \
-         MC-077's 11"
+         (MC-074 took n02, MC-075 n06 and MC-076 n13 off STAGE_DECLINED), \
+         MC-077's 11 and MC-079's one"
     );
     assert_eq!(
         not_cropped,
@@ -1312,12 +1332,13 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     // exactly the three, on their sides.
     assert_eq!(
         entries.len(),
-        99,
-        "MC-052 AC-4 and MC-053 AC-4 are over the 99 marked tuning entries \
+        100,
+        "MC-052 AC-4 and MC-053 AC-4 are over the 100 marked tuning entries \
          (23 until MC-053 moved three, 26 until MC-056 moved three more, 29 until \
          MC-062 moved the 16 marked among the 23 spent held-out entries, 45 until \
          MC-064 moved four, 49 until MC-068 moved 21, 70 until MC-069 added 14, 84 \
-         until MC-072 moved four, 88 until MC-077 moved 11)"
+         until MC-072 moved four, 88 until MC-077 moved 11, 99 until MC-079 moved \
+         one)"
     );
     // MC-064: the known clips, each at its pinned crop at both margins.
     let known_want: Vec<(String, u32, Option<Rect>)> = both_margins()
@@ -1338,7 +1359,7 @@ fn no_marked_tuning_crop_clips_its_mark_at_either_margin() {
     );
     assert!(
         clips.is_empty(),
-        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 99 marked tuning entries at \
+        "MC-052 AC-4 / MC-053 AC-4: 0 clips over the 100 marked tuning entries at \
          both margins (top and bottom only at margin 0), besides the known clips \
          (KNOWN_CLIPS). {} clip:\n{}",
         clips.len(),

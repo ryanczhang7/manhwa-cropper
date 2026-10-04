@@ -6,10 +6,11 @@ and where the recorded numbers are less precise than they look.
 
 The corpus is 123 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 113 are `tuning` and 10 are
-`held-out`. Since MC-077 (2026-10-03), `held-out` means only the 10 fresh
-screenshots drawn blind that day (see "The third fresh held-out set: MC-077"
-below). Every earlier held-out entry is spent and `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
+`"flag"` for a screenshot that should be left alone. 114 are `tuning` and 9 are
+`held-out`. Since MC-079 (2026-10-04), `held-out` means only 9 of the 10 fresh
+screenshots drawn blind by MC-077 (see "The third fresh held-out set: MC-077"
+below); the tenth, read per file by MC-078, is `tuning`. Every earlier
+held-out entry is spent and `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
 tuning / held-out split" below, which is the section to
 read before using any of them for anything. It is the oracle for every
@@ -1136,6 +1137,33 @@ over the 10 is a re-score. The score speaks for crops on four known readers,
 mid-chapter, dark pages. The set holds no unseen reader, no screenshot that
 should be left alone, no light page and no `demonicrevolution` page, so it
 says nothing about any of those; with 10 entries each miss is 10 points.
+
+**Moved by MC-079 (2026-10-04).** The one entry read per file,
+`2025-10-26 12_13_16.png` (`n05`, `toongod`, mark `973,167 600x1233`), moves
+to `tuning`. Only its `split` changes; mark, tags and bytes are unchanged and
+no file is added. **New counts:** tuning 114 (100 marked + 14 flag), held-out
+9 (9 marked + 0 flag) across 4 readers (`toongod` 4, `rolia-scans` 2,
+`xbato` 2, `w-network` 1).
+- **Floors:** `MIN_HELD_OUT_MARKED` 10 -> **9**; `MIN_HELD_OUT_SITES` stays
+  **4**; `MIN_HELD_OUT_FLAGS` 0 and `MIN_UNSEEN_SITES` 0 stand. The user's
+  answer, asked in plain words with the note that the 9 left are spent and
+  the next fresh draw sets the floors again: **"9 boxes, 4 sites"**.
+- **Known exception, exact in both directions,** until MC-080 lands: `n05`
+  clips by one column on the left, cropped to `974,167 599x1233` at margin 0
+  (columns 974..1573, rows 167..1400, end exclusive; equal to MC-078's
+  recorded crop) and `971,167 605x1233` at margin 3. It is in `KNOWN_CLIPS`
+  in `corpus.rs`, `corpus_accuracy.rs` and `corpus_sides.rs`, and in
+  `MC064_CROPS` in `corpus_accuracy.rs` and `corpus_sides.rs`. It is **not**
+  in `corpus_viewport.rs`'s `KNOWN_CLIPS`: its margin-3 crop contains the
+  mark, and at margin 0 that test counts rows, which hold. No background-edge
+  list is needed: its mark's left edge, column 973, reads as art at share
+  0.922 and its right edge, column 1572, at 0.281, both under the 0.95 that
+  reads as page background. 0.922 is close to the line, and column 973 is
+  the one the crop drops; MC-080 reads it first. `KNOWN_MISSES` is not
+  needed either: with `n05` a miss, the accuracy bar reads 108 of 111.
+- **The viewport stage locates 167..1400 on `n05`** (`STAGE_MEASURED`), and
+  its crops at both margins join `MAIN_CROPS`; no other row moved.
+- Fix: MC-080 (`n05`'s cut, or its mark).
 
 ## What the tests can and cannot say
 
