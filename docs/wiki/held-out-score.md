@@ -5,11 +5,13 @@ newest score comes first. MC-051's and MC-063's scores are of the **same
 detector**: nothing changed under `crates/core`, `crates/engine/src`,
 `crates/app/src` or `Cargo.lock` between `d2876f5` and `1438b2b`. **MC-071's
 is not.** Its detector is `1438b2b`'s plus the five fixes MC-065 to MC-070.
-All three are on different screenshots, and they sit side by side. None
-replaces another.
+**Nor is MC-078's.** Its detector is `4539e12`'s plus the three fixes MC-074
+to MC-076. All four are on different screenshots, and they sit side by side.
+None replaces another.
 
 | | set | clips | meets the bar | verdict |
 |---|---|---|---|---|
+| [MC-078](../backlog/stories/MC-078.md), 2026-10-04, `c108bd1` | the third fresh 10 (MC-077) | **1 of 10** | **9 of 10**, against 9 | **not met: a clip** |
 | [MC-071](../backlog/stories/MC-071.md), 2026-10-02, `4539e12` | the second fresh 15 (MC-068) | **2 of 15** | **11 of 15**, against 14 | **not met: a clip** |
 | [MC-063](../backlog/stories/MC-063.md), 2026-09-30, `1438b2b` | the fresh 25 (MC-062) | **3 of 25** | **21 of 25**, against 23 | **not met: a clip** |
 | [MC-051](../backlog/stories/MC-051.md), 2026-09-29, `d2876f5` | the first 19 marked, spent | 0 of 19 | 16 of 19, against 18 | not met |
@@ -20,10 +22,112 @@ says nothing about either. MC-051's unseen-reader result (`manhwaclan` 2 of 2
 met, `xbato` 0 of 1) is still the only unseen-reader evidence on record, and
 `xbato` is no longer unseen.
 
+**The MC-078 score speaks for crops on four known readers, mid-chapter, dark
+pages.** The set holds no unseen reader, no screenshot that should be left
+alone, no light page and no `demonicrevolution` page, so it says nothing
+about any of those. With 10 entries, each miss is 10 points.
+
 **The MC-071 score speaks for crops on four known readers, mid-chapter, dark
 pages.** The set holds no unseen reader, no screenshot that should be left
 alone, no light page and no `w-network` page, so it says nothing about any of
 those.
+
+## MC-078, 2026-10-04: the third fresh held-out set
+
+[MC-078](../backlog/stories/MC-078.md) carries the working, with every command
+and its output. This section carries the result and what it spends.
+
+### The verdict
+
+**A clip: 1 of 10.** It is a single column. Apart from it, the crop meets the
+bar on 9 of 10, which is exactly the 9 required, with no browser, OS or
+reader furniture kept on any of the 10. This is MC-078 AC-4 (c). Zero clips
+is absolute, so the clip decides the verdict. The user was asked before
+anything was acted on, as MC-078's Open question 3 required, and answered
+"Record as not met".
+
+| | result | bar |
+|---|---|---|
+| clips | **1 of 10** (row 0, column 1) | 0 (absolute) |
+| meets the bar (contains the mark, and no furniture) | **9 of 10** | at least 9 of 10 |
+| reader furniture absent | 10 of 10 | — |
+| browser and OS furniture absent (the scrollbar counts as browser) | 10 of 10 | — |
+| marked entries answered `Flagged` | 0 of 10 | — |
+| viewport located / declined | 10 / 0 | — |
+
+Per reader (entries, zero-clip, furniture-free, meets, viewport located):
+`rolia-scans` 2 2 2 2 2; `toongod` 5 4 5 4 5; `w-network` 1 1 1 1 1;
+`xbato` 2 2 2 2 2.
+
+**What it shows beside MC-071, and what it cannot.** On these 10, no crop
+kept a browser bar, scrollbar or taskbar and the viewport was found on all
+10, where MC-071's 15 had 3 of 15 with browser furniture and 3 declines.
+That is one set of 10 at one commit, not a comparison on the same
+screenshots: it does not show the fixes caused it.
+
+### The run
+
+- **Scored commit:** `c108bd1` on the story branch. Its `crates/`,
+  `Cargo.toml` and `Cargo.lock` are identical to `main` after MC-077
+  (`d802f2c`).
+- **Harness:** a standalone crate outside the repository (this session's
+  scratchpad, `mc078/src/main.rs`, sha256 `4e8aecb4…6d27`, unchanged before
+  and after the run), built against the scored commit. It calls
+  `process_file` at `Tuning::default()` (margin 0, the app's own setting),
+  release build, and asks MC-048's viewport stage directly.
+- **Before the run:**
+  - The same source, built against `4539e12`, reproduced MC-071's aggregate
+    and its four failing lines exactly on MC-068's 15 spent entries. Scored
+    against `n05`'s corrected mark it reads 1 clip, so that check can fail.
+  - The controls fire on 10 of 10: a whole-image crop shows furniture, and a
+    mark shrunk by 10 rows clips.
+  - No suite under `crates/` crops a held-out entry.
+- **Once:** run at 2026-10-04T02:21:10Z. A second invocation is refused.
+- **Output:** `mc078-out/heldout-run.txt`, sha256 `49ca0297…8c52`, quoted
+  verbatim in MC-078 `## Notes`.
+
+### The oracle
+
+There is no site header on any of the 10, so `T` is the browser-bar end, the
+mark's top. Eight marks end on row 1400, so `B` is the mark's bottom. For the
+two that stop at 1392 (`n06`, `n10`), the user ruled the bars blind on *Two
+Fresh Screen Bars*, a page that drew no crop and no mark: the scrollbar
+starts at 1392 on both, no site footer, the taskbar at 1400. Checked against
+the marks, there are 0 conflicts. The oracle was frozen in `c108bd1` before
+the run.
+
+### The failing entry
+
+Per-file for failures only, read after the totals were written:
+
+- **`n05`** (`2025-10-26 12_13_16.png`, `toongod`). **A clip of one column.**
+  The crop is columns 974..1573 against the mark's 973..1573. Its rows are
+  exact (167..1400), and it keeps no furniture.
+
+It is the same shape as MC-071's `n05`, a one-column cut on the left of a
+`toongod` page, which MC-073 resolved as a re-mark (the column was a thin dark
+line beside the art). Whether this one is the same is not established here:
+no agent has looked at its pixels.
+
+### What it forces
+
+These are named, not filed:
+- a chore that moves `n05` to `tuning`;
+- a fix story for its one-column cut, which measures column 973 first and,
+  if it reads like MC-073's column 1006, puts a re-mark or a fix to the user.
+
+### What has been spent
+
+- **The third fresh set has been scored.** The 10 gave their one score at
+  `c108bd1`.
+- **A later run is a re-score.** Any later run over these 10 is a
+  **re-score on spent held-out**. It is labelled that way wherever it is
+  reported, and is **never** `EPIC-07`'s held-out score.
+- **The read entry is tuning.** `n05` was read per file, so it is `tuning`
+  for any later rule. Moving it in the manifest is the follow-up chore.
+- **The other 9 stay `held-out` in the manifest**, but they are spent.
+- **A later held-out score needs another fresh draw** by MC-077's procedure,
+  with a new seed, picked by the Lead PO, at most 20.
 
 ## MC-071, 2026-10-02: the second fresh held-out set
 
