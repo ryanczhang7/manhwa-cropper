@@ -349,8 +349,18 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// page (*"Box stands"*), so its crop at margin 0 is to equal its mark
 /// `643,115 533x1284` and these tests judge it like every other entry. Its
 /// pin was `[703, 0, 398, 1440]`, the panels only over the whole height. The
-/// list is empty, and stays exact in both directions: no known clip is left.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
+/// list was empty, and stayed exact in both directions: no known clip was
+/// left.
+///
+/// **MC-079 adds one** (its AC-3): `n05` of MC-077's fresh draw,
+/// `2025-10-26 12_13_16.png`, the one entry MC-078 read per file, whose crop
+/// clips its mark `973,167 600x1233` by one column on the left, moved to
+/// `tuning` by MC-079. **Measured, not chosen**: read out of this suite's own
+/// table, run on `6343029` (release) in MC-079's RED on a scratch copy with
+/// only its `split` value changed. It equals MC-078's recorded crop: columns
+/// 974..1573, rows 167..1400 (end exclusive). MC-080 fixes it or re-marks it,
+/// and takes it off.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [("2025-10-26 12_13_16.png", [974, 167, 599, 1233])];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {
@@ -1165,7 +1175,7 @@ fn no_crop_clips_a_marked_page() {
     let moved = known_clips_moved(&got_all);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02) must \
+        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
          still be cropped to exactly its pinned rect - if a fix moves one, take it \
          off the list and let this test judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -1174,7 +1184,7 @@ fn no_crop_clips_a_marked_page() {
         clips.is_empty(),
         "AC-5: a crop that does not contain the page a person marked is the worst \
          defect this product has, and opening the size gate is what could cause \
-         one. {} of {} cropped entries clip besides the {} known clips (MC-064, MC-072); the \
+         one. {} of {} cropped entries clip besides the {} known clips (MC-064, MC-072, MC-079); the \
          first is {}.\n\n{printed}\n\
          all clips:\n{}",
         clips.len(),
@@ -1528,7 +1538,7 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
     let moved = known_clips_moved(&got_all);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02) must \
+        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
          still be cropped to exactly its pinned rect - if a fix moves one, take it \
          off the list and let this test judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -1538,7 +1548,7 @@ fn no_crop_clips_a_marked_page_on_the_column_axis() {
         "AC-5: a crop whose left or right edge cuts into the page a person marked \
          is the worst defect this product has, and locating those two edges is \
          exactly what this story does. {} of {cropped} cropped entries clip \
-         besides the {} known clips (MC-064, MC-072); the first is {}.\n\n{printed}\nall clips:\n{}",
+         besides the {} known clips (MC-064, MC-072, MC-079); the first is {}.\n\n{printed}\nall clips:\n{}",
         clips.len(),
         KNOWN_CLIPS.len(),
         clips[0],

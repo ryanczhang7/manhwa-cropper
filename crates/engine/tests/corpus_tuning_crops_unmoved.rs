@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 99] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 100] = [
     // MC-076 re-pins both `2025-08-05` WebPs (its AC-2, the user's ruling of
     // 2026-10-02, "Fix all three"; MC-048 AC-3 reversed): beside a flat reader
     // panel of another tone hugging the page the viewport stage declined, and
@@ -702,6 +702,19 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 99] = [
         "Screenshot (2507).png",
         [974, 133, 606, 1259],
         [977, 133, 600, 1259],
+    ),
+    // MC-079 adds `n05` of MC-077's fresh draw, `2025-10-26 12_13_16.png`, the
+    // one entry MC-078 read per file, moved to `tuning` (MC-079 AC-1), last in
+    // manifest order. **Measured, not chosen**: `process_file`'s crop at
+    // margins 3 and 0, read out of one run on `6343029` (release) in MC-079's
+    // RED on a scratch copy with only its `split` value changed. The margin-0
+    // crop clips its mark `973,167 600x1233` by one column on the left - it is
+    // a known clip (MC-079 AC-3) - and equals MC-078's recorded crop, columns
+    // 974..1573, rows 167..1400. MC-080 re-pins it.
+    (
+        "2025-10-26 12_13_16.png",
+        [971, 167, 605, 1233],
+        [974, 167, 599, 1233],
     ),
 ];
 

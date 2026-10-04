@@ -202,7 +202,15 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// `locate` returns beside the page column on `4272252` (release), read out of
 /// one run in MC-077's RED on a scratch copy with the move applied - not
 /// chosen. The stage locates a viewport on all 11.
-const STAGE_MEASURED: [(&str, u32, u32); 78] = [
+///
+/// **MC-079 adds one**: `n05` of MC-077's fresh draw,
+/// `2025-10-26 12_13_16.png`, the one entry MC-078 read per file, moved to
+/// `tuning` (MC-079 AC-1), last in manifest order. Section 4 never saw it
+/// either. Same provenance as MC-068's: what `locate` returns beside the page
+/// column (`974,40 599x1400`) on `6343029` (release), read out of one run in
+/// MC-079's RED on a scratch copy with the move applied - not chosen:
+/// 167..1400.
+const STAGE_MEASURED: [(&str, u32, u32); 79] = [
     // MC-076: the two WebPs, first in manifest order (see the doc comment).
     ("2025-08-05 00_11_13.webp", 115, 1400),
     ("2025-08-05 00_11_27.webp", 115, 1400),
@@ -291,8 +299,10 @@ const STAGE_MEASURED: [(&str, u32, u32); 78] = [
     // MC-077: the last two of its 11, between `n05` and `n13` in manifest order.
     ("2025-11-20 23_55_15.png", 167, 1400),
     ("Screenshot (1460).png", 133, 1392),
-    // MC-076: `n13`, last in manifest order (see the doc comment).
+    // MC-076: `n13` (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
+    // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
+    ("2025-10-26 12_13_16.png", 167, 1400),
 ];
 
 /// MC-064: the marked `tuning` entry on which the stage, handed the
@@ -459,7 +469,7 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
         "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
-         21, MC-069's 14, MC-072's four and MC-077's 11 must be marked tuning entries, \
+         21, MC-069's 14, MC-072's four, MC-077's 11 and MC-079's one must be marked tuning entries, \
          reached here in manifest order"
     );
     assert_eq!(

@@ -183,7 +183,17 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// list is empty, and stays exact. Equal to its mark, its crop keeps no column
 /// outside it, so it has no page-background side either and
 /// [`KNOWN_BACKGROUND_SIDES`] stays empty.
-const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
+///
+/// **MC-079 adds one** (its AC-3): `n05` of MC-077's fresh draw,
+/// `2025-10-26 12_13_16.png`, the one entry MC-078 read per file, whose crop
+/// clips its mark `973,167 600x1233` by one column on the left. **Measured,
+/// not chosen**: read out of one run on `6343029` (release) in MC-079's RED,
+/// on a scratch copy with only its `split` value changed; it equals MC-078's
+/// recorded crop, columns 974..1573, rows 167..1400. It is held here for
+/// [`KNOWN_CLIPS`] only. Its crop keeps no column outside the mark (its right
+/// edge is the mark's), so it has no page-background side and
+/// [`KNOWN_BACKGROUND_SIDES`] stays empty.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-10-26 12_13_16.png", [974, 167, 599, 1233])];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
@@ -203,9 +213,14 @@ const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 ///
 /// MC-074 took `n02` off (its AC-1): the user ruled its flat white page paper
 /// is page (*"Box stands"*, 2026-10-02), so its crop is to equal its mark
-/// `643,115 533x1284` and it no longer clips. The list is empty, and stays
-/// exact both ways: no known clip is left.
-const KNOWN_CLIPS: [&str; 0] = [];
+/// `643,115 533x1284` and it no longer clips. The list was empty, and stayed
+/// exact both ways: no known clip was left.
+///
+/// **MC-079 adds one** (its AC-3): `n05` (`2025-10-26 12_13_16.png`), the one
+/// entry of MC-077's fresh draw MC-078 read per file, whose crop clips its
+/// mark by one column on the left, held to its measured pin in
+/// [`MC064_CROPS`]. MC-080 takes it off.
+const KNOWN_CLIPS: [&str; 1] = ["2025-10-26 12_13_16.png"];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
@@ -626,7 +641,7 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
     let moved = mc064_crops_moved(&got_all, &KNOWN_CLIPS);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072: each known clip (KNOWN_CLIPS, the user's rulings of 2026-09-30 and 2026-10-02) must \
+        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
          still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, take \
          it off the list and let AC-2 judge it:\n{}\n\n{printed}",
         moved.join("\n")
@@ -635,7 +650,7 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
         clips.is_empty(),
         "AC-2: a crop that cuts into the page a person marked is the worst defect \
          this product has, and with margin_px {} nothing but the locator stands \
-         between the art and the cut. {} of {cropped_count} clip besides MC-064's and MC-072's \
+         between the art and the cut. {} of {cropped_count} clip besides MC-064's, MC-072's and MC-079's \
          known clips (KNOWN_CLIPS); the first is {}.\n\n\
          All:\n{}\n\n{printed}",
         t.margin_px,
