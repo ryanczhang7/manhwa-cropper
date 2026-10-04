@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076, MC-077, MC-078]
 ---
 
 ## Goal
@@ -123,6 +123,25 @@ unseen reader, no screenshot that should be left alone, no light page and no
 (`n02`, `n05`, `n06`, `n13`) go to `tuning` in a follow-up chore, and each
 fix is its own story. The goal stays open. The 15 are spent, and the next
 held-out score needs another fresh draw.
+
+**The fourth held-out score, 2026-10-04 ([MC-078](../stories/MC-078.md),
+[`held-out-score.md`](../../wiki/held-out-score.md)): not met, with a
+clip.** It ran on MC-077's 10 fresh screenshots at scored commit `c108bd1`,
+whose detector has MC-074 to MC-076's three fixes:
+- **1 clip of 10**, one column on the left of `n05`, so the absolute half
+  fails;
+- **9 of 10** meet the bar, against 9: no browser, OS or reader furniture
+  kept on any of the 10, and the viewport found on all 10.
+
+It sits beside the earlier three and replaces none. **It speaks for crops on
+four known readers, mid-chapter, dark pages.** The set holds no unseen
+reader, no screenshot that should be left alone, no light page and no
+`demonicrevolution` page, so it says nothing about any of those; with 10
+entries each miss is 10 points. Had it passed, it would have been recorded
+as "meets the bar on sites it knows, at this version" with the goal kept
+open (the user, 2026-10-03). **The goal stays open.** The failure (`n05`)
+goes to `tuning` in a follow-up chore, and its fix is its own story. The 10
+are spent, and the next held-out score needs another fresh draw.
 
 ## Stories
 
@@ -439,6 +458,26 @@ only one that can start.
 
    None of these is a held-out score. Any later run over the 15 is a
    re-score on spent held-out; the next held-out score needs a fresh draw.
+
+   **A third fresh held-out set: [MC-077](../stories/MC-077.md)** —
+   *chore*, `depends_on: [MC-076]`. The user asked on 2026-10-03 for 10,
+   "and pick some from manhwa_panels". The Lead PO drew 10 blind with
+   MC-068's scripts and a new seed (mahwa panels 3, Eleceed 3, Hero Killer
+   2, Unholy Blood 2); the user marked them; MC-071's 11 spent entries
+   moved to `tuning`; the ceiling rose to 140 MiB and the floors to 10
+   marked and 4 readers on the user's answers.
+
+   **The fourth held-out score: [MC-078](../stories/MC-078.md)** — *spike*,
+   `depends_on: [MC-077]`. One run over MC-077's 10, MC-071-shaped, after
+   reproducing MC-071 exactly on its spent 15. Bar 0 clips and at least 9
+   of 10, confirmed by the user; two bottoms ruled blind.
+
+   **Result (2026-10-04): not met, with a clip.** 1 clip of 10 (`n05`,
+   `2025-10-26 12_13_16.png`, one column on the left), and 9 of 10 meet the
+   bar against 9, with no furniture kept on any of the 10. Speaks for four
+   known readers, mid-chapter, dark pages only. Named, not filed: a chore
+   moving `n05` to `tuning`, and a fix story for its one-column cut that
+   measures the column first (MC-073's precedent).
 
 ## Deliberately not in this epic
 

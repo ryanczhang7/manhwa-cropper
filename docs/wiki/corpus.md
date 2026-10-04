@@ -1126,6 +1126,17 @@ points** of accuracy, so EPIC-07's 90 % bar allows exactly one. The scored
 run is a later MC-071-shaped spike; until then the 10 must not be run as
 `held-out` by anything else.
 
+**Spent by MC-078 (2026-10-04).** The 10 gave their one score at scored
+commit `c108bd1`: **1 clip of 10, and 9 of 10 meet the bar against 9. Not
+met**, because zero clips is absolute. Read per file, after the totals were
+written: `n05` (`2025-10-26 12_13_16.png`) only, cut by one column on the
+left. It is `tuning` for any later rule, and moving it in the manifest is a
+follow-up chore. The other 9 stay `held-out` but are spent. Any later run
+over the 10 is a re-score. The score speaks for crops on four known readers,
+mid-chapter, dark pages. The set holds no unseen reader, no screenshot that
+should be left alone, no light page and no `demonicrevolution` page, so it
+says nothing about any of those; with 10 entries each miss is 10 points.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
