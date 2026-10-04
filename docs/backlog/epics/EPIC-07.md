@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076, MC-077, MC-078]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076, MC-077, MC-078, MC-079, MC-080]
 ---
 
 ## Goal
@@ -478,6 +478,19 @@ only one that can start.
    known readers, mid-chapter, dark pages only. Named, not filed: a chore
    moving `n05` to `tuning`, and a fix story for its one-column cut that
    measures the column first (MC-073's precedent).
+
+   **Filed after MC-078 (2026-10-04).**
+   - **[MC-079](../stories/MC-079.md)** — *chore*, `depends_on: [MC-078]`:
+     move `n05` (`2025-10-26 12_13_16.png`) to `tuning` (MC-072-shaped), a
+     known clip exact in both directions. Held-out drops to 9 across 4
+     readers; `MIN_HELD_OUT_MARKED` 10 to 9, `MIN_HELD_OUT_SITES` stays 4,
+     on the user's answer "9 boxes, 4 sites".
+   - **[MC-080](../stories/MC-080.md)** — *fix*, `depends_on: [MC-079]`:
+     `n05`'s one-column cut on the left. Column 973 is measured first; if it
+     reads like MC-073's seam, the user decides between a re-mark and a fix.
+
+   Neither is a held-out score. Any later run over MC-077's 10 is a
+   re-score on spent held-out; the next held-out score needs a fresh draw.
 
 ## Deliberately not in this epic
 
