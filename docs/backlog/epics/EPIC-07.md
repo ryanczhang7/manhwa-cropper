@@ -2,7 +2,7 @@
 id: EPIC-07
 title: The crop reaches the artwork on the row axis
 status: planned
-stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076, MC-077, MC-078, MC-079, MC-080]
+stories: [MC-036, MC-037, MC-038, MC-039, MC-040, MC-041, MC-042, MC-043, MC-044, MC-045, MC-046, MC-047, MC-048, MC-050, MC-051, MC-052, MC-054, MC-056, MC-059, MC-060, MC-061, MC-062, MC-063, MC-064, MC-065, MC-066, MC-067, MC-068, MC-069, MC-070, MC-071, MC-072, MC-073, MC-074, MC-075, MC-076, MC-077, MC-078, MC-079, MC-080, MC-081, MC-082, MC-083, MC-084]
 ---
 
 ## Goal
@@ -491,6 +491,29 @@ only one that can start.
 
    Neither is a held-out score. Any later run over MC-077's 10 is a
    re-score on spent held-out; the next held-out score needs a fresh draw.
+
+   **Filed from the user's Eleceed run (2026-10-04).** The user ran the app
+   on their Eleceed folder, where many screenshots show the reader on the
+   left and YouTube on the right, and sent 11 crops: 10 took the YouTube
+   window, one kept the bookmarks bar and taskbar. Rulings: **"Fix story +
+   blind draw"** and **"Raise cap to 160 MiB"**; seven distinct screenshots
+   (one of five byte-identical repeats) go to `tuning`.
+   - **[MC-081](../stories/MC-081.md)** — *chore*, `depends_on: [MC-080]`:
+     the seven join `tuning` with the user's marks (pre-marked by the Lead PO
+     from the left window's pixels, adjusted by the user), the cap rises to
+     160 MiB, and today's failures are pinned as known exceptions, exact in
+     both directions.
+   - **[MC-082](../stories/MC-082.md)** — *fix*, `depends_on: [MC-081]`:
+     the six that took the right-hand window. MC-066's shape, back; the
+     cause is measured before RED and the criteria re-cut.
+   - **[MC-083](../stories/MC-083.md)** — *fix*, `depends_on: [MC-081]`:
+     `2025-03-07 01_02_31.png`, cropped full height. Separate by symptom;
+     merges with MC-082 if the measurement shows one cause.
+   - **[MC-084](../stories/MC-084.md)** — *chore*, `depends_on: [MC-082,
+     MC-083]`: a fourth fresh held-out set, 10 drawn blind from the Eleceed
+     folder during planning (seed and script in the story). How the boxes
+     are pre-filled for marking is the user's open question. The score
+     follows as a spike, after the fixes.
 
 ## Deliberately not in this epic
 
