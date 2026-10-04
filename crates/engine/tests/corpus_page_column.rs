@@ -219,6 +219,14 @@ const MC077_ELEVEN: [&str; 11] = [
 /// both mark edges read as art - first column 973 share 0.922, last column
 /// 1572 share 0.281, under 0.95 - so no list here gains its name, and no
 /// background-edge list like [`MC072_BACKGROUND_EDGES`] is needed for it.
+///
+/// MC-080 re-marked it to `974,167 599x1233`, by the user's ruling of
+/// 2026-10-04 (*"Box starts at 974"*: column 973 is the dark seam beside the
+/// art). Its crop at margin 0 now equals the mark, and its new first column,
+/// 974, is art (share 0.161 within 10 of its own median over the mark's rows,
+/// MC-080 `## Context`), so it still joins no background-edge list here and
+/// no `RULED_ART_EDGES`. It stays on this list, which records where it came
+/// from, not an exception.
 const MC079_ONE: [&str; 1] = ["2025-10-26 12_13_16.png"];
 
 /// Whether `name` is one of the marked `tuning` entries added after the 23

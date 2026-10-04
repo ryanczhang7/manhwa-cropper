@@ -711,6 +711,9 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 100] = [
     // crop clips its mark `973,167 600x1233` by one column on the left - it is
     // a known clip (MC-079 AC-3) - and equals MC-078's recorded crop, columns
     // 974..1573, rows 167..1400. MC-080 re-pins it.
+    // MC-080 moves no crop: the user re-marked `n05` to `974,167 599x1233`
+    // ("Box starts at 974", 2026-10-04), which its margin-0 crop below
+    // already equals, so its row stands unchanged (MC-080 AC-3).
     (
         "2025-10-26 12_13_16.png",
         [971, 167, 605, 1233],

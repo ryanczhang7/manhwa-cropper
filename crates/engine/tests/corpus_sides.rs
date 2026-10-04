@@ -193,7 +193,18 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// [`KNOWN_CLIPS`] only. Its crop keeps no column outside the mark (its right
 /// edge is the mark's), so it has no page-background side and
 /// [`KNOWN_BACKGROUND_SIDES`] stays empty.
-const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-10-26 12_13_16.png", [974, 167, 599, 1233])];
+///
+/// MC-080 took `n05` (`2025-10-26 12_13_16.png`) off this list and off
+/// [`KNOWN_CLIPS`] (its AC-2): the user re-marked it, ruling on 2026-10-04
+/// *"Box starts at 974"* - column 973 is the dark seam beside the art, as on
+/// MC-073's `2025-11-01 12_34_31.png`, `Screenshot (3605).png` and
+/// `2025-10-20 15_37_25.png`. Its mark is `974,167 599x1233`, which its crop
+/// at margin 0 already equals, so AC-1 and AC-2 here judge it like every
+/// other entry. Its pin was `[974, 167, 599, 1233]`. The list is empty, and
+/// stays exact. Equal to its mark, its crop keeps no column outside it, so it
+/// has no page-background side either and [`KNOWN_BACKGROUND_SIDES`] stays
+/// empty.
+const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
@@ -220,7 +231,12 @@ const MC064_CROPS: [(&str, [u32; 4]); 1] = [("2025-10-26 12_13_16.png", [974, 16
 /// entry of MC-077's fresh draw MC-078 read per file, whose crop clips its
 /// mark by one column on the left, held to its measured pin in
 /// [`MC064_CROPS`]. MC-080 takes it off.
-const KNOWN_CLIPS: [&str; 1] = ["2025-10-26 12_13_16.png"];
+///
+/// MC-080 took `n05` off (its AC-2): the user re-marked it to
+/// `974,167 599x1233` (*"Box starts at 974"*, 2026-10-04), which its crop
+/// already equals, so it no longer clips. The list is empty, and stays exact
+/// both ways: no known clip is left.
+const KNOWN_CLIPS: [&str; 0] = [];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,

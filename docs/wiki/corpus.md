@@ -1163,7 +1163,27 @@ no file is added. **New counts:** tuning 114 (100 marked + 14 flag), held-out
   needed either: with `n05` a miss, the accuracy bar reads 108 of 111.
 - **The viewport stage locates 167..1400 on `n05`** (`STAGE_MEASURED`), and
   its crops at both margins join `MAIN_CROPS`; no other row moved.
-- Fix: MC-080 (`n05`'s cut, or its mark).
+- Fix: MC-080 (`n05`'s cut, or its mark). (`n05` is off all of these since
+  MC-080, below.)
+
+**Re-marked by MC-080 (2026-10-04): `n05` is off every list.** By the user's
+ruling *"Box starts at 974"*, `n05` (`2025-10-26 12_13_16.png`)'s mark moved
+from `973,167 600x1233` to **`974,167 599x1233`**. The crop was never moved
+and no code changed: at margin 0 it already equals the new mark, and at
+margin 3 it is `971,167 605x1233`. The question was prompted by a measurement
+of column 973. Over the central band (rows 320..1160) its median is 16, with
+range 1..24 and share 0.992 within 10 of its own median. That is a thin dark
+line between a site of exactly 11 and art of about 129, so `Margin::belongs`
+branch 1 reads it as margin. Its only bright rows, 167..256, are the white
+band at the top of the page, which also covers the art beside it. It reads
+like the seam column 1006 on MC-073's `2025-11-01 12_34_31.png` (ruled
+"Box starts at 1007"), on `Screenshot (3605).png` (box at 1007) and on
+`2025-10-20 15_37_25.png` (box at 1008). `n05` left `KNOWN_CLIPS` in
+`corpus.rs`, `corpus_accuracy.rs` and `corpus_sides.rs`, and `MC064_CROPS`
+in `corpus_accuracy.rs` and `corpus_sides.rs`. All five lists are now empty.
+Its new first column, 974, reads as art (share 0.161). It stays in
+`STAGE_MEASURED` and `MAIN_CROPS`, which are not exception lists. MC-078's
+held-out score is spent and is not re-computed under the amended mark.
 
 ## What the tests can and cannot say
 

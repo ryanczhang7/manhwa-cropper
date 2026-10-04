@@ -1813,6 +1813,10 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 ///
 /// **MC-079 moves no mark.** It adds the one fresh entry MC-078 read per file,
 /// `n05`, with the mark [`FRESH_HELD_OUT`] freezes for it.
+///
+/// **MC-080 moves one mark**, by the user's ruling of 2026-10-04, in their
+/// words *"Box starts at 974"*: `n05` (`2025-10-26 12_13_16.png`) from
+/// `973,167 600x1233` to `974,167 599x1233`, as in [`FRESH_HELD_OUT`].
 const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 100] = [
     // MC-076: the top moves down 1 row by the user's ruling of 2026-10-02:
     // row 114 is browser bar. Bottom unchanged at 1330. Was `958,114 631x1216`.
@@ -1964,7 +1968,9 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 100] = [
     // file, moved to `tuning` on 2026-10-04 with the mark it carried in
     // held-out, unchanged, read out of the manifest at `6343029` (equal to
     // FRESH_HELD_OUT's row `n05`).
-    ("2025-10-26 12_13_16.png", 973, 167, 600, 1233),
+    // MC-080 AC-1: `n05` re-marked by the user's ruling of 2026-10-04, in
+    // their words "Box starts at 974". It was `973,167 600x1233`.
+    ("2025-10-26 12_13_16.png", 974, 167, 599, 1233),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2611,6 +2617,15 @@ const MC068_DRAW: [Fresh; 15] = [
 /// The SHA-256 of each copy is checked against `## Context` when SCAFFOLD
 /// copies it (no hashing crate is in this workspace); the byte count and the
 /// header dimensions are what a test here can hold.
+///
+/// **MC-080 re-marks one row**, by the user's ruling of 2026-10-04, in their
+/// words *"Box starts at 974"*: `n05` (`2025-10-26 12_13_16.png`, `tuning`
+/// since MC-079) from `973,167 600x1233` to `974,167 599x1233`. Column 973 is
+/// the dark seam beside the art (band median 16, 1..24, share 0.992), as on
+/// MC-073's `2025-11-01 12_34_31.png`, `Screenshot (3605).png` and
+/// `2025-10-20 15_37_25.png` (MC-080 `## Context`, where the ruling is
+/// recorded). MC-078's held-out score was taken against the old mark and is
+/// not re-computed.
 const FRESH_HELD_OUT: [Fresh; 10] = [
     Fresh {
         file: "2025-10-08 13_14_05.png",
@@ -2640,10 +2655,15 @@ const FRESH_HELD_OUT: [Fresh; 10] = [
         site: "xbato",
         gap: Gap::White,
     }, // n04
+    // MC-080 AC-1: `n05` re-marked by the user's ruling of 2026-10-04, in
+    // their words "Box starts at 974" - column 973 is the dark seam beside
+    // the art, as on MC-073's `n05`, `Screenshot (3605).png` and
+    // `2025-10-20 15_37_25.png`. It was `(973, 167, 600, 1233)`; the right
+    // edge and rows are unchanged.
     Fresh {
         file: "2025-10-26 12_13_16.png",
         bytes: 1_441_939,
-        rect: (973, 167, 600, 1233),
+        rect: (974, 167, 599, 1233),
         site: "toongod",
         gap: Gap::White,
     }, // n05
@@ -2750,6 +2770,11 @@ const HELD_OUT_READERS: usize = 4;
 /// later rule, and MC-080 is designed while looking at it; the user ruled the
 /// floors on 2026-10-04, "9 boxes, 4 sites". The other 9 fresh entries stay
 /// `held-out`, spent.
+///
+/// MC-080 re-marked `n05` to `974,167 599x1233` (the user's ruling of
+/// 2026-10-04, *"Box starts at 974"*), which its margin-0 crop equals, so it
+/// no longer clips. It stays here: this records which entry MC-078 read and
+/// MC-079 moved to `tuning`, not an exception.
 const MC079_READ_PER_FILE: [&str; 1] = ["2025-10-26 12_13_16.png"];
 
 /// MC-077: the image files in the corpus directory, `manifest.json` aside,
@@ -3177,7 +3202,8 @@ fn the_entry_mc078_read_per_file_is_tuning_and_the_other_nine_stay_held_out() {
     assert_eq!(
         measured, recorded,
         "MC-079 AC-1: the one fresh entry MC-078 read per file - `n05` \
-         2025-10-26 12_13_16, `toongod`, mark 973,167 600x1233 - is `tuning` \
+         2025-10-26 12_13_16, `toongod`, mark 974,167 599x1233 since MC-080 \
+         (973,167 600x1233 until the user ruled \"Box starts at 974\") - is `tuning` \
          (the user, 2026-10-04: \"9 boxes, 4 sites\"), and no other fresh entry \
          is: the other 9 stay `held-out`. So `tuning` holds 100 marked and 14 \
          flag entries (99 + 14 until MC-079 moved one), and `held-out` 9 marked \
