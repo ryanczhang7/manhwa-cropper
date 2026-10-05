@@ -58,35 +58,35 @@ and names that differ only by letter case are treated as colliding.
 
 ## What the crop looks like today
 
-**The left and right edges are accurate. The top and bottom are barely cropped
-at all — read this before you judge the output.**
+**It removes the browser's tab and bookmarks bars, the scrollbar and the
+Windows taskbar, and trims the side gutters down to the page.** The top and
+bottom were the hard half. v1 left the browser bars and the taskbar in. v2
+(EPIC-07) added a stage that finds the browser's viewport beside the page
+and drops everything above and below it. When it cannot find the viewport,
+it leaves the rows alone rather than guess.
 
-Measured against a 28-screenshot calibration corpus (`fixtures/corpus/`) — 21
-with hand-marked rectangles, 7 expected to be flagged rather than cropped:
+What it guarantees is that it **never cuts into the artwork**. Clipping is
+the one defect the whole design is arranged against. Where the detector
+cannot be sure, it keeps too much rather than too little, or copies the file
+unchanged and flags it.
 
-| Axis | Result |
-|---|---|
-| columns (left, right) | **20 of 21** inside an 11 px window |
-| rows (top, bottom) | **0 of 21** inside that window; overshoots by **97–310 px**, *never clipping* |
+**How it measures up.** The yardstick is a corpus of 140 real screenshots
+(`fixtures/corpus/`), each hand-marked with the box the crop should give, or
+flagged as one to leave alone:
 
-Horizontally the crop is tight: side gutters and the browser's left and right
-furniture are gone. **Vertically it is not.** That 97–310 px is not whitespace
-— on a typical screenshot it is the browser's tab bar, the bookmarks bar, the
-site's own navigation menu and the **Windows taskbar**, all of which survive
-into the output. The app does not currently deliver the vertical half of
-"removes browser chrome".
+- **Tuning, 130.** These are the screenshots the detector is developed
+  against: zero clips on every one, and 125 of the 127 that are checked on
+  the side edges are within the bar.
+- **Held-out, 10.** These are kept aside and scored once each. Every
+  held-out set so far has been scored after the fixes before it, and each
+  found something new: 3 clips of 25, then 2 of 15, then 1 of 10.
+  Every one of those is now fixed, and those screenshots are in tuning. The
+  current held-out set (Eleceed, one reader) is not scored yet. That is
+  MC-085. `docs/wiki/held-out-score.md` has every score.
 
-What it *does* guarantee is that it never cuts into artwork: zero clips across
-every corpus entry. That is the deliberate trade — clipping is the one defect
-the whole design is arranged against, so where the detector cannot be sure it
-keeps too much rather than too little. Six investigations failed to find a row
-rule that is both accurate and clip-free; the reasoning is in
-[`docs/wiki/architecture.md`](docs/wiki/architecture.md) decision 14, and the
-measurements are indexed from
-[`docs/wiki/v2-candidates.md`](docs/wiki/v2-candidates.md).
-
-**Fixing this is v2's whole purpose** — see
-[`docs/backlog/epics/EPIC-07.md`](docs/backlog/epics/EPIC-07.md).
+**Two browser windows side by side** (a reader on the left, a video on the
+right) are handled: the crop takes the reader's page and nothing of the
+second window (MC-066, MC-082).
 
 Formats: PNG is cropped losslessly at original resolution; JPEG and WebP are
 re-encoded at maximum quality (JPEG q100 4:4:4, WebP lossless). A flagged file
@@ -105,12 +105,13 @@ cargo test --workspace      # just the tests
 
 ```
 crates/
-  core/     the detector: trim, content box, flat regions, margin, decision
+  core/     the detector: trim, content box, flat regions, page column,
+            browser viewport, margin, decision
   engine/   file I/O, codecs, batch, CLI argument parsing, run summary
   app/      the egui window and the exe
 fixtures/
-  corpus/   28 real screenshots + a manifest: 21 marked with the right crop,
-            7 that should be flagged rather than cropped
+  corpus/   140 real screenshots + a manifest: 126 marked with the right crop,
+            14 that should be flagged rather than cropped; 130 tuning, 10 held-out
 docs/wiki/  brief, stack, architecture, the corpus's marking rules, spike records
 ```
 
@@ -138,9 +139,15 @@ own documentation lives there rather than being duplicated here.
 
 ## Status
 
-v1 is complete. Every story in the backlog is done, except MC-032 — the row-axis
-accuracy bar — which is **closed by decision** rather than outstanding. Deferred
-to v2: a larger corpus and a signal class v1 excludes (learning-based detection;
-colour and chroma). See
-[`docs/wiki/v2-candidates.md`](docs/wiki/v2-candidates.md), which exists so that
-nobody re-runs the six investigations that are already answered.
+v1 is complete. v2 is EPIC-07, "the crop reaches the artwork on the row
+axis", and it is in progress. The browser bars and taskbar are now removed,
+every crop on the 130 tuning screenshots is clip-free, and every story
+filed from the user's reports is done. The goal stays open until a
+held-out score meets the bar: zero clips, and at least 9 in 10 of the
+marked screenshots cropped to their mark with no furniture kept. The next
+score is MC-085, filed and not yet run.
+
+Still deferred: per-site matching, learning-based detection, and colour and
+chroma. See [`docs/wiki/v2-candidates.md`](docs/wiki/v2-candidates.md),
+which exists so that nobody re-runs the investigations that are already
+answered.
