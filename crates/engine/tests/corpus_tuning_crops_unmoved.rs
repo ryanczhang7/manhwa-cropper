@@ -713,15 +713,28 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
     // taskbar, starting at column 727 against a page that starts at 610. The
     // margin-0 crops equal the Lead PO's probe on `main` (MC-081 AC-4).
     // MC-082 and MC-083 re-pin them.
+    // MC-082 re-pins six (its AC-2): `e01`, `e02`, `e04`..`e07`, cropped to
+    // the reader's page now. **Derived from the oracle, not measured or
+    // chosen**: at margin 0 the crop is the user's mark exactly (MC-081's
+    // frozen table; zero clips, and the mark's columns are page margin on
+    // both sides); at margin 3 the columns widen by 3 on each side and the
+    // rows stay the mark's, which are exactly the user's `T..B` (MC-082
+    // AC-1's table), where the viewport stage clamps them. A scratch trial
+    // of the fix in MC-082's RED produced exactly these crops. They were
+    // `[1817, 121, 408, 1138]` / `[1820, 121, 402, 1138]` (`e01`, `e04`),
+    // `[1933, 0, 615, 1440]` / `[1936, 0, 609, 1440]` (`e02`),
+    // `[1817, 0, 408, 1403]` / `[1820, 0, 402, 1400]` (`e05`),
+    // `[1817, 179, 408, 1080]` / `[1820, 179, 402, 1080]` (`e06`) and
+    // `[1817, 173, 408, 1086]` / `[1820, 173, 402, 1086]` (`e07`).
     (
         "2025-03-16 22_56_00.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
+        [765, 115, 273, 1277],
+        [768, 115, 267, 1277],
     ), // e01
     (
         "2025-03-07 00_20_37.png",
-        [1933, 0, 615, 1440],
-        [1936, 0, 609, 1440],
+        [734, 115, 351, 1284],
+        [737, 115, 345, 1284],
     ), // e02
     (
         "2025-03-07 01_02_31.png",
@@ -730,23 +743,23 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
     ), // e03
     (
         "2025-03-16 22_48_01.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
+        [765, 115, 273, 1277],
+        [768, 115, 267, 1277],
     ), // e04
     (
         "2025-03-16 22_51_37.png",
-        [1817, 0, 408, 1403],
-        [1820, 0, 402, 1400],
+        [699, 115, 406, 1277],
+        [702, 115, 400, 1277],
     ), // e05
     (
         "2025-03-16 22_51_49.png",
-        [1817, 179, 408, 1080],
-        [1820, 179, 402, 1080],
+        [699, 115, 406, 1277],
+        [702, 115, 400, 1277],
     ), // e06
     (
         "2025-03-16 22_54_27.png",
-        [1817, 173, 408, 1086],
-        [1820, 173, 402, 1086],
+        [799, 115, 206, 1277],
+        [802, 115, 200, 1277],
     ), // e07
     // MC-079 adds `n05` of MC-077's fresh draw, `2025-10-26 12_13_16.png`, the
     // one entry MC-078 read per file, moved to `tuning` (MC-079 AC-1), last in

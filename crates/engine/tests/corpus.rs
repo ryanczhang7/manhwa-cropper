@@ -383,14 +383,16 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// they equal this suite's own table and the crops the Lead PO measured on
 /// `main` (MC-081 AC-4). MC-082 (the wrong window) and MC-083 (`e03`'s rows
 /// and left edge) fix them, and each takes its own entries off.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 7] = [
-    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01, right window
-    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02, right window
-    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03, 117 columns cut
-    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04, right window
-    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05, right window
-    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06, right window
-    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07, right window
+///
+/// MC-082 took six off (its AC-2): `e01`, `e02`, `e04`..`e07`, the
+/// right-hand window's crops. The page column is the reader's page now, and
+/// these tests judge them like every other entry. Their pins were
+/// `[1820, 121, 402, 1138]` (`e01`, `e04`), `[1936, 0, 609, 1440]` (`e02`),
+/// `[1820, 0, 402, 1400]` (`e05`), `[1820, 179, 402, 1080]` (`e06`) and
+/// `[1820, 173, 402, 1086]` (`e07`). `e03` stays, MC-083's. The list stays
+/// exact in both directions.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]), // e03, 117 columns cut
 ];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.

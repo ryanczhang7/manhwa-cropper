@@ -216,14 +216,16 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// unlisted, so [`KNOWN_BACKGROUND_SIDES`] stays empty. Four of them clip the
 /// mark's rows too, which [`KNOWN_ROW_CLIPS`] names at both margins. MC-082
 /// and MC-083 take them off.
-const MC064_CROPS: [(&str, [u32; 4]); 7] = [
-    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01
-    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02
-    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03
-    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04
-    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05
-    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06
-    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07
+///
+/// MC-082 took six off this list, off [`KNOWN_CLIPS`] and off
+/// [`KNOWN_ROW_CLIPS`] (its AC-2): `e01`, `e02`, `e04`..`e07`, whose page
+/// column is the reader's page now, so AC-1, AC-2 and AC-4 here judge them
+/// like every other entry. Their pins were `[1820, 121, 402, 1138]` (`e01`,
+/// `e04`), `[1936, 0, 609, 1440]` (`e02`), `[1820, 0, 402, 1400]` (`e05`),
+/// `[1820, 179, 402, 1080]` (`e06`) and `[1820, 173, 402, 1086]` (`e07`).
+/// `e03` stays, MC-083's.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]), // e03
 ];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -261,15 +263,11 @@ const MC064_CROPS: [(&str, [u32; 4]); 7] = [
 /// to its measured pin in [`MC064_CROPS`]: six cropped to the right-hand
 /// (YouTube) window, and `e03` cut 117 columns short on the left. MC-082 and
 /// MC-083 take them off.
-const KNOWN_CLIPS: [&str; 7] = [
-    "2025-03-16 22_56_00.png",
-    "2025-03-07 00_20_37.png",
-    "2025-03-07 01_02_31.png",
-    "2025-03-16 22_48_01.png",
-    "2025-03-16 22_51_37.png",
-    "2025-03-16 22_51_49.png",
-    "2025-03-16 22_54_27.png",
-];
+///
+/// MC-082 took the six right-hand-window crops off (its AC-2): `e01`, `e02`,
+/// `e04`..`e07` crop to their marks now. `e03` stays, MC-083's. The list
+/// stays exact both ways.
+const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 01_02_31.png"];
 
 /// MC-081 AC-4: AC-4's known row clips here,
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)`, in
@@ -286,28 +284,15 @@ const KNOWN_CLIPS: [&str; 7] = [
 /// **Exact in both directions**: AC-4 fails if any other entry's rows do not
 /// contain its mark, if a listed entry's rows come to contain it, or if a
 /// listed entry's rect is not its pin at either margin. MC-082 takes them off.
-const KNOWN_ROW_CLIPS: [(&str, [u32; 4], [u32; 4]); 4] = [
-    (
-        "2025-03-16 22_56_00.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
-    ), // e01
-    (
-        "2025-03-16 22_48_01.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
-    ), // e04
-    (
-        "2025-03-16 22_51_49.png",
-        [1817, 179, 408, 1080],
-        [1820, 179, 402, 1080],
-    ), // e06
-    (
-        "2025-03-16 22_54_27.png",
-        [1817, 173, 408, 1086],
-        [1820, 173, 402, 1086],
-    ), // e07
-];
+///
+/// MC-082 took all four off (its AC-2): beside the reader's page column the
+/// viewport stage locates 115..1392, the user's `T..B`, so their rows
+/// contain the mark's and AC-4 judges them like every other entry. Their
+/// pins were `[1817, 121, 408, 1138]` / `[1820, 121, 402, 1138]` (`e01`,
+/// `e04`), `[1817, 179, 408, 1080]` / `[1820, 179, 402, 1080]` (`e06`) and
+/// `[1817, 173, 408, 1086]` / `[1820, 173, 402, 1086]` (`e07`), at margins 3
+/// and 0. The list is empty, and stays exact in both directions.
+const KNOWN_ROW_CLIPS: [(&str, [u32; 4], [u32; 4]); 0] = [];
 
 /// MC-064, the same ruling: AC-1's known page-background sides, `(file,
 /// side)`. `2025-03-16 22_47_44.png`'s crop runs to column 2556 at margin 0,
@@ -790,10 +775,17 @@ fn every_crop_contains_its_corrected_mark_and_one_column_narrower_clips() {
 /// seven added (`column 0..1400 viewport None cut -- m3 (0, 1403) m0 (0,
 /// 1400)`). `e02` and `e03`, where the stage declines too, have columns 0..1440,
 /// the whole height, so no side has room. MC-082 takes `e05` off.
-const MARGIN_REACHED_SIDES: [(&str, &str); 3] = [
+///
+/// MC-082 took `e05`'s bottom off (its AC-2): beside the reader's page
+/// column the viewport stage locates 115..1392, the user's `T..B`, and cuts
+/// both sides, so the margin reaches neither in full. Measured on a scratch
+/// trial of the fix in MC-082's RED: this test's own table read
+/// `column 0..1440 viewport Some((115, 1392)) cut TB m3 (115, 1392) m0 (115,
+/// 1392)` for `e05`, and the six's other entries the same (`e02` 115..1399).
+/// The control is back to the two bottoms MC-076 moved it to.
+const MARGIN_REACHED_SIDES: [(&str, &str); 2] = [
     ("Screenshot (3605).png", "bottom"),
     ("Screenshot (3606).png", "bottom"),
-    ("2025-03-16 22_51_37.png", "bottom"), // MC-081's e05
 ];
 
 /// The page column `detect` locates before the viewport stage and before the

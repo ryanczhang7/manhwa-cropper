@@ -39,7 +39,11 @@
 //!    run. [`flat`](crate::flat)'s "Stage 3c" section is where all of that is
 //!    argued. Since MC-066 the run is the widest one whose page column has
 //!    the page margin beside it, not simply the widest, so a second browser
-//!    window's video is not taken for the page. The row axis stays exactly
+//!    window's video is not taken for the page; since MC-082 a run with the
+//!    page margin on **both** sides is preferred to a wider one with it on
+//!    one side only, which is how that video still won on six Eleceed
+//!    screenshots, and MC-066's rule decides only where no run is framed on
+//!    both sides. The row axis stays exactly
 //!    where stage 4 left it;
 //! 6. [`viewport::locate`] beside the page column, on the **row axis only**,
 //!    which finds the browser viewport - the rows between the browser chrome

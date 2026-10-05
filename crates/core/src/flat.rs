@@ -208,6 +208,29 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 // The tone, the predicate and the tolerance are the instruments branch 1 and
 // branch 3 below already read. There is no new constant.
 //
+// # Page margin on both sides beats page margin on one (MC-082)
+//
+// "On at least one side" is not enough when the second window's video is the
+// wider run *and* has a column at the site's tone beside it. On six Eleceed
+// screenshots (`2025-03-16 22_56_00.png` and five more, MC-082's table) the
+// video, 402 or 595 columns over the band, has a column at the page
+// background tone (11) on one side - its right on five, its left on
+// `2025-03-07 00_20_37.png` - and not on the other, while the reader's page,
+// 200 to 400 columns, has the margin on both. The page is framed by the
+// margin; the video only touches it. `content::page_margin` asks this
+// function where the page is too, so the same choice also kept stage 2 from
+// peeling the site's left margin as chrome on four of the six.
+//
+// So the runs are tried widest first, and the first whose page column has
+// page margin on **both** sides (or that has no tone to read margin against,
+// which counted as in the margin before) is the page. Only where no run is
+// framed so does MC-066's rule above decide, unchanged: the first run with
+// page margin on one side, else the widest. That fallback is what keeps a
+// page with one-sided margin where it was - four `tuning` entries, among them
+// `2025-08-05 00_11_13.webp`, have no run framed on both sides. Over all 121
+// `tuning` entries at MC-082 the rule moved the six to the user's marks and
+// nothing else. The same predicate, read once more; no new constant.
+//
 // # Where the page column ends: at the margin, not at the threshold (MC-053)
 //
 // Up to MC-053 the widest run's own ends were the answer, which made
@@ -430,8 +453,11 @@ pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect
     runs.sort_by_key(|&(first, last)| std::cmp::Reverse(last - first));
     debug_assert_eq!(runs.first().copied(), widest_textured_run(&spread, t));
 
+    // MC-082 first, then MC-066, then MC-027: the first run framed by page
+    // margin on both sides, else the first with it on one, else the widest.
     let mut widest = None;
-    let mut page = None;
+    let mut one_sided = None;
+    let mut framed = None;
     for (first, last) in runs {
         // A spread profile index *is* a line index, so the arithmetic is an
         // offset from the rect's own origin; both bounds are inclusive, hence
@@ -441,14 +467,17 @@ pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect
             w: (last - first + 1) as u32,
             ..within
         };
-        let (column, in_margin) = extend_to_the_margin(img, within, band, run, t);
-        if in_margin {
-            page = Some(column);
+        let (column, (left, right)) = extend_to_the_margin(img, within, band, run, t);
+        if left && right {
+            framed = Some(column);
             break;
+        }
+        if left || right {
+            one_sided.get_or_insert(column);
         }
         widest.get_or_insert(column);
     }
-    let (first, last) = page.or(widest)?;
+    let (first, last) = framed.or(one_sided).or(widest)?;
     // The interior rule, read on the column the extension arrived at: a page
     // column that reaches either end of `within` has no page margin on that
     // side.
@@ -465,15 +494,17 @@ pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect
 /// The first and last image column, both inclusive, of `run` widened outward
 /// on each side for as long as the next column [`Margin::belongs`] to the page,
 /// then over the page's paper where [`Margin::paper`] finds it (MC-074), and
-/// whether the column so found sits in the page margin: whether a column
-/// just past it, on either side, [`Margin::is_page_margin`] (MC-066).
+/// on which sides the column so found sits in the page margin: whether the
+/// column just past it on the left, and on the right,
+/// [`Margin::is_page_margin`] (MC-066, MC-082). Both are `true` where there is
+/// no page background tone to read the margin against.
 fn extend_to_the_margin(
     img: &Luma,
     within: Rect,
     band: Rect,
     run: Rect,
     t: &Tuning,
-) -> ((u32, u32), bool) {
+) -> ((u32, u32), (bool, bool)) {
     let margin = Margin {
         img,
         within,
@@ -512,10 +543,10 @@ fn extend_to_the_margin(
         first = left;
         last = right;
     }
-    let in_margin = margin.tone.is_none()
-        || (first > within.x && margin.is_page_margin(first - 1))
-        || (last + 1 < end && margin.is_page_margin(last + 1));
-    ((first, last), in_margin)
+    let untoned = margin.tone.is_none();
+    let left = untoned || (first > within.x && margin.is_page_margin(first - 1));
+    let right = untoned || (last + 1 < end && margin.is_page_margin(last + 1));
+    ((first, last), (left, right))
 }
 
 /// What [`extend_to_the_margin`] reads a column against.
