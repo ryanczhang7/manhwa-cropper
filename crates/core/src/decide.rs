@@ -43,7 +43,14 @@
 //!    page margin on **both** sides is preferred to a wider one with it on
 //!    one side only, which is how that video still won on six Eleceed
 //!    screenshots, and MC-066's rule decides only where no run is framed on
-//!    both sides. The row axis stays exactly
+//!    both sides. Since MC-083 two neighbouring runs with no page margin
+//!    between them are joined before any of that, so a stretch of the page's
+//!    own art that is flat over the band, at a tone off the site's, no longer
+//!    splits the page in two and costs it the narrower half (`e03`, 117
+//!    columns cut and the viewport lost with them). The margin tone for that
+//!    is read beside each of the two runs, never beside the joined span,
+//!    which on a screen with a second window can read that window's tone.
+//!    The row axis stays exactly
 //!    where stage 4 left it;
 //! 6. [`viewport::locate`] beside the page column, on the **row axis only**,
 //!    which finds the browser viewport - the rows between the browser chrome
