@@ -230,7 +230,14 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// rows they replace were the right-hand window's: 121..1259 (`e01`, `e04`),
 /// 179..1259 (`e06`), 173..1259 (`e07`). `e03` stays in [`STAGE_DECLINED`],
 /// MC-083's.
-const STAGE_MEASURED: [(&str, u32, u32); 85] = [
+///
+/// **MC-083 adds `e03`** (`2025-03-07 01_02_31.png`) off [`STAGE_DECLINED`]
+/// (its AC-2), between `e02` and `e04` in manifest order: 115..1399.
+/// **Settled, not measured or chosen**: the user's frozen `T..B` for `e03`
+/// (MC-083 AC-1, 2026-10-05). With the page column the whole page, `locate`
+/// returns them beside it; a scratch trial of the fix in MC-083's RED
+/// located exactly these rows. Every other row here is unchanged.
+const STAGE_MEASURED: [(&str, u32, u32); 86] = [
     // MC-076: the two WebPs, first in manifest order (see the doc comment).
     ("2025-08-05 00_11_13.webp", 115, 1400),
     ("2025-08-05 00_11_27.webp", 115, 1400),
@@ -325,6 +332,8 @@ const STAGE_MEASURED: [(&str, u32, u32); 85] = [
     // order, at the user's `T..B` since MC-082 (see the doc comment).
     ("2025-03-16 22_56_00.png", 115, 1392),
     ("2025-03-07 00_20_37.png", 115, 1399),
+    // MC-083: `e03`, at the user's `T..B` (see the doc comment).
+    ("2025-03-07 01_02_31.png", 115, 1399),
     ("2025-03-16 22_48_01.png", 115, 1392),
     ("2025-03-16 22_51_37.png", 115, 1392),
     ("2025-03-16 22_51_49.png", 115, 1392),
@@ -378,7 +387,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 85] = [
 /// MC-082 took `e02` and `e05` off (its AC-2): beside the reader's page
 /// column `locate` returns the user's `T..B`, and [`STAGE_MEASURED`] holds
 /// those rows. `e03` stays, MC-083's.
-const STAGE_DECLINED: [&str; 1] = ["2025-03-07 01_02_31.png"];
+///
+/// MC-083 took `e03` off (its AC-2): beside the whole page `locate` returns
+/// the user's `T..B`, 115..1399, and [`STAGE_MEASURED`] holds those rows.
+/// The list is empty, and stays exact.
+const STAGE_DECLINED: [&str; 0] = [];
 
 /// The story's success condition: section 4 reproduced to the row on at least
 /// this many of the nineteen.
@@ -509,7 +522,7 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
         "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
-         21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one and six of MC-081's seven must be marked tuning entries, \
+         21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one and all seven of MC-081's must be marked tuning entries, \
          reached here in manifest order"
     );
     assert_eq!(

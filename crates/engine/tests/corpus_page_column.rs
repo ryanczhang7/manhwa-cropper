@@ -243,6 +243,10 @@ const MC079_ONE: [&str; 1] = ["2025-10-26 12_13_16.png"];
 /// unlisted, and [`KNOWN_BACKGROUND_SIDES`] stays empty. All fourteen
 /// mark edges read as art (shares 0.024 to 0.679, under 0.95), so no
 /// background-edge list like [`MC072_BACKGROUND_EDGES`] is needed for them.
+///
+/// MC-082 (the six) and MC-083 (`e03`) moved their crops to the marks; on
+/// MC-083's scratch trial this suite passes unchanged with all seven read. The
+/// list records where they came from, not an exception, and stays.
 const MC081_SEVEN: [&str; 7] = [
     "2025-03-16 22_56_00.png",
     "2025-03-07 00_20_37.png",
