@@ -485,7 +485,17 @@ fn is_reader_window_entry(name: &str) -> bool {
 /// window. What judges them is the known-clip lists (`KNOWN_CLIPS` here and in
 /// `tests/corpus.rs`, `corpus_accuracy.rs`, `corpus_sides.rs`). The other three
 /// are [`STAGE_DECLINED`]. Not originals either. MC-082 re-measures them.
-const STAGE_MEASURED: [(&str, u32, u32); 81] = [
+///
+/// **MC-082 re-measures them, and adds `e02` and `e05`** off
+/// [`STAGE_DECLINED`] (its AC-2): six of MC-081's seven, in manifest order
+/// between `n13` and MC-077's `n05`. With the page column the reader's page,
+/// the stage locates the user's frozen `T..B` beside it (MC-082 AC-1's
+/// table): 115..1392, and 115..1399 on `e02`. **Settled, not measured or
+/// chosen**, as MC-075's and MC-076's rows were; a scratch trial of the fix in
+/// MC-082's RED located exactly these rows. The rows they replace were the
+/// right-hand window's: 121..1259 (`e01`, `e04`), 179..1259 (`e06`),
+/// 173..1259 (`e07`). `e03` stays in [`STAGE_DECLINED`], MC-083's.
+const STAGE_MEASURED: [(&str, u32, u32); 83] = [
     ("2025-03-04 11_09_29.png", 115, 1400),
     ("2025-03-07 00_41_10.png", 115, 1399),
     ("2025-03-07 01_10_37.png", 115, 1399),
@@ -570,12 +580,14 @@ const STAGE_MEASURED: [(&str, u32, u32); 81] = [
     ("Screenshot (1460).png", 133, 1392),
     // MC-076: `n13` (see the doc comment).
     ("Screenshot (2507).png", 133, 1392),
-    // MC-081: four of its seven, between `n13` and MC-077's `n05` in manifest
-    // order (see the doc comment).
-    ("2025-03-16 22_56_00.png", 121, 1259),
-    ("2025-03-16 22_48_01.png", 121, 1259),
-    ("2025-03-16 22_51_49.png", 179, 1259),
-    ("2025-03-16 22_54_27.png", 173, 1259),
+    // MC-081: six of its seven, between `n13` and MC-077's `n05` in manifest
+    // order, at the user's `T..B` since MC-082 (see the doc comment).
+    ("2025-03-16 22_56_00.png", 115, 1392),
+    ("2025-03-07 00_20_37.png", 115, 1399),
+    ("2025-03-16 22_48_01.png", 115, 1392),
+    ("2025-03-16 22_51_37.png", 115, 1392),
+    ("2025-03-16 22_51_49.png", 115, 1392),
+    ("2025-03-16 22_54_27.png", 115, 1392),
     // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
     ("2025-10-26 12_13_16.png", 167, 1400),
 ];
@@ -634,11 +646,11 @@ const STAGE_MEASURED: [(&str, u32, u32); 81] = [
 /// `## Notes`). All three are held by `tests/corpus_tuning_crops_unmoved.rs`
 /// and by [`KNOWN_CLIPS`]. Not originals either. MC-082 and MC-083 take them
 /// off.
-const STAGE_DECLINED: [&str; 3] = [
-    "2025-03-07 00_20_37.png",
-    "2025-03-07 01_02_31.png",
-    "2025-03-16 22_51_37.png",
-];
+///
+/// MC-082 took `e02` and `e05` off (its AC-2): beside the reader's page
+/// column the stage locates the user's `T..B`, and [`STAGE_MEASURED`] holds
+/// those rows. `e03` stays, MC-083's.
+const STAGE_DECLINED: [&str; 1] = ["2025-03-07 01_02_31.png"];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): the entries `no_marked_tuning_crop_clips_its_mark_at_either_margin`
@@ -705,43 +717,20 @@ const STAGE_DECLINED: [&str; 3] = [
 /// RED, on a scratch copy with the seven added. Four of them (`e01`, `e04`,
 /// `e06`, `e07`) clip the mark's rows at margin 0 too. MC-082 and MC-083 take
 /// them off.
-const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 7] = [
-    (
-        "2025-03-16 22_56_00.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
-    ), // e01
-    (
-        "2025-03-07 00_20_37.png",
-        [1933, 0, 615, 1440],
-        [1936, 0, 609, 1440],
-    ), // e02
-    (
-        "2025-03-07 01_02_31.png",
-        [724, 0, 489, 1440],
-        [727, 0, 483, 1440],
-    ), // e03
-    (
-        "2025-03-16 22_48_01.png",
-        [1817, 121, 408, 1138],
-        [1820, 121, 402, 1138],
-    ), // e04
-    (
-        "2025-03-16 22_51_37.png",
-        [1817, 0, 408, 1403],
-        [1820, 0, 402, 1400],
-    ), // e05
-    (
-        "2025-03-16 22_51_49.png",
-        [1817, 179, 408, 1080],
-        [1820, 179, 402, 1080],
-    ), // e06
-    (
-        "2025-03-16 22_54_27.png",
-        [1817, 173, 408, 1086],
-        [1820, 173, 402, 1086],
-    ), // e07
-];
+///
+/// MC-082 took six off (its AC-2): `e01`, `e02`, `e04`..`e07`, whose page
+/// column is the reader's page now, so this test judges them like every
+/// other entry. Their pins (margin 3, margin 0) were `[1817, 121, 408, 1138]`,
+/// `[1820, 121, 402, 1138]` (`e01`, `e04`); `[1933, 0, 615, 1440]`,
+/// `[1936, 0, 609, 1440]` (`e02`); `[1817, 0, 408, 1403]`,
+/// `[1820, 0, 402, 1400]` (`e05`); `[1817, 179, 408, 1080]`,
+/// `[1820, 179, 402, 1080]` (`e06`); `[1817, 173, 408, 1086]`,
+/// `[1820, 173, 402, 1086]` (`e07`). `e03` stays, MC-083's.
+const KNOWN_CLIPS: [(&str, [u32; 4], [u32; 4]); 1] = [(
+    "2025-03-07 01_02_31.png",
+    [724, 0, 489, 1440],
+    [727, 0, 483, 1440],
+)]; // e03
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
 /// 2): the one marked `tuning` entry that is not cropped at either margin -
@@ -1047,12 +1036,12 @@ fn the_viewport_predicate_holds_on_every_crop_when_the_viewport_is_the_whole_ima
     assert_eq!(
         entries.len(),
         VIEWPORT.len() + STAGE_MEASURED.len(),
-        "the control must see all one hundred: section 4's nineteen, MC-053's three, \
-         MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
+        "the control must see all one hundred and two: section 4's nineteen, MC-053's \
+         three, MC-056's three, MC-062's sixteen, MC-064's four (MC-066 took the fourth \
          off STAGE_DECLINED), MC-068's 21, MC-069's 14, all four of MC-072's \
          (MC-074 took n02, MC-075 n06 and MC-076 n13 off STAGE_DECLINED), \
-         MC-077's 11, MC-079's one and four of MC-081's seven (the other three \
-         are STAGE_DECLINED)"
+         MC-077's 11, MC-079's one and six of MC-081's seven (MC-082 took e02 and \
+         e05 off STAGE_DECLINED; e03 is STAGE_DECLINED)"
     );
     assert_eq!(
         not_cropped,

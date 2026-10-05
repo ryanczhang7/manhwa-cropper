@@ -263,14 +263,15 @@ const KNOWN_MISSES: [&str; 3] = [
 /// because AC-2's bar holds with all seven counted as misses (MC-081
 /// `## Handoff`), so no test needs them there. MC-082 and MC-083 take them
 /// off.
-const MC064_CROPS: [(&str, [u32; 4]); 7] = [
-    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01
-    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02
-    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03
-    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04
-    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05
-    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06
-    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07
+///
+/// MC-082 took six off this list and off [`KNOWN_CLIPS`] (its AC-2): `e01`,
+/// `e02`, `e04`..`e07`, whose page column is the reader's page now, so AC-1
+/// judges them like every other entry. Their pins were
+/// `[1820, 121, 402, 1138]` (`e01`, `e04`), `[1936, 0, 609, 1440]` (`e02`),
+/// `[1820, 0, 402, 1400]` (`e05`), `[1820, 179, 402, 1080]` (`e06`) and
+/// `[1820, 173, 402, 1086]` (`e07`). `e03` stays, MC-083's.
+const MC064_CROPS: [(&str, [u32; 4]); 1] = [
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]), // e03
 ];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
@@ -308,15 +309,11 @@ const MC064_CROPS: [(&str, [u32; 4]); 7] = [
 /// to its measured pin in [`MC064_CROPS`]: six cropped to the right-hand
 /// (YouTube) window, and `e03` cut 117 columns short on the left. MC-082 and
 /// MC-083 take them off.
-const KNOWN_CLIPS: [&str; 7] = [
-    "2025-03-16 22_56_00.png",
-    "2025-03-07 00_20_37.png",
-    "2025-03-07 01_02_31.png",
-    "2025-03-16 22_48_01.png",
-    "2025-03-16 22_51_37.png",
-    "2025-03-16 22_51_49.png",
-    "2025-03-16 22_54_27.png",
-];
+///
+/// MC-082 took the six right-hand-window crops off (its AC-2): `e01`, `e02`,
+/// `e04`..`e07` crop to their marks now. `e03` stays, MC-083's. The list
+/// stays exact both ways.
+const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 01_02_31.png"];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
