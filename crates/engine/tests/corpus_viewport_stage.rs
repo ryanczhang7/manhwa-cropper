@@ -237,7 +237,15 @@ const NOT_IN_SECTION_4: [&str; 2] = ["2025-03-06 01_22_45.png", "2025-03-07 00_5
 /// (MC-083 AC-1, 2026-10-05). With the page column the whole page, `locate`
 /// returns them beside it; a scratch trial of the fix in MC-083's RED
 /// located exactly these rows. Every other row here is unchanged.
-const STAGE_MEASURED: [(&str, u32, u32); 86] = [
+///
+/// **MC-084 adds 9**, the rest of MC-077's fresh draw, spent by MC-078's one
+/// scored run and moved to `tuning` (MC-084 AC-4), around MC-077's `n05` in
+/// manifest order (four before it, five after). Section 4 never saw them
+/// either. Same provenance as MC-068's: what `locate` returns beside the page
+/// column on `864e717` (release), read out of one run in MC-084's RED on a
+/// scratch copy with the move applied - not chosen. The stage locates a
+/// viewport on all 9.
+const STAGE_MEASURED: [(&str, u32, u32); 95] = [
     // MC-076: the two WebPs, first in manifest order (see the doc comment).
     ("2025-08-05 00_11_13.webp", 115, 1400),
     ("2025-08-05 00_11_27.webp", 115, 1400),
@@ -338,8 +346,19 @@ const STAGE_MEASURED: [(&str, u32, u32); 86] = [
     ("2025-03-16 22_51_37.png", 115, 1392),
     ("2025-03-16 22_51_49.png", 115, 1392),
     ("2025-03-16 22_54_27.png", 115, 1392),
-    // MC-079: MC-077's `n05`, last in manifest order (see the doc comment).
+    // MC-084: four of its 9, before MC-077's `n05` in manifest order (see the doc comment).
+    ("2025-10-08 13_14_05.png", 167, 1400),
+    ("2025-03-21 11_19_03.png", 115, 1400),
+    ("2025-08-05 16_30_27.png", 115, 1400),
+    ("2025-07-18 16_28_07.png", 115, 1400),
+    // MC-079: MC-077's `n05` (see the doc comment).
     ("2025-10-26 12_13_16.png", 167, 1400),
+    // MC-084: the last five of its 9, after `n05` in manifest order.
+    ("2025-03-18 23_33_50.png", 115, 1392),
+    ("2025-08-05 12_21_01.png", 115, 1400),
+    ("2025-07-18 21_55_50.png", 115, 1400),
+    ("2025-12-04 22_40_23.png", 167, 1400),
+    ("2025-03-12 23_13_21.png", 115, 1392),
 ];
 
 /// MC-064: the marked `tuning` entry on which the stage, handed the
@@ -522,7 +541,8 @@ fn the_viewport_stage_reproduces_the_rows_mc031_located_and_declines_where_it_de
         stage_seen,
         STAGE_MEASURED.map(|(name, _, _)| name.to_string()).to_vec(),
         "MC-053's three, MC-056's three, MC-062's sixteen, MC-064's four, MC-068's \
-         21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one and all seven of MC-081's must be marked tuning entries, \
+         21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one, all seven of MC-081's \
+         and MC-084's 9 must be marked tuning entries, \
          reached here in manifest order"
     );
     assert_eq!(
