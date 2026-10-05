@@ -1252,6 +1252,20 @@ the six wrong-window crops are e01, e04 `1820,121 402x1138`; e02
 check applies. Only its 117-column clip is caught. The same is true of e02
 and e05. Adding the check is MC-083's job.
 
+**MC-082 took the six off, 2026-10-04.** The cause, measured: stage 3c took
+the widest textured run with page margin on **either** side (MC-066), and
+the video run (402 columns, 595 on e02) is wider than the page (200..400)
+and has a column at the site's tone on one side. Now the page column is
+the widest run with page margin on **both** sides, falling back to
+MC-066's rule where there is none. MC-066's guard in `content.rs`, which
+asks the same question, stopped peeling the page's left margin on e01, e04,
+e05 and e06. All six now crop to their marks at margin 0, inside rows
+115..1392 (e02 115..1399) and left of the seam at column 1820 (e02 1828).
+No other `tuning` crop moved. The exception lists above now hold e03 alone,
+`KNOWN_ROW_CLIPS` is empty, `MARGIN_REACHED_SIDES` is back to its two, and
+the bar reads 115 of 118 (97.5 %). AC-1 lives in `corpus_reader_window.rs`
+and the generated cause in `crates/core/tests/page_column_one_sided_margin.rs`.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
