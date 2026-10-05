@@ -257,10 +257,30 @@ const MC081_SEVEN: [&str; 7] = [
     "2025-03-16 22_54_27.png",
 ];
 
+/// MC-084's nine: the rest of MC-077's fresh draw, spent by MC-078's one
+/// scored run and moved to `tuning` by MC-084 (its AC-4), in manifest order.
+/// Like the others above they are **not** originals and join no originals
+/// list here; they join every test over all marked `tuning` entries. On a
+/// scratch copy with the move applied (`864e717`, release, MC-084's RED) no
+/// side lets page background in, and all eighteen mark edges read as art
+/// (largest share 0.925, `2025-07-18 21_55_50.png`'s first column 997, under
+/// 0.95), so no list here gains a name.
+const MC084_NINE: [&str; 9] = [
+    "2025-10-08 13_14_05.png",
+    "2025-03-21 11_19_03.png",
+    "2025-08-05 16_30_27.png",
+    "2025-07-18 16_28_07.png",
+    "2025-03-18 23_33_50.png",
+    "2025-08-05 12_21_01.png",
+    "2025-07-18 21_55_50.png",
+    "2025-12-04 22_40_23.png",
+    "2025-03-12 23_13_21.png",
+];
+
 /// Whether `name` is one of the marked `tuning` entries added after the 23
 /// originals: MC-053's three, MC-056's three, MC-062's sixteen, MC-064's
-/// four, MC-068's 21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one
-/// or MC-081's seven.
+/// four, MC-068's 21, MC-069's 14, MC-072's four, MC-077's 11, MC-079's one,
+/// MC-081's seven or MC-084's nine.
 fn is_not_an_original(name: &str) -> bool {
     THE_THREE.contains(&name)
         || MC056_THREE.contains(&name)
@@ -272,6 +292,7 @@ fn is_not_an_original(name: &str) -> bool {
         || MC077_ELEVEN.contains(&name)
         || MC079_ONE.contains(&name)
         || MC081_SEVEN.contains(&name)
+        || MC084_NINE.contains(&name)
 }
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
@@ -786,11 +807,12 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         .collect();
     assert_eq!(
         entries.len(),
-        107,
-        "MC-053 (MC-055) AC-2 is over the 107 marked tuning entries (26 until MC-056 moved \
+        116,
+        "MC-053 (MC-055) AC-2 is over the 116 marked tuning entries (26 until MC-056 moved \
          three, 29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 \
          moved 21, 70 until MC-069 added 14, 84 until MC-072 moved four, 88 until MC-077 \
-         moved 11, 99 until MC-079 moved one, 100 until MC-081 added seven)"
+         moved 11, 99 until MC-079 moved one, 100 until MC-081 added seven, 107 until \
+         MC-084 moved nine)"
     );
     assert_eq!(
         known_read,
@@ -837,12 +859,12 @@ fn at_margin_0_no_crop_column_outside_the_mark_is_page_background() {
         "MC-053 (MC-055) AC-2 checks both sides of every cropped entry"
     );
     assert_eq!(
-        sides, 214,
-        "MC-053 (MC-055) AC-2 checks 214 sides: both sides of all 107 entries (88 until \
+        sides, 232,
+        "MC-053 (MC-055) AC-2 checks 232 sides: both sides of all 116 entries (88 until \
          MC-064 moved four, 96 until MC-068 moved 21, 138 until MC-069 added 14 and \
          swapped MC-056's exception for its own, 166 until MC-070 cropped (2705), 168 \
          until MC-072 moved four, 176 until MC-077 moved 11, 198 until MC-079 moved one, \
-         200 until MC-081 added seven)"
+         200 until MC-081 added seven, 214 until MC-084 moved nine)"
     );
     assert!(
         failing.is_empty(),
@@ -1150,11 +1172,12 @@ fn the_predicate_calls_each_marks_own_edge_columns_art_except_on_mc049s_mark_err
         .collect();
     assert_eq!(
         entries.len(),
-        107,
-        "the control is over the 107 marked tuning entries (26 until MC-056 moved three, \
+        116,
+        "the control is over the 116 marked tuning entries (26 until MC-056 moved three, \
          29 until MC-062 moved sixteen, 45 until MC-064 moved four, 49 until MC-068 moved 21, \
          70 until MC-069 added 14, 84 until MC-072 moved four, 88 until MC-077 moved 11, \
-         99 until MC-079 moved one, 100 until MC-081 added seven)"
+         99 until MC-079 moved one, 100 until MC-081 added seven, 107 until MC-084 moved \
+         nine)"
     );
     assert_eq!(
         ruled_art_read,

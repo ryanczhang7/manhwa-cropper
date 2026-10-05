@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 116] = [
     // MC-076 re-pins both `2025-08-05` WebPs (its AC-2, the user's ruling of
     // 2026-10-02, "Fix all three"; MC-048 AC-3 reversed): beside a flat reader
     // panel of another tone hugging the page the viewport stage declined, and
@@ -770,6 +770,33 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
         [799, 115, 206, 1277],
         [802, 115, 200, 1277],
     ), // e07
+    // MC-084 adds the other 9 of MC-077's fresh draw, spent by MC-078's one
+    // scored run and moved to `tuning` (MC-084 AC-4), in manifest order: four
+    // here, before `n05`, and five after it. **Measured, not chosen**:
+    // `process_file`'s crop at margins 3 and 0, read out of one run on
+    // `864e717` (release) in MC-084's RED on a scratch copy with the move
+    // applied. Every margin-0 crop contains its mark and eight equal it; `n01`
+    // keeps one column, 1472, right of a mark ending at 1471 (no clip).
+    (
+        "2025-10-08 13_14_05.png",
+        [1070, 167, 406, 1233],
+        [1073, 167, 400, 1233],
+    ), // n01
+    (
+        "2025-03-21 11_19_03.png",
+        [969, 115, 606, 1285],
+        [972, 115, 600, 1285],
+    ), // n02
+    (
+        "2025-08-05 16_30_27.png",
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
+    ), // n03
+    (
+        "2025-07-18 16_28_07.png",
+        [1011, 115, 523, 1285],
+        [1014, 115, 517, 1285],
+    ), // n04
     // MC-079 adds `n05` of MC-077's fresh draw, `2025-10-26 12_13_16.png`, the
     // one entry MC-078 read per file, moved to `tuning` (MC-079 AC-1), last in
     // manifest order. **Measured, not chosen**: `process_file`'s crop at
@@ -786,6 +813,32 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
         [971, 167, 605, 1233],
         [974, 167, 599, 1233],
     ),
+    // MC-084: the last five of its 9, after `n05` in manifest order (see above).
+    (
+        "2025-03-18 23_33_50.png",
+        [707, 115, 406, 1277],
+        [710, 115, 400, 1277],
+    ), // n06
+    (
+        "2025-08-05 12_21_01.png",
+        [1003, 115, 539, 1285],
+        [1006, 115, 533, 1285],
+    ), // n07
+    (
+        "2025-07-18 21_55_50.png",
+        [994, 115, 558, 1285],
+        [997, 115, 552, 1285],
+    ), // n08
+    (
+        "2025-12-04 22_40_23.png",
+        [999, 167, 546, 1233],
+        [1002, 167, 540, 1233],
+    ), // n09
+    (
+        "2025-03-12 23_13_21.png",
+        [697, 115, 406, 1277],
+        [700, 115, 400, 1277],
+    ), // n10
 ];
 
 /// MC-056, AC-4 as amended on 2026-09-29 (the user's ruling on Open question
