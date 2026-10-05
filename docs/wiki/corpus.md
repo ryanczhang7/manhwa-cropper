@@ -4,12 +4,12 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 130 real screenshots in `fixtures/corpus/` with one
+The corpus is 140 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 121 are `tuning` and 9 are
-`held-out`. Since MC-079 (2026-10-04), `held-out` means only 9 of the 10 fresh
-screenshots drawn blind by MC-077 (see "The third fresh held-out set: MC-077"
-below); the tenth, read per file by MC-078, is `tuning`. Every earlier
+`"flag"` for a screenshot that should be left alone. 130 are `tuning` and 10
+are `held-out`. Since MC-084 (2026-10-05), `held-out` means only the 10 fresh
+screenshots drawn blind from the Eleceed folder (see "The fourth fresh
+held-out set: MC-084" below), all from one reader, `toongod`. Every earlier
 held-out entry is spent and `tuning`. The split was 28 : 31 at MC-037, and each move since is recorded
 under "Moves out of held-out" below. See "The
 tuning / held-out split" below, which is the section to
@@ -1185,6 +1185,10 @@ Its new first column, 974, reads as art (share 0.161). It stays in
 `STAGE_MEASURED` and `MAIN_CROPS`, which are not exception lists. MC-078's
 held-out score is spent and is not re-computed under the amended mark.
 
+**Moved by MC-084 (2026-10-05).** The other 9 are `tuning` now, and
+held-out is MC-084's draw alone. See "The fourth fresh held-out set:
+MC-084".
+
 ### Two windows side by side, the app cropping the wrong one: MC-081, 2026-10-04
 
 **The report.** The user ran the app on their Eleceed folder (2560x1440
@@ -1279,6 +1283,97 @@ inside rows 115..1399 and left of the seam at 1828. No other `tuning` crop
 moved. Every `KNOWN_CLIPS` list is now empty, and so is `STAGE_DECLINED`.
 AC-1 joined `corpus_reader_window.rs`, and the generated cause is
 `crates/core/tests/page_column_dark_stretch.rs`.
+
+### The fourth fresh held-out set: MC-084, 2026-10-05
+
+[MC-084](../backlog/stories/MC-084.md) drew 10 screenshots at random from the
+Eleceed folder, by the user's ruling on MC-081's report (**"Fix story + blind
+draw"**). They entered the corpus only after MC-082 and MC-083 had landed, so
+no rule was designed while they sat in it. **Held-out now means only these
+10.**
+
+#### The draw
+
+Run once on 2026-10-04, blind, during planning, from names, byte sizes and
+PNG headers only. The script is in MC-084's `## Context` (sha256
+`c148d4f055aa56b0335806be8f52756f8ac43ef7f08ffb441453361a9c682a56`, LF line
+endings). It was run with
+`bash draw.sh "/c/Users/ryanc/OneDrive/Pictures/Screenshots 1/Eleceed" fixtures/corpus 10`.
+1. **Pool:** every top-level image in
+   `C:\Users\ryanc\OneDrive\Pictures\Screenshots 1\Eleceed`, 360 `.png`
+   files, less every corpus file by name without extension (21) and the 11
+   the user reported (MC-081's seven and four repeats): **328**.
+2. **Whole-screen only** (2560x1440 or 1920x1080 by header): 328, all
+   2560x1440.
+3. **Order:** by `sha256("MC-083|2026-10-04|Eleceed|<file name>")`,
+   ascending (`LC_ALL=C`). The seed says MC-083 because it was fixed before
+   the story ids were assigned; it was never re-seeded.
+4. **No near-twins:** MC-062's rule (30 minutes of any corpus screenshot, any
+   reported one, or any file already drawn, read as UTC). 305 were skipped
+   before the tenth pick.
+5. **Count: 10**, for room under the 160 MiB cap. A rule fixed before the
+   draw: had they not fitted, the longest prefix that fits would have been
+   taken. No file is skipped for its size.
+
+| id | File | Bytes | SHA-256 (first 16) |
+|---|---|---|---|
+| h01 | `2025-04-07 15_45_09.png` | 700423 | `bfc7c9f71ffbfb99` |
+| h02 | `2025-03-25 21_29_44.png` | 773290 | `8962a013c7bdf032` |
+| h03 | `2025-03-24 19_34_24.png` | 893958 | `b170c00d8285ca2e` |
+| h04 | `2025-03-10 00_18_31.png` | 1514111 | `7bf91462bd87be5f` |
+| h05 | `2025-03-04 15_30_49.png` | 1084895 | `e648524dc4525bc6` |
+| h06 | `2025-03-04 18_37_39.png` | 1707683 | `28f12217d3da8d36` |
+| h07 | `2025-03-04 01_12_09.png` | 1184683 | `b731b5e323237d23` |
+| h08 | `2025-03-25 19_12_51.png` | 1779338 | `f35cca9d2702ce34` |
+| h09 | `2025-04-10 11_58_38.png` | 661849 | `b2a3cf4409171b3f` |
+| h10 | `2025-03-04 16_51_54.png` | 873694 | `16d0d0f226965432` |
+
+Each copy in `fixtures/corpus/` was checked with `sha256sum` against the
+full hashes in MC-084's `## Handoff` (0 mismatches). The ten total
+11,173,924 bytes.
+
+**How they were marked.** The user chose **"Simple method + zoom"**. One
+scratch script read each drawn file's pixels to pre-draw a starting box (the
+smallest box around everything off the site's flat tone, MC-081's method
+over the full width). On the *Eleceed Marking* page it also flagged the edges
+that differed from the app's crop by more than 2 px, without showing the
+app's crop. No agent viewed a drawn image. The user confirmed all ten. The
+marks are frozen in MC-084's `## Notes`: all ten are art boxes and none is
+"leave alone"; all are `dark-theme` and `site:toongod`, and five carry
+`white-gutter`. Rows 115..1400 on nine; `2025-03-04 18_37_39.png` ends at 1374.
+
+#### The 9 spent entries move to `tuning`
+
+The 9 left `held-out` after MC-079 (MC-077's draw less `n05`), each scored
+once by MC-078, became `tuning`. No `expect` or tag changed. Nothing they do
+in the tuning suites is an exception: no clip at either margin, every mark
+edge read as art (largest share 0.925, under 0.95), and no page-background
+side. Read-out pins (`MAIN_CROPS`, `STAGE_MEASURED`, the page-column and
+viewport counts) record what the app does on them. The 90 % bar reads 125 of
+127 (98.4 %).
+
+**New counts:** 140 screenshots; **tuning 130 (116 marked + 14 flag) :
+held-out 10 (10 marked + 0 flag)**, from **one reader, `toongod`**. The size
+ceiling stays **160 MiB** (MC-081); the corpus directory is 159,619,033
+bytes (152.2 MiB).
+
+#### The floors, by the user's ruling of 2026-10-05
+
+**"10 boxes, 1 site"**: `MIN_HELD_OUT_MARKED` = **10** (was 9) and
+`MIN_HELD_OUT_SITES` = **1** (was 4). `MIN_HELD_OUT_FLAGS` = 0 and
+`MIN_UNSEEN_SITES` = 0 stand. With one reader, the sites floor refuses only
+an empty set, which the floor of 10 refuses already. The user was told so:
+*"With only one site, the score will speak for toongod only."*
+
+**What this set can speak for:** crops on **one known reader, `toongod`**
+(Eleceed, March and April 2025), mid-chapter, dark pages, in whole-screen
+2560x1440 screenshots. It holds **no other reader, no unseen reader, no
+screenshot that should be left alone and no light page**, so a score on it
+says nothing about any of those. Nothing in the draw looked at content, so
+it may hold split screens like MC-081's. With 10 entries, **each miss costs
+10 points** of accuracy, so EPIC-07's 90 % bar allows exactly one. The
+scored run is a later MC-078-shaped spike. Until then the 10 must not be run
+as `held-out` by anything else.
 
 ## What the tests can and cannot say
 
