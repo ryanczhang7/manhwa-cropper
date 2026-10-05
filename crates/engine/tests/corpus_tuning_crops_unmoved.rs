@@ -36,7 +36,7 @@ use cropper_engine::{Outcome, process_file};
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)` for
 /// every marked `tuning` entry, in manifest order, as `process_file` crops it
 /// on `3449baa` (release). Measured, never calibrated.
-const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 100] = [
+const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
     // MC-076 re-pins both `2025-08-05` WebPs (its AC-2, the user's ruling of
     // 2026-10-02, "Fix all three"; MC-048 AC-3 reversed): beside a flat reader
     // panel of another tone hugging the page the viewport stage declined, and
@@ -703,6 +703,51 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 100] = [
         [974, 133, 606, 1259],
         [977, 133, 600, 1259],
     ),
+    // MC-081 adds its seven Eleceed screenshots, `e01`..`e07`, between `n13`
+    // and MC-077's `n05` in manifest order (MC-081 AC-5). **Measured, not
+    // chosen**: `process_file`'s crop at margins 3 and 0, read out of one run
+    // on `ebdedd7` (release) in MC-081's RED on a scratch copy with the seven
+    // files and entries added. They are today's wrong crops, pinned so that
+    // nothing else moves them: six are the right-hand (YouTube) window, and
+    // `e03` is the manhwa's window at full height, kept bookmarks bar and
+    // taskbar, starting at column 727 against a page that starts at 610. The
+    // margin-0 crops equal the Lead PO's probe on `main` (MC-081 AC-4).
+    // MC-082 and MC-083 re-pin them.
+    (
+        "2025-03-16 22_56_00.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e01
+    (
+        "2025-03-07 00_20_37.png",
+        [1933, 0, 615, 1440],
+        [1936, 0, 609, 1440],
+    ), // e02
+    (
+        "2025-03-07 01_02_31.png",
+        [724, 0, 489, 1440],
+        [727, 0, 483, 1440],
+    ), // e03
+    (
+        "2025-03-16 22_48_01.png",
+        [1817, 121, 408, 1138],
+        [1820, 121, 402, 1138],
+    ), // e04
+    (
+        "2025-03-16 22_51_37.png",
+        [1817, 0, 408, 1403],
+        [1820, 0, 402, 1400],
+    ), // e05
+    (
+        "2025-03-16 22_51_49.png",
+        [1817, 179, 408, 1080],
+        [1820, 179, 402, 1080],
+    ), // e06
+    (
+        "2025-03-16 22_54_27.png",
+        [1817, 173, 408, 1086],
+        [1820, 173, 402, 1086],
+    ), // e07
     // MC-079 adds `n05` of MC-077's fresh draw, `2025-10-26 12_13_16.png`, the
     // one entry MC-078 read per file, moved to `tuning` (MC-079 AC-1), last in
     // manifest order. **Measured, not chosen**: `process_file`'s crop at

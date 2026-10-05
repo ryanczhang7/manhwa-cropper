@@ -67,7 +67,14 @@ const MIN_ENTRIES: usize = 20;
 /// 2026-10-03** ("Raise it to 140 MiB"). The corpus was 125,214,051 bytes
 /// (119.4 MiB) before MC-077's third fresh draw, and the 10 drawn files add
 /// 13,041,341 bytes, which brings it to about 131.9 MiB: over 120, under 140.
-const MAX_BYTES: u64 = 140 * 1024 * 1024;
+///
+/// **Raised from 140 MiB to 160 MiB by MC-081, on the user's ruling of
+/// 2026-10-04** ("Raise cap to 160 MiB"). The corpus directory was 138,257,315
+/// bytes (131.9 MiB) with its manifest before MC-081, and the seven Eleceed
+/// screenshots where the app cropped the wrong window add 10,184,577 bytes,
+/// which with the manifest's seven new entries brings it to 148,443,198 bytes
+/// (141.6 MiB): over 140, under 160.
+const MAX_BYTES: u64 = 160 * 1024 * 1024;
 
 /// MC-018 AC-3. The union of every entry's tags must cover all nine; extra
 /// tags are valid and deliberately not constrained.
@@ -269,7 +276,7 @@ fn all_art_and_mostly_white_entries_expect_a_flag_and_not_a_rect() {
 // --- AC-4: the corpus stays clonable ----------------------------------------
 
 #[test]
-fn the_whole_corpus_fits_under_one_hundred_and_forty_mebibytes() {
+fn the_whole_corpus_fits_under_one_hundred_and_sixty_mebibytes() {
     let dir = corpus::dir();
     let total: u64 = fs::read_dir(&dir)
         .unwrap_or_else(|err| panic!("reading {}: {err}", dir.display()))
@@ -284,7 +291,8 @@ fn the_whole_corpus_fits_under_one_hundred_and_forty_mebibytes() {
          this repository clonable without LFS (MC-062 raised it from 60 to 100 \
          MiB, the user's request of 2026-09-30; MC-068 from 100 to 120 MiB, the \
          user's answer of 2026-10-01; MC-077 from 120 to 140 MiB, the user's \
-         answer of 2026-10-03, \"Raise it to 140 MiB\")",
+         answer of 2026-10-03, \"Raise it to 140 MiB\"; MC-081 from 140 to 160 \
+         MiB, the user's ruling of 2026-10-04, \"Raise cap to 160 MiB\")",
         total as f64 / 1_048_576.0,
         MAX_BYTES as f64 / 1_048_576.0
     );
@@ -1466,8 +1474,11 @@ fn no_held_out_reader_is_absent_from_both_the_pre_epic_07_set_and_tuning() {
 /// MC-068's fresh draw that MC-071 read per file. A hundred and thirteen
 /// since MC-077, which moved the other 11 of that draw once MC-071 had spent
 /// it. A hundred and fourteen since MC-079, which moved the one entry of
-/// MC-077's fresh draw that MC-078 read per file.
-const READER_BY_FILE: [(&str, &str); 114] = [
+/// MC-077's fresh draw that MC-078 read per file. A hundred and twenty-one
+/// since MC-081, which adds the seven Eleceed screenshots where the app
+/// cropped the wrong window ([`MC081_REPORTED`]), all `toongod`, the reader
+/// the user named on the *Eleceed Marking* page.
+const READER_BY_FILE: [(&str, &str); 121] = [
     ("2025-02-27 22_46_15.png", "toongod"),
     ("2025-03-03 11_06_04.png", "toongod"),
     ("2025-03-03 11_24_19.png", "toongod"),
@@ -1619,6 +1630,16 @@ const READER_BY_FILE: [(&str, &str); 114] = [
     // held-out, read out of the manifest at `6343029`, and equal to
     // FRESH_HELD_OUT's row `n05`.
     ("2025-10-26 12_13_16.png", "toongod"),
+    // MC-081: the seven Eleceed screenshots, `e01`..`e07`, with the reader the
+    // user named for each on 2026-10-04 (MC-081 `## Notes`, "Frozen marks";
+    // MC081_REPORTED's rows).
+    ("2025-03-16 22_56_00.png", "toongod"),
+    ("2025-03-07 00_20_37.png", "toongod"),
+    ("2025-03-07 01_02_31.png", "toongod"),
+    ("2025-03-16 22_48_01.png", "toongod"),
+    ("2025-03-16 22_51_37.png", "toongod"),
+    ("2025-03-16 22_51_49.png", "toongod"),
+    ("2025-03-16 22_54_27.png", "toongod"),
 ];
 
 /// MC-042 AC-1, the same labelling summarised: `(reader, tuning, of which
@@ -1731,8 +1752,14 @@ const READER_BY_FILE: [(&str, &str); 114] = [
 /// `2025-10-26 12_13_16.png` (`n05`, `toongod`). `toongod` goes from
 /// `52, 45, 7, 5` to `53, 46, 7, 4`; no other row moves, and no reader is
 /// re-attributed. Sums: `tuning` 114 (100 marked, 14 flag), `held-out` 9.
+///
+/// **MC-081, 2026-10-04.** The seven Eleceed screenshots where the app cropped
+/// the wrong window arrive in `tuning`, all marked and all `toongod` (the
+/// user's answer on the *Eleceed Marking* page). `toongod` goes from
+/// `53, 46, 7, 4` to `60, 53, 7, 4`; no other row moves, and no reader is
+/// re-attributed. Sums: `tuning` 121 (107 marked, 14 flag), `held-out` 9.
 const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
-    ("toongod", 53, 46, 7, 4),
+    ("toongod", 60, 53, 7, 4),
     ("w-network", 12, 6, 6, 1),
     ("demonicrevolution", 16, 16, 0, 0),
     ("rolia-scans", 18, 17, 1, 2),
@@ -1817,7 +1844,11 @@ const READER_LABELS: [(&str, usize, usize, usize, usize); 7] = [
 /// **MC-080 moves one mark**, by the user's ruling of 2026-10-04, in their
 /// words *"Box starts at 974"*: `n05` (`2025-10-26 12_13_16.png`) from
 /// `973,167 600x1233` to `974,167 599x1233`, as in [`FRESH_HELD_OUT`].
-const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 100] = [
+///
+/// **MC-081 moves no mark.** It adds the seven Eleceed screenshots where the
+/// app cropped the wrong window, with the marks [`MC081_REPORTED`] freezes for
+/// them.
+const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 107] = [
     // MC-076: the top moves down 1 row by the user's ruling of 2026-10-02:
     // row 114 is browser bar. Bottom unchanged at 1330. Was `958,114 631x1216`.
     ("2025-08-05 00_11_13.webp", 958, 115, 631, 1215),
@@ -1971,6 +2002,16 @@ const MARKED_TUNING_RECTS: [(&str, u32, u32, u32, u32); 100] = [
     // MC-080 AC-1: `n05` re-marked by the user's ruling of 2026-10-04, in
     // their words "Box starts at 974". It was `973,167 600x1233`.
     ("2025-10-26 12_13_16.png", 974, 167, 599, 1233),
+    // MC-081: the seven Eleceed screenshots, `e01`..`e07`, with the marks the
+    // user froze on 2026-10-04 (MC-081 `## Notes`, "Frozen marks";
+    // MC081_REPORTED's rows).
+    ("2025-03-16 22_56_00.png", 768, 115, 267, 1277),
+    ("2025-03-07 00_20_37.png", 737, 115, 345, 1284),
+    ("2025-03-07 01_02_31.png", 610, 115, 600, 1284),
+    ("2025-03-16 22_48_01.png", 768, 115, 267, 1277),
+    ("2025-03-16 22_51_37.png", 702, 115, 400, 1277),
+    ("2025-03-16 22_51_49.png", 702, 115, 400, 1277),
+    ("2025-03-16 22_54_27.png", 802, 115, 200, 1277),
 ];
 
 /// The entries in `split` carrying `site:<reader>`, in manifest order.
@@ -2744,7 +2785,10 @@ const MC077_SPENT_HELD_OUT: [&str; 11] = [
 ///
 /// **100 marked since MC-079**, which moved the one marked entry MC-078 read
 /// per file (MC-079 AC-1). The flags do not move.
-const TUNING_MARKED: usize = 100;
+///
+/// **107 marked since MC-081**, whose seven Eleceed screenshots are all marked
+/// `tuning` entries (MC-081 AC-2). The flags do not move.
+const TUNING_MARKED: usize = 107;
 const TUNING_FLAGS: usize = 14;
 
 /// MC-068 AC-2 and AC-5: after the move, `held-out` holds this many marked
@@ -2780,8 +2824,8 @@ const MC079_READ_PER_FILE: [&str; 1] = ["2025-10-26 12_13_16.png"];
 /// MC-077: the image files in the corpus directory, `manifest.json` aside,
 /// one manifest entry each. 113 from MC-069 to MC-076 (MC-072 AC-1: "no file
 /// is added to or removed from `fixtures/corpus/`"); 123 since MC-077 added
-/// its 10.
-const CORPUS_FILES: usize = 123;
+/// its 10; 130 since MC-081 added its seven (MC-081 AC-1).
+const CORPUS_FILES: usize = 130;
 
 /// The tags a drawn entry must carry, sorted: `dark-theme`, `png`,
 /// `site:<site>`, and the gutter tag the user's gap answer gives (MC-062 AC-2,
@@ -3066,8 +3110,8 @@ fn the_spent_held_out_entries_are_tuning_and_held_out_holds_only_the_fresh_draw(
 // --- MC-077: the counts after the move ----------------------------------------
 
 #[test]
-fn tuning_holds_one_hundred_marked_and_fourteen_flags_and_held_out_nine_marked_across_four_readers()
-{
+fn tuning_holds_one_hundred_and_seven_marked_and_fourteen_flags_and_held_out_nine_marked_across_four_readers()
+ {
     let entries = corpus::load();
 
     // Held-out by reader, so the failure says which reader gained or lost.
@@ -3120,17 +3164,19 @@ fn tuning_holds_one_hundred_marked_and_fourteen_flags_and_held_out_nine_marked_a
 
     assert_eq!(
         measured, recorded,
-        "MC-077 AC-2, AC-4 and AC-5, as MC-079 AC-1 moves them: with MC-068's \
-         draw spent and all 15 of it `tuning`, `tuning` holds 100 marked and 14 \
-         flag entries (99 + 14 until MC-079 moved the one MC-078 read per file; \
-         88 + 14 until MC-077 moved 11; 84 + 14 until MC-072 moved four; 70 + 14 \
-         until MC-069 added 14; 49 + 14 until MC-068 moved 21), and `held-out` \
-         is the other 9 of MC-077's 10, all marked, no flag, across 4 readers - \
-         `toongod` 4, `rolia-scans` 2, `xbato` 2, `w-network` 1 (10 across 4 \
-         until MC-079; 11 across 3 until MC-077). The corpus holds 123 images, \
-         one manifest entry each (113 until MC-077 added its 10). Which \
-         entries, and with which marks, is the fresh-set and spent-set tests' \
-         job; this is the summary a person reads first"
+        "MC-077 AC-2, AC-4 and AC-5, as MC-079 AC-1 and MC-081 AC-1 and AC-2 \
+         move them: with MC-068's draw spent and all 15 of it `tuning`, \
+         `tuning` holds 107 marked and 14 flag entries (100 + 14 until MC-081 \
+         added its seven Eleceed screenshots; 99 + 14 until MC-079 moved the \
+         one MC-078 read per file; 88 + 14 until MC-077 moved 11; 84 + 14 until \
+         MC-072 moved four; 70 + 14 until MC-069 added 14; 49 + 14 until MC-068 \
+         moved 21), and `held-out` is the other 9 of MC-077's 10, all marked, \
+         no flag, across 4 readers - `toongod` 4, `rolia-scans` 2, `xbato` 2, \
+         `w-network` 1 (10 across 4 until MC-079; 11 across 3 until MC-077). \
+         The corpus holds 130 images, one manifest entry each (123 until \
+         MC-081 added its seven; 113 until MC-077 added its 10). Which \
+         entries, and with which marks, is the fresh-set, spent-set and \
+         reported-set tests' job; this is the summary a person reads first"
     );
 }
 
@@ -3205,12 +3251,13 @@ fn the_entry_mc078_read_per_file_is_tuning_and_the_other_nine_stay_held_out() {
          2025-10-26 12_13_16, `toongod`, mark 974,167 599x1233 since MC-080 \
          (973,167 600x1233 until the user ruled \"Box starts at 974\") - is `tuning` \
          (the user, 2026-10-04: \"9 boxes, 4 sites\"), and no other fresh entry \
-         is: the other 9 stay `held-out`. So `tuning` holds 100 marked and 14 \
-         flag entries (99 + 14 until MC-079 moved one), and `held-out` 9 marked \
-         and 0 flag across 4 readers - `toongod` 4, `rolia-scans` 2, `xbato` 2, \
-         `w-network` 1 (10 across 4 until MC-079). The corpus adds no file: 123 \
-         images, one manifest entry each. Its `expect` and tags are MC-077's \
-         frozen FRESH_HELD_OUT row, checked by the fresh-set test"
+         is: the other 9 stay `held-out`. So `tuning` holds 107 marked and 14 \
+         flag entries (100 + 14 until MC-081 added its seven; 99 + 14 until \
+         MC-079 moved one), and `held-out` 9 marked and 0 flag across 4 readers \
+         - `toongod` 4, `rolia-scans` 2, `xbato` 2, `w-network` 1 (10 across 4 \
+         until MC-079). MC-079 added no file; MC-081 added seven: 130 images, \
+         one manifest entry each. Its `expect` and tags are MC-077's frozen \
+         FRESH_HELD_OUT row, checked by the fresh-set test"
     );
 }
 
@@ -3435,5 +3482,136 @@ fn every_screenshot_the_app_called_ambiguous_is_one_tuning_entry_with_the_users_
          (`dark-theme` for toongod's five and (2705), `light-theme` for \
          demonicrevolution's eight), `png`, its `site:` and the gutter its gap \
          answer gives. Each row is `file: what differs`"
+    );
+}
+
+// --- MC-081 AC-1, AC-2: seven Eleceed screenshots where the app cropped the --
+// --- wrong window ------------------------------------------------------------
+
+/// MC-081 AC-1 and AC-2. The seven of the user's Eleceed screenshots
+/// (`C:\Users\ryanc\OneDrive\Pictures\Screenshots 1\Eleceed`, reported on
+/// 2026-10-04), `e01`..`e07`, where two browser windows sit side by side - the
+/// `toongod` reader on the left and YouTube on the right - and the app cropped
+/// the right-hand window (six of them) or kept the bookmarks bar and taskbar
+/// (`e03`). Of the five byte-identical crops of one paused video frame only
+/// `2025-03-16 22_51_37.png` is taken (the user's ruling, "Raise cap to 160
+/// MiB"); the four repeats are not in the corpus.
+///
+/// The marks are the ones the user froze on 2026-10-04 on the *Eleceed
+/// Marking* page (MC-081 `## Notes`, "Frozen marks"): pre-marked by the Lead PO
+/// from the left window's pixels, kept unchanged by the user, and confirmed
+/// with the theme, gap and reader for each. **This is the oracle, not a
+/// derivation**; a change to a row is an Amendment.
+///
+/// The byte counts are MC-081 `## Context`'s. The SHA-256 of each original,
+/// in full (`sha256sum`, 2026-10-04), is in the comment beside its row; no
+/// hashing crate is in this workspace, so the copy is checked against it with
+/// `sha256sum` and `cmp` when it is made (MC-068's and MC-069's arrangement),
+/// and the byte count and the header are what a test here holds.
+///
+/// All seven are `tuning`, never `held-out`: the app's failure chose them
+/// (MC-069's precedent; the user's ruling "Fix story + blind draw").
+const MC081_REPORTED: [Reported; 7] = [
+    // sha256 fe868cf544f1f9564c1507e9cef74c50175f91306bcba155f4aeba12cbab943a
+    Reported {
+        file: "2025-03-16 22_56_00.png",
+        bytes: 1_288_729,
+        rect: (768, 115, 267, 1277),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // e01
+    // sha256 5d35fabde146c5ce1668a5ba079ecf3f0c510ab74824170de20736d3d704ead7
+    Reported {
+        file: "2025-03-07 00_20_37.png",
+        bytes: 1_438_993,
+        rect: (737, 115, 345, 1284),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // e02
+    // sha256 6b77d8528248dcce99c63ac1c1fb4c5d1d560cbd1d6aeefc386590cec494e71b
+    Reported {
+        file: "2025-03-07 01_02_31.png",
+        bytes: 1_544_637,
+        rect: (610, 115, 600, 1284),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::Black,
+    }, // e03
+    // sha256 953ec5bb087a8d990d87e0910fa67f2ed1359f60e456c07f44616f99f1b74ee9
+    Reported {
+        file: "2025-03-16 22_48_01.png",
+        bytes: 1_559_899,
+        rect: (768, 115, 267, 1277),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // e04
+    // sha256 35b90d53adafd28406c9fdfee47f0ae608dcc09cb76aeb455fff0a4ce1b48544
+    Reported {
+        file: "2025-03-16 22_51_37.png",
+        bytes: 1_412_175,
+        rect: (702, 115, 400, 1277),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::White,
+    }, // e05
+    // sha256 0b898be244f34ec50907e7edf30e40197718a15658f430919bda9b4f3c4cddcf
+    Reported {
+        file: "2025-03-16 22_51_49.png",
+        bytes: 1_707_446,
+        rect: (702, 115, 400, 1277),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // e06
+    // sha256 3c618663b6005146c7c53d0c6839134c0cac990ec2690712522c876cf7279d7a
+    Reported {
+        file: "2025-03-16 22_54_27.png",
+        bytes: 1_232_698,
+        rect: (802, 115, 200, 1277),
+        site: "toongod",
+        theme: Theme::Dark,
+        gap: Gap::None,
+    }, // e07
+];
+
+#[test]
+fn every_eleceed_screenshot_where_the_app_cropped_the_wrong_window_is_in_the_corpus_at_its_original_size()
+ {
+    assert_eq!(
+        files_wrong(MC081_REPORTED.iter().map(|r| (r.file, r.bytes))),
+        Vec::<String>::new(),
+        "MC-081 AC-1: each of the seven Eleceed screenshots where the app \
+         cropped the wrong window (e01..e07) must be in fixtures/corpus/ under \
+         its own name, byte for byte the size of the original (SHA-256 checked \
+         against MC081_REPORTED's comments when copied) and a {}x{} \
+         whole-screen capture. Each row is `file: what differs`",
+        FRESH_DIMENSIONS.0,
+        FRESH_DIMENSIONS.1
+    );
+}
+
+#[test]
+fn every_eleceed_screenshot_where_the_app_cropped_the_wrong_window_is_one_tuning_entry_with_the_users_mark_and_tags()
+ {
+    let entries = corpus::load();
+    assert_eq!(
+        entries_wrong(
+            &entries,
+            MC081_REPORTED
+                .iter()
+                .map(|r| (r.file, r.rect, reported_tags(r))),
+            Split::Tuning,
+        ),
+        Vec::<String>::new(),
+        "MC-081 AC-2: each of the seven must be exactly one `tuning` manifest \
+         entry (never `held-out`: the app's failure chose them) whose `expect` \
+         is the box the user froze on 2026-10-04 (MC-081 `## Notes`, \"Frozen \
+         marks\") and whose tags are exactly `dark-theme`, `png`, \
+         `site:toongod` and the gutter its gap answer gives (`black-gutter` for \
+         e03, `white-gutter` for e05, none for the other five). Each row is \
+         `file: what differs`"
     );
 }

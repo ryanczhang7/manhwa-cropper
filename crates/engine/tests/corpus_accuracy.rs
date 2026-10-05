@@ -251,7 +251,27 @@ const KNOWN_MISSES: [&str; 3] = [
 /// `2025-10-20 15_37_25.png`. Its mark is `974,167 599x1233`, which its crop
 /// at margin 0 already equals, so AC-1 judges it like every other entry. Its
 /// pin was `[974, 167, 599, 1233]`. The list is empty, and stays exact.
-const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), in manifest
+/// order, each the crop that clips its mark: six of the right-hand (YouTube)
+/// window, and `e03` (`2025-03-07 01_02_31.png`) of the manhwa's window at full
+/// height, starting at column 727 against a page that starts at 610.
+/// **Measured, not chosen**: read out of one run on `ebdedd7` (release,
+/// margin_px 0) in MC-081's RED, on a scratch copy with the seven files and
+/// entries added; they equal the crops the Lead PO measured on `main`. They
+/// are held here for [`KNOWN_CLIPS`] only: none is in [`KNOWN_MISSES`],
+/// because AC-2's bar holds with all seven counted as misses (MC-081
+/// `## Handoff`), so no test needs them there. MC-082 and MC-083 take them
+/// off.
+const MC064_CROPS: [(&str, [u32; 4]); 7] = [
+    ("2025-03-16 22_56_00.png", [1820, 121, 402, 1138]), // e01
+    ("2025-03-07 00_20_37.png", [1936, 0, 609, 1440]),   // e02
+    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]),    // e03
+    ("2025-03-16 22_48_01.png", [1820, 121, 402, 1138]), // e04
+    ("2025-03-16 22_51_37.png", [1820, 0, 402, 1400]),   // e05
+    ("2025-03-16 22_51_49.png", [1820, 179, 402, 1080]), // e06
+    ("2025-03-16 22_54_27.png", [1820, 173, 402, 1086]), // e07
+];
 
 /// MC-064, the user's ruling of 2026-09-30: the two of [`MC064_CROPS`] whose
 /// crop clips the mark, AC-1's only known exceptions. **Exact in both
@@ -283,7 +303,20 @@ const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 /// `974,167 599x1233` (*"Box starts at 974"*, 2026-10-04), which its crop
 /// already equals, so it no longer clips. The list is empty, and stays exact
 /// both ways: no known clip is left.
-const KNOWN_CLIPS: [&str; 0] = [];
+///
+/// **MC-081 adds all seven** of its Eleceed screenshots (its AC-4), each held
+/// to its measured pin in [`MC064_CROPS`]: six cropped to the right-hand
+/// (YouTube) window, and `e03` cut 117 columns short on the left. MC-082 and
+/// MC-083 take them off.
+const KNOWN_CLIPS: [&str; 7] = [
+    "2025-03-16 22_56_00.png",
+    "2025-03-07 00_20_37.png",
+    "2025-03-07 01_02_31.png",
+    "2025-03-16 22_48_01.png",
+    "2025-03-16 22_51_37.png",
+    "2025-03-16 22_51_49.png",
+    "2025-03-16 22_54_27.png",
+];
 
 /// MC-064: every one of `names` whose crop in `rows` is not exactly its pin in
 /// [`MC064_CROPS`], as a row naming both. `Scored::got` is compared as text,
@@ -711,7 +744,7 @@ fn no_corpus_crop_cuts_into_the_artwork_its_manifest_entry_marked() {
     let moved = mc064_crops_moved(&rows, &KNOWN_CLIPS);
     assert!(
         moved.is_empty(),
-        "MC-064, MC-072, MC-079: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3) must \
+        "MC-064, MC-072, MC-079, MC-081: each known clip (KNOWN_CLIPS; the user's rulings of 2026-09-30 and 2026-10-02, MC-079 AC-3, MC-081 AC-4) must \
          still be cropped to exactly its pin in MC064_CROPS - if a fix moves one, \
          take it off the list and let AC-1 judge it:\n{}\n\n{rendered}",
         moved.join("\n")

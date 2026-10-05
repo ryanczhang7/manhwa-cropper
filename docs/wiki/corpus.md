@@ -4,9 +4,9 @@ MC-018 built it; MC-033 wrote this page. **This is the corpus's one written
 source of truth** — the rule the rectangles were drawn to, what the tags mean,
 and where the recorded numbers are less precise than they look.
 
-The corpus is 123 real screenshots in `fixtures/corpus/` with one
+The corpus is 130 real screenshots in `fixtures/corpus/` with one
 `fixtures/corpus/manifest.json` entry each: a hand-marked rectangle, or
-`"flag"` for a screenshot that should be left alone. 114 are `tuning` and 9 are
+`"flag"` for a screenshot that should be left alone. 121 are `tuning` and 9 are
 `held-out`. Since MC-079 (2026-10-04), `held-out` means only 9 of the 10 fresh
 screenshots drawn blind by MC-077 (see "The third fresh held-out set: MC-077"
 below); the tenth, read per file by MC-078, is `tuning`. Every earlier
@@ -1185,15 +1185,83 @@ Its new first column, 974, reads as art (share 0.161). It stays in
 `STAGE_MEASURED` and `MAIN_CROPS`, which are not exception lists. MC-078's
 held-out score is spent and is not re-computed under the amended mark.
 
+### Two windows side by side, the app cropping the wrong one: MC-081, 2026-10-04
+
+**The report.** The user ran the app on their Eleceed folder (2560x1440
+screenshots, the `toongod` reader). Many of those screenshots show two
+browser windows side by side: the manhwa reader on the left and YouTube on
+the right. They sent 11 of the app's crops. Matched by SHA-256 to the app's
+output folder:
+- ten crop the YouTube window instead of the manhwa page;
+- one, `2025-03-07 01_02_31.png`, crops the manhwa at full height, keeping
+  the bookmarks bar and taskbar, and starts at column 727 against a page at
+  610, so it also cuts 117 columns of art.
+
+Five of the 11 (`2025-03-16 22_51_37`, `22_53_39`, `22_53_55`, `22_54_13`,
+`22_54_55`) give a byte-identical crop, the same paused video frame. Only
+`22_51_37` is taken.
+
+**The user's rulings.** **"Fix story + blind draw"**: their screenshots
+join `tuning` through fix stories (MC-082 for the wrong window, MC-083 for
+`01_02_31`). They were chosen because the app failed on them, so they can
+never be held out (MC-069's rule). The next held-out score comes from a
+blind draw of the same folder (MC-084). **"Raise cap to 160 MiB"**:
+`MAX_BYTES` goes from 140 to 160 MiB, and the corpus is now 148,443,198
+bytes (141.6 MiB).
+
+**How the marks were made.** The Lead PO pre-marked each box from the
+**left** window's pixels, not from the app's crop. The site tone is the
+most common value; the page columns are the widest run off that tone; the
+rows are where both margins sit at that tone. The user checked every box on a
+marking page (the *Eleceed Marking* Artifact) and kept all seven unchanged.
+They set theme, gaps and site; a blank gaps answer means no gutter tag.
+
+| id | File | expect | tags |
+|---|---|---|---|
+| e01 | `2025-03-16 22_56_00.png` | `768,115 267x1277` | `dark-theme`, `png`, `site:toongod` |
+| e02 | `2025-03-07 00_20_37.png` | `737,115 345x1284` | `dark-theme`, `png`, `site:toongod` |
+| e03 | `2025-03-07 01_02_31.png` | `610,115 600x1284` | `dark-theme`, `black-gutter`, `png`, `site:toongod` |
+| e04 | `2025-03-16 22_48_01.png` | `768,115 267x1277` | `dark-theme`, `png`, `site:toongod` |
+| e05 | `2025-03-16 22_51_37.png` | `702,115 400x1277` | `dark-theme`, `white-gutter`, `png`, `site:toongod` |
+| e06 | `2025-03-16 22_51_49.png` | `702,115 400x1277` | `dark-theme`, `png`, `site:toongod` |
+| e07 | `2025-03-16 22_54_27.png` | `802,115 200x1277` | `dark-theme`, `png`, `site:toongod` |
+
+**New counts:** tuning 121, that is 107 marked and 14 flag. Held-out is
+unchanged at 9 marked across 4 readers.
+
+**Known exceptions, exact in both directions, until MC-082 and MC-083
+land.** Each is pinned to its crop on `main` at both margins. At margin 0
+the six wrong-window crops are e01, e04 `1820,121 402x1138`; e02
+`1936,0 609x1440`; e05 `1820,0 402x1400`; e06 `1820,179 402x1080`; e07
+`1820,173 402x1086`. e03 is `727,0 483x1440`.
+- **All seven:** `KNOWN_CLIPS` in `corpus.rs`; `KNOWN_CLIPS` and
+  `MC064_CROPS` in `corpus_accuracy.rs` and `corpus_sides.rs`; `KNOWN_CLIPS`
+  in `corpus_viewport.rs` (both margins); and their rows in `MAIN_CROPS`.
+- **e01, e04, e06, e07:** the new `KNOWN_ROW_CLIPS` in `corpus_sides.rs`.
+  Their crops' rows do not contain the mark's 115..1392. Their
+  `STAGE_MEASURED` rows are the **right-hand window's** rows, pinned as the
+  stage returns them.
+- **e02, e03, e05:** `STAGE_DECLINED`.
+- **e05:** its bottom is in `MARGIN_REACHED_SIDES` (`corpus_sides.rs`), a
+  self-check list that is carrying a known defect. MC-082 takes it off.
+- **Nowhere:** `KNOWN_MISSES` is not needed. With all seven counted as
+  misses, the bar reads 109 of 118 (92.4 %).
+
+**What no suite judges.** e03's kept bookmarks bar and taskbar fail no
+`tuning` test: the viewport stage declines beside its column, so no row
+check applies. Only its 117-column clip is caught. The same is true of e02
+and e05. Adding the check is MC-083's job.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
 and checks the corpus is *well formed*: every file present and decodable, every
 rectangle inside its image, the nine required tags covered, every tag in the
-vocabulary above, the `diagonal-gutter` list exact, the whole set under 140 MiB
-(60 MiB until MC-062, 100 MiB until MC-068, 120 MiB until MC-077, each raised at
+vocabulary above, the `diagonal-gutter` list exact, the whole set under 160 MiB
+(60 MiB until MC-062, 100 MiB until MC-068, 120 MiB until MC-077, 140 MiB until
+MC-081, each raised at
 the user's request; the corpus is 107.2 MiB after MC-068, 119.4 MiB after
-MC-069 and 131.9 MiB after MC-077).
+MC-069, 131.9 MiB after MC-077 and 141.6 MiB after MC-081).
 
 It cannot check that a rectangle is correct. When an accuracy run reports a
 clip or a miss, the mark is as likely to be the thing that is wrong as the
