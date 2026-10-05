@@ -83,7 +83,6 @@ use std::cell::OnceCell;
 
 use crate::edges::{
     Axis, col_profile, row_profile, spread_within, strong_lines, textured_runs, textured_span,
-    widest_textured_run,
 };
 use crate::viewport;
 use crate::{Luma, Rect, Tuning};
@@ -230,6 +229,40 @@ fn narrow(img: &Luma, rect: Rect, axis: Axis, t: &Tuning) -> Rect {
 // `2025-08-05 00_11_13.webp`, have no run framed on both sides. Over all 121
 // `tuning` entries at MC-082 the rule moved the six to the user's marks and
 // nothing else. The same predicate, read once more; no new constant.
+//
+// # A flat stretch inside the page is not page margin (MC-083)
+//
+// A run ends at the first column below `min_line_spread`, and art can be flat
+// over the band too. On `2025-03-07 01_02_31.png` (`e03`) the page's own art
+// is near-black from column 710 to 729: band median 0, flat, and 11 levels
+// from the site tone 11 - one more than `uniform_tolerance`. The page
+// (610..1210) comes out as two runs, 610..709 and 730..1210. The wider was
+// widened left only to 727: its next column is flat and carries the page's
+// tone on, so branch 3 below reads the viewport beside the run, and beside
+// 730..1210 the viewport stage declines, because the art 610..726 is in the
+// margin it reads. The crop cut 117 columns of art and, the viewport
+// declining beside it too, kept the bookmarks bar and the taskbar.
+//
+// So before the runs are ranked, two neighbouring runs are **joined** when no
+// column between them is page margin - page background over the band (MC-049's
+// predicate) with its median within `uniform_tolerance` of the page background
+// tone. What separates the page from a second window, a sidebar or a
+// scrollbar is page margin; what separates two parts of the page is art,
+// flat or not. The tone is read beside **each** of the two runs on its own,
+// and a gap column is margin if it is margin by either. It is never read
+// beside the joined span: where a textured sliver sits at the image's edge,
+// the span sliver-plus-page leaves the second window as the only pixels
+// beside it, the tone reads 42 instead of the site's 11, and the site's own
+// columns stop counting as margin - the sliver, the page and the second
+// window became one run (MC-066's and MC-082's generated scenes; MC-083's
+// `## Notes`). Each pair is judged on its own two runs, so a chain of joins
+// never reads a tone beside anything wider than one original run.
+//
+// The widest-first ranking and MC-082's both-sides, one-side, widest choice
+// then run over the joined runs, unchanged. Over all 121 `tuning` entries at
+// both margins the rule moved `e03` to the user's mark and nothing else
+// (`corpus_tuning_crops_unmoved.rs`). The predicate, the tone and the
+// tolerance are the ones branch 1 and MC-066's rule read; no new constant.
 //
 // # Where the page column ends: at the margin, not at the threshold (MC-053)
 //
@@ -446,12 +479,15 @@ pub fn page_column(img: &Luma, within: Rect, t: &Tuning) -> Rect {
 pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect> {
     let band = central_band(within, t);
     let spread = spread_within(img, band, Axis::Columns);
-    // Widest first. The sort is stable, so of two runs of equal width the
-    // earlier stays first: `widest_textured_run`'s tie-break, which is what
-    // makes the first candidate exactly the run MC-027's rule takes.
-    let mut runs = textured_runs(&spread, t);
+    // MC-083: neighbouring runs with no page margin between them are one
+    // page. Then widest first. The sort is stable, so of two runs of equal
+    // width the earlier stays first: `widest_textured_run`'s tie-break.
+    // Where nothing is joined the first candidate is exactly the run MC-027's
+    // rule takes; where something is, it is the joined page, which
+    // `widest_textured_run` over the same profile cannot see, so the two are
+    // no longer asserted equal.
+    let mut runs = join_across_art(img, within, band, textured_runs(&spread, t), t);
     runs.sort_by_key(|&(first, last)| std::cmp::Reverse(last - first));
-    debug_assert_eq!(runs.first().copied(), widest_textured_run(&spread, t));
 
     // MC-082 first, then MC-066, then MC-027: the first run framed by page
     // margin on both sides, else the first with it on one, else the widest.
@@ -489,6 +525,63 @@ pub(crate) fn locate_column(img: &Luma, within: Rect, t: &Tuning) -> Option<Rect
         w: last - first + 1,
         ..within
     })
+}
+
+/// `runs`, in ascending order as [`textured_runs`] gives them, with each run
+/// joined to the one before it where **no** column between the two is page
+/// margin (MC-083, the section comment's "A flat stretch inside the page").
+///
+/// A gap column is page margin when it is page background over the band
+/// (MC-049's predicate) and its band median is within `uniform_tolerance` of
+/// the page background tone read beside **either** of the two runs - each
+/// run on its own, never the joined span, whose tone can be the second
+/// window's. Each pair is judged on its own runs, so a chain of joins never
+/// reads a tone beside anything wider than one original run.
+fn join_across_art(
+    img: &Luma,
+    within: Rect,
+    band: Rect,
+    runs: Vec<(usize, usize)>,
+    t: &Tuning,
+) -> Vec<(usize, usize)> {
+    let rows = band.y..band.y + band.h;
+    let tol = t.uniform_tolerance;
+    let image_column = |i: usize| within.x + i as u32;
+    // Read only where a gap holds a flat column, which on most pages is never.
+    let tone = |(first, last): (usize, usize)| {
+        let run = Rect {
+            x: image_column(first),
+            w: (last - first + 1) as u32,
+            ..within
+        };
+        viewport::page_background_tone(img, run)
+    };
+    let mut joined: Vec<(usize, usize)> = Vec::with_capacity(runs.len());
+    let mut previous: Option<(usize, usize)> = None;
+    for run in runs {
+        let art_between = previous.is_some_and(|before| {
+            let flat: Vec<u8> = (before.1 + 1..run.0)
+                .map(|i| column_background(img, image_column(i), rows.clone(), tol))
+                .filter_map(|(median, background)| background.then_some(median))
+                .collect();
+            if flat.is_empty() {
+                return true;
+            }
+            let tones = [tone(before), tone(run)];
+            !flat.iter().any(|median| {
+                tones
+                    .iter()
+                    .flatten()
+                    .any(|tone| median.abs_diff(*tone) <= tol)
+            })
+        });
+        match joined.last_mut() {
+            Some(last) if art_between => last.1 = run.1,
+            _ => joined.push(run),
+        }
+        previous = Some(run);
+    }
+    joined
 }
 
 /// The first and last image column, both inclusive, of `run` widened outward

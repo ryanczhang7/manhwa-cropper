@@ -736,10 +736,19 @@ const MAIN_CROPS: [(&str, [u32; 4], [u32; 4]); 107] = [
         [734, 115, 351, 1284],
         [737, 115, 345, 1284],
     ), // e02
+    // MC-083 re-pins `e03` (its AC-2). **Derived from the oracle, not
+    // measured or chosen**, as MC-082's six were: at margin 0 the crop is the
+    // user's mark `610,115 600x1284` exactly (MC-081's frozen table; zero
+    // clips, and the columns beside the mark are the site's 11); at margin 3
+    // the columns widen by 3 on each side and the rows stay the mark's, which
+    // are exactly the user's `T..B` 115..1399 (MC-083 AC-1), where the
+    // viewport stage clamps them. A scratch trial of the fix in MC-083's RED
+    // produced exactly these crops. It was `[724, 0, 489, 1440]` /
+    // `[727, 0, 483, 1440]`: 117 columns of art cut, at full height.
     (
         "2025-03-07 01_02_31.png",
-        [724, 0, 489, 1440],
-        [727, 0, 483, 1440],
+        [607, 115, 606, 1284],
+        [610, 115, 600, 1284],
     ), // e03
     (
         "2025-03-16 22_48_01.png",
@@ -837,6 +846,81 @@ fn mc052s_two_split_screens_are_pinned_at_their_measured_crops() {
              MAIN_CROPS at its measured crops (margin_px 3, margin_px 0) - it must not move"
         );
     }
+}
+
+/// MC-083 AC-2: the split-screen entries its fix must not move, named, each
+/// `(id, file, [x, y, w, h] at margin_px 3, at margin_px 0)` at its
+/// [`MAIN_CROPS`] row on `565c3c9` (MC-083's RED): `n06` (MC-075), `n02`
+/// (MC-074), MC-052's two, `f13` and `f18` (MC-066). Copied from the table,
+/// not measured afresh: the corpus test below is what holds the crops to
+/// these rows, and this check is what stops a re-pin of any of them.
+const MC083_SPLIT_SCREENS: [(&str, &str, [u32; 4], [u32; 4]); 6] = [
+    (
+        "n06",
+        "2025-03-13 12_01_01.png",
+        [695, 115, 406, 1277],
+        [698, 115, 400, 1277],
+    ),
+    (
+        "n02",
+        "2025-03-07 00_05_58.png",
+        [640, 115, 539, 1284],
+        [643, 115, 533, 1284],
+    ),
+    (
+        "MC-052",
+        "2025-03-07 00_58_06.png",
+        [667, 115, 486, 1284],
+        [670, 115, 480, 1284],
+    ),
+    (
+        "MC-052",
+        "2025-03-06 01_22_45.png",
+        [640, 115, 539, 1259],
+        [643, 115, 533, 1259],
+    ),
+    (
+        "f13",
+        "2025-03-16 22_47_44.png",
+        [632, 115, 539, 1277],
+        [635, 115, 533, 1277],
+    ),
+    (
+        "f18",
+        "2025-03-06 12_48_06.png",
+        [648, 115, 523, 1284],
+        [651, 115, 517, 1284],
+    ),
+];
+
+/// MC-083 AC-2: the six split-screen entries are named in this check and
+/// held to their crops on `main`. [`MAIN_CROPS`] must carry each exactly once
+/// at its [`MC083_SPLIT_SCREENS`] row, so that the corpus test below fails if
+/// one moves and a re-pin of one fails here. No decode: it reads the two
+/// tables only, so it runs in the `unit` gate.
+#[test]
+fn mc083s_six_split_screens_are_pinned_at_their_crops_on_main() {
+    let wrong: Vec<String> = MC083_SPLIT_SCREENS
+        .iter()
+        .filter_map(|&(id, file, m3, m0)| {
+            let pinned: Vec<([u32; 4], [u32; 4])> = MAIN_CROPS
+                .iter()
+                .filter(|(name, _, _)| *name == file)
+                .map(|&(_, a, b)| (a, b))
+                .collect();
+            (pinned != vec![(m3, m0)]).then(|| {
+                format!(
+                    "{file} ({id}): MAIN_CROPS pins {pinned:?}, must be exactly [({m3:?}, {m0:?})]"
+                )
+            })
+        })
+        .collect();
+    assert!(
+        wrong.is_empty(),
+        "MC-083 AC-2: the split-screen entries must be pinned exactly once in MAIN_CROPS at \
+         their crops on main (margin_px 3, margin_px 0) - none may move:\n{}",
+        wrong.join("\n")
+    );
 }
 
 /// The marked `tuning` entries, in manifest order. Never `held-out`.

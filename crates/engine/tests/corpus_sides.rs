@@ -224,9 +224,11 @@ const KNOWN_NOT_CROPPED: [&str; 0] = [];
 /// `e04`), `[1936, 0, 609, 1440]` (`e02`), `[1820, 0, 402, 1400]` (`e05`),
 /// `[1820, 179, 402, 1080]` (`e06`) and `[1820, 173, 402, 1086]` (`e07`).
 /// `e03` stays, MC-083's.
-const MC064_CROPS: [(&str, [u32; 4]); 1] = [
-    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]), // e03
-];
+///
+/// MC-083 took `e03` off this list and off [`KNOWN_CLIPS`] (its AC-2): its
+/// crop keeps the whole page now, so AC-1, AC-2 and AC-4 here judge it like
+/// every other entry. Its pin was `[727, 0, 483, 1440]`. The list is empty.
+const MC064_CROPS: [(&str, [u32; 4]); 0] = [];
 
 /// MC-064, the user's ruling of 2026-09-30 (its Open question 1, *"List them
 /// as known"*): AC-2's known clips, the two of [`MC064_CROPS`] whose crop does
@@ -267,7 +269,10 @@ const MC064_CROPS: [(&str, [u32; 4]); 1] = [
 /// MC-082 took the six right-hand-window crops off (its AC-2): `e01`, `e02`,
 /// `e04`..`e07` crop to their marks now. `e03` stays, MC-083's. The list
 /// stays exact both ways.
-const KNOWN_CLIPS: [&str; 1] = ["2025-03-07 01_02_31.png"];
+///
+/// MC-083 took `e03` off (its AC-2): its crop keeps the whole page now. The
+/// list is empty, and stays exact both ways: no known clip is left.
+const KNOWN_CLIPS: [&str; 0] = [];
 
 /// MC-081 AC-4: AC-4's known row clips here,
 /// `(file, [x, y, w, h] at margin_px 3, [x, y, w, h] at margin_px 0)`, in

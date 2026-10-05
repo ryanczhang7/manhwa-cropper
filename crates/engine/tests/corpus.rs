@@ -391,9 +391,13 @@ const STRIP_AMBIGUOUS_AT_THE_BAND: [&str; 14] = [
 /// `[1820, 0, 402, 1400]` (`e05`), `[1820, 179, 402, 1080]` (`e06`) and
 /// `[1820, 173, 402, 1086]` (`e07`). `e03` stays, MC-083's. The list stays
 /// exact in both directions.
-const KNOWN_CLIPS: [(&str, [u32; 4]); 1] = [
-    ("2025-03-07 01_02_31.png", [727, 0, 483, 1440]), // e03, 117 columns cut
-];
+///
+/// MC-083 took `e03` off (its AC-2): its page is no longer split in two at
+/// the near-black stretch of its own art, so the crop keeps the whole page
+/// within the user's `T..B` and these tests judge it like every other entry.
+/// Its pin was `[727, 0, 483, 1440]` (117 columns cut). The list is empty,
+/// and stays exact in both directions: no known clip is left anywhere.
+const KNOWN_CLIPS: [(&str, [u32; 4]); 0] = [];
 
 /// The pinned crop of a [`KNOWN_CLIPS`] entry, if `name` is one.
 fn known_clip(name: &str) -> Option<Rect> {

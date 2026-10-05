@@ -1266,6 +1266,20 @@ No other `tuning` crop moved. The exception lists above now hold e03 alone,
 the bar reads 115 of 118 (97.5 %). AC-1 lives in `corpus_reader_window.rs`
 and the generated cause in `crates/core/tests/page_column_one_sided_margin.rs`.
 
+**MC-083 took e03 off, 2026-10-05.** The cause, measured: columns 710..729
+of e03's own art are near-black (band median 0), flat over the band, and 11
+levels from the site tone 11, one more than `uniform_tolerance`. Stage 3c
+therefore saw the page as two runs, 610..709 and 730..1210, and widened the
+wider one left only to 727, because the viewport stage declined beside it
+with the art's left part in its margin. That declined viewport is also why
+the bookmarks bar and taskbar were kept. Now two neighbouring textured runs
+are joined when no column between them is page margin, the tone read
+beside each run. e03 crops to its mark at margin 0 (`610,115 600x1284`),
+inside rows 115..1399 and left of the seam at 1828. No other `tuning` crop
+moved. Every `KNOWN_CLIPS` list is now empty, and so is `STAGE_DECLINED`.
+AC-1 joined `corpus_reader_window.rs`, and the generated cause is
+`crates/core/tests/page_column_dark_stretch.rs`.
+
 ## What the tests can and cannot say
 
 `crates/engine/tests/corpus_manifest.rs` runs in the **required `unit`** gate
