@@ -16,6 +16,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The harness's own tests, and they run FIRST - before check-boundaries.sh,
+      # because they guard the machinery that script is built out of: the phase
+      # lock, the path classifier, the quote-aware command parsing. They live
+      # here rather than in gates.yml (windows-latest, for the product) because
+      # a full run is ~21-27 min of process spawn on Windows and ~31 s on Linux,
+      # measured upstream on the same suites. They need only bash and git.
+      - name: Harness self-test
+        run: bash scripts/selftest.sh
+
       # The checkout here is a detached merge commit, so the script takes the
       # story from GITHUB_HEAD_REF (set by Actions) and recomputes the gate tree
       # hash at the PR head rather than at the merge.
