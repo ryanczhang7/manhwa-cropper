@@ -30,11 +30,10 @@ jobs:
           tool: cargo-llvm-cov
       - uses: Swatinem/rust-cache@v2
 
-      # The harness's own tests. They need nothing but bash and git, and they
-      # guard the machinery every other check in this workflow depends on: the
-      # phase lock, the path classifier, the quote-aware command parsing.
-      - name: Harness self-test
-        run: bash scripts/selftest.sh
+      # The harness self-test is NOT here: it runs in boundaries.yml, on
+      # ubuntu-latest. It needs only bash and git, and this job is Windows for
+      # the product's sake, where the self-test is ~21-27 min of process spawn
+      # against ~31 s on Linux. Do not move it back.
 
       - name: Show configured gates
         run: bash scripts/gates.sh --list
