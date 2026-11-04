@@ -35,6 +35,10 @@ rfd = { workspace = true }
 # `OUT_DIR`, so no raster is drawn, exported or committed by hand
 # (docs/wiki/design/icon.md, "Rasters").
 resvg = { workspace = true }
+# MC-087: `build.rs` also writes the five-size `.ico` and a one-statement `.rc`
+# into `OUT_DIR`; this compiles the `.rc` with `rc.exe` and links it into the
+# bin, so the exe carries the icon for Explorer.
+embed-resource = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }
