@@ -65,6 +65,8 @@ which keeps the build reproducible and offline.
 | `rfd` | `0.17` | `0.17.2` | app | Native Windows folder picker (`IFileDialog`) - the one control that must look like Windows because it *is* Windows. |
 | `tempfile` | `3` (dev) | `3.27.0` | all | Temp directories for file I/O tests. |
 | `proptest` | `1` (dev) | `1.11.0` | core | The never-clip invariant is a property over generated fixtures, not an example. |
+| `resvg` | `0.49` (build) - planned, pinned in MC-086's GREEN | `0.49.0` (2026-11-03) | app `build.rs` | Rasterises the app icon's SVG (`design/icon.md`) at build time, so no raster is drawn or pasted by hand. Pure Rust; a build-dependency only, so nothing of it ships in the exe. GREEN records the added cold-build time. |
+| `embed-resource` | `3` (build) - planned, pinned in MC-087's GREEN | `3.0.12` (2026-11-03) | app `build.rs` | Compiles the `.rc` that embeds the icon into the exe for Explorer. Calls the Windows SDK's `rc.exe` (present here under `Windows Kits\10\bin\10.0.26100.0\x64`, and on CI's `windows-latest`): the one exception to "no C toolchain beyond the MSVC linker", taken because the SDK ships with that linker. |
 
 Deliberately not used: `clap` (three flags; a 40-line parser in the engine
 crate is testable and saves a dependency), `imageproc`/`opencv` (row and column

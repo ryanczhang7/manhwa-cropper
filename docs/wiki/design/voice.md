@@ -11,6 +11,8 @@ number. Rules:
 - One instruction exists in the whole product (the empty drop zone). It
   reads as a sentence fragment, not a tip.
 - No exclamation marks anywhere. No emoji, no icons standing in for words.
+  (This is about the window's contents. The app's own icon on the taskbar and
+  in Explorer is not a word-substitute and is allowed; see `icon.md`.)
 - No tooltips. Every string is visible or it does not exist.
 - Numbers are digits. Nouns after a count do not inflect (`1 cropped`,
   `0 flagged`), which is why the counts use adjectives.
