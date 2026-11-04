@@ -110,6 +110,11 @@ const SIZE_MONO: f32 = 13.0;
 const WINDOW_SIZE: [f32; 2] = [520.0, 440.0];
 /// Minimum inner size the OS will allow, logical px (`layout.md`).
 const WINDOW_MIN_SIZE: [f32; 2] = [400.0, 320.0];
+/// Edge of the window icon, px: the 256 raster (`icon.md`, "Rasters").
+const ICON_SIZE: u32 = 256;
+/// The window icon's pixels: `assets/icon.svg` rendered by `build.rs` at
+/// `ICON_SIZE`, RGBA with straight alpha, row-major (`icon.md`).
+const ICON_RGBA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icon-256.rgba"));
 
 /// The single character a truncated path is cut with (`layout.md`,
 /// `…\Pictures\cropped`). Not a string from `voice.md`'s table - it is the
@@ -188,13 +193,24 @@ const fn palette(dark_mode: bool) -> Palette {
 
 // --- The window --------------------------------------------------------------
 
-/// What the OS is asked for when the window opens (`layout.md`, "Window").
+/// What the OS is asked for when the window opens (`layout.md`, "Window"),
+/// with the icon from `icon.md`.
 #[must_use]
 pub fn viewport() -> egui::ViewportBuilder {
     egui::ViewportBuilder::default()
         .with_title(window_title())
         .with_inner_size(WINDOW_SIZE)
         .with_min_inner_size(WINDOW_MIN_SIZE)
+        .with_icon(window_icon())
+}
+
+/// The icon the title bar, the taskbar button and alt-tab show (`icon.md`).
+fn window_icon() -> egui::IconData {
+    egui::IconData {
+        rgba: ICON_RGBA.to_vec(),
+        width: ICON_SIZE,
+        height: ICON_SIZE,
+    }
 }
 
 /// Apply `tokens.md` to `ctx`, once, at startup.

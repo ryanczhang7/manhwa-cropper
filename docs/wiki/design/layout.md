@@ -13,7 +13,7 @@ except the native folder dialog.
 | Maximum | none; resizable in both axes |
 | Decorations | native Windows title bar and frame; no custom chrome |
 | Position | OS default on every launch; not remembered (eframe persistence off - the only files the app writes are the output folder's contents and `settings.json`, per `architecture.md`) |
-| Icon | none in v1 (the exe's default) |
+| Icon | crop corners (`icon.md`): on the window and taskbar via `ViewportBuilder::with_icon` (MC-086), and embedded in the exe for Explorer and shortcuts (MC-087). Approved by the user 2026-11-03; it replaces the v1 decision "none (the exe's default)" |
 | Scaling | egui points; Windows display scaling (100-200 %) applies on top and is not compensated for |
 
 ## The column
