@@ -30,6 +30,12 @@ cropper-core = { workspace = true }
 # has been in `[workspace.dependencies]` since MC-001, unused until now.
 rfd = { workspace = true }
 
+[build-dependencies]
+# MC-086: `build.rs` renders `assets/icon.svg` to the 256 x 256 window icon in
+# `OUT_DIR`, so no raster is drawn, exported or committed by hand
+# (docs/wiki/design/icon.md, "Rasters").
+resvg = { workspace = true }
+
 [dev-dependencies]
 egui_kittest = { workspace = true }
 # MC-012: tests/headless.rs reaches the engine's fixture generator with
